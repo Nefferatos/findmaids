@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
-const tokenSchema = z.string().min(32).max(128).regex(/^[a-f0-9]+$/i);
+const tokenSchema = z
+  .string()
+  .min(32)
+  .max(128)
+  .regex(/^[a-f0-9]+$/i);
 
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get("token");
@@ -31,5 +35,11 @@ export async function GET(request: Request) {
       data: { consumedAt: new Date() },
     }),
   ]);
-  return NextResponse.redirect(new URL("/login?verified=success", request.url));
+  const user = await prisma.user.findUnique({
+    where: { id: record.userId },
+    select: { role: true },
+  });
+  const destination =
+    user?.role === "AGENCY" ? "/agency/onboarding" : "/login?verified=success";
+  return NextResponse.redirect(new URL(destination, request.url));
 }

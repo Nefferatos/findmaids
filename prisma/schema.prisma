@@ -18,6 +18,7 @@ enum UserRole {
 enum AgencyStatus {
   PENDING
   APPROVED
+  NEEDS_CHANGES
   SUSPENDED
 }
 
@@ -34,12 +35,19 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  EXPIRED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
 }
 
 enum AdPlacementType {
   FEATURED
   HOMEPAGE
   SEARCH
+  CATEGORY_TOP
 }
 
 enum AdPlacementStatus {
@@ -100,21 +108,24 @@ enum HandoffStatus {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String?
-  email         String         @unique
-  passwordHash  String?
-  emailVerified DateTime?
-  image         String?
-  role          UserRole       @default(VISITOR)
-  agencies      Agency[]
-  conversations Conversation[]
-  aiCallLogs    AiCallLog[]
-  auditLogs     AuditLog[]
-  verificationTokens EmailVerificationToken[]
-  passwordResetTokens PasswordResetToken[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                      String                   @id @default(cuid())
+  name                    String?
+  email                   String                   @unique
+  passwordHash            String?
+  emailVerified           DateTime?
+  image                   String?
+  role                    UserRole                 @default(VISITOR)
+  notificationPreferences Json?
+  agencies                Agency[]
+  conversations           Conversation[]
+  aiCallLogs              AiCallLog[]
+  auditLogs               AuditLog[]
+  verificationTokens      EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  dataDeletionRequests    DataDeletionRequest[]
+  agencyOnboardingDraft   AgencyOnboardingDraft?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   @@index([role])
 }
@@ -129,6 +140,7 @@ model Agency {
   logoUrl             String?
   bannerUrl           String?
   licenseNumber       String?
+  yearEstablished     Int?
   address             String
   city                String
   province            String
@@ -136,11 +148,16 @@ model Agency {
   whatsapp            String?
   email               String
   website             String?
+  facebook            String?
   services            String[]
   nationalitiesServed String[]
   languages           String[]
   status              AgencyStatus        @default(PENDING)
   verifiedBadge       Boolean             @default(false)
+  adminNote           String?             @db.Text
+  profileCompleteness Int                 @default(0)
+  onboardingStep      Int                 @default(1)
+  submittedAt         DateTime?
   photos              AgencyPhoto[]
   subscriptions       Subscription[]
   adPlacements        AdPlacement[]
@@ -156,8 +173,19 @@ model Agency {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
+  @@unique([ownerId])
   @@index([city, province, status])
   @@index([status, verifiedBadge])
+}
+
+model AgencyOnboardingDraft {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data        Json     @default("{}")
+  currentStep Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model AgencyPhoto {
@@ -174,37 +202,44 @@ model AgencyPhoto {
 }
 
 model Plan {
-  id              String         @id @default(cuid())
-  name            String         @unique
-  priceMonthly    Decimal        @db.Decimal(10, 2)
-  priceYearly     Decimal        @db.Decimal(10, 2)
-  features        Json
-  listingPriority Int            @default(0)
-  featuredSlots   Int            @default(0)
-  maxPhotos       Int            @default(5)
-  leadLimit       Int?
-  isActive        Boolean        @default(true)
-  subscriptions   Subscription[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                     String         @id @default(cuid())
+  name                   String         @unique
+  priceMonthly           Decimal        @db.Decimal(10, 2)
+  priceYearly            Decimal        @db.Decimal(10, 2)
+  features               Json
+  listingPriority        Int            @default(0)
+  featuredSlots          Int            @default(0)
+  maxPhotos              Int            @default(5)
+  leadLimit              Int?
+  isActive               Boolean        @default(true)
+  subscriptions          Subscription[]
+  scheduledSubscriptions Subscription[] @relation("ScheduledPlan")
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   @@index([isActive, listingPriority])
 }
 
 model Subscription {
-  id          String             @id @default(cuid())
-  agencyId    String
-  agency      Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  planId      String
-  plan        Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  status      SubscriptionStatus @default(PENDING)
-  startDate   DateTime
-  endDate     DateTime?
-  autoRenew   Boolean            @default(false)
-  providerRef String?
-  payments    Payment[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id                   String             @id @default(cuid())
+  agencyId             String
+  agency               Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  status               SubscriptionStatus @default(PENDING)
+  startDate            DateTime
+  endDate              DateTime?
+  autoRenew            Boolean            @default(false)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  graceEndsAt          DateTime?
+  scheduledPlanId      String?
+  downgradeEffectiveAt DateTime?
+  scheduledPlan        Plan?              @relation("ScheduledPlan", fields: [scheduledPlanId], references: [id], onDelete: SetNull)
+  billingPeriod        BillingPeriod      @default(MONTHLY)
+  providerRef          String?
+  payments             Payment[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   @@index([agencyId, status])
   @@index([planId, status])
@@ -220,6 +255,11 @@ model Payment {
   status         PaymentStatus @default(PENDING)
   provider       String
   providerRef    String?
+  checkoutRef    String?
+  billingPeriod  BillingPeriod @default(MONTHLY)
+  invoiceUrl     String?
+  expiresAt      DateTime?
+  prorated       Boolean       @default(false)
   invoiceNumber  String        @unique
   paidAt         DateTime?
   createdAt      DateTime      @default(now())
@@ -247,47 +287,49 @@ model AdPlacement {
 }
 
 model Enquiry {
-  id           String        @id @default(cuid())
-  agencyId     String
-  agency       Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  name         String
-  email        String
-  phone        String?
-  message      String        @db.Text
+  id                 String        @id @default(cuid())
+  agencyId           String
+  agency             Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  name               String
+  email              String
+  phone              String?
+  message            String        @db.Text
   preferredStartDate DateTime?
-  budget       Decimal?      @db.Decimal(10, 2)
-  status       EnquiryStatus @default(NEW)
-  consentGiven Boolean       @default(false)
-  source       EnquirySource @default(WEB)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  budget             Decimal?      @db.Decimal(10, 2)
+  status             EnquiryStatus @default(NEW)
+  consentGiven       Boolean       @default(false)
+  privateNotes       String?       @db.Text
+  anonymizedAt       DateTime?
+  source             EnquirySource @default(WEB)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@index([agencyId, status, createdAt])
   @@index([email])
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
   consumedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([userId, expiresAt])
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
   consumedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([userId, expiresAt])
 }
@@ -303,16 +345,20 @@ model RateLimitBucket {
 }
 
 model Review {
-  id         String       @id @default(cuid())
-  agencyId   String
-  agency     Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  authorName String
-  rating     Int
-  title      String
-  body       String       @db.Text
-  status     ReviewStatus @default(PENDING)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  agencyId        String
+  agency          Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  authorName      String
+  rating          Int
+  title           String
+  body            String       @db.Text
+  status          ReviewStatus @default(PENDING)
+  agencyReply     String?      @db.Text
+  agencyRepliedAt DateTime?
+  reportedAt      DateTime?
+  reportReason    String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   @@index([agencyId, status, createdAt])
 }
@@ -470,4 +516,50 @@ model HandoffRequest {
 
   @@index([conversationId, status])
   @@index([status, createdAt])
+}
+
+model PaymentWebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  eventType   String
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, eventId])
+  @@index([eventType, processedAt])
+}
+
+model SubscriptionNotice {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  noticeType     String
+  sentAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([subscriptionId, noticeType])
+  @@index([sentAt])
+}
+
+model InvoiceSequence {
+  year      Int      @id
+  lastValue Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DataDeletionRequest {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  reason    String?  @db.Text
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
 }

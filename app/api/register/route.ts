@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     await prisma.user.findUnique({ where: { email }, select: { id: true } })
   ) {
     return NextResponse.json(
-      { message: "If the address is eligible, verification instructions will be sent." },
+      {
+        message:
+          "If the address is eligible, verification instructions will be sent.",
+      },
       { status: 201 },
     );
   }
@@ -49,6 +52,11 @@ export async function POST(request: Request) {
       role: parsed.data.accountType === "agency" ? "AGENCY" : "VISITOR",
     },
   });
+  if (parsed.data.accountType === "agency") {
+    await prisma.agencyOnboardingDraft.create({
+      data: { userId: user.id, currentStep: 1, data: {} },
+    });
+  }
   const rawToken = randomBytes(32).toString("hex");
   await prisma.emailVerificationToken.create({
     data: {
