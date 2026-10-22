@@ -1,16 +1,32 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { cookies } from "next/headers";
+import { verifyImpersonationCookie } from "@/lib/impersonation";
 import { prisma } from "@/lib/prisma";
 
 export async function requireOwnedAgency() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  if (session.user.role === "ADMIN") {
+    const cookieJar = await cookies();
+    const impersonation = await verifyImpersonationCookie(
+      cookieJar.get("fm-admin-impersonation")?.value,
+    );
+    if (impersonation && impersonation.adminId === session.user.id) {
+      const agency = await prisma.agency.findFirst({
+        where: { id: impersonation.agencyId, ownerId: impersonation.userId },
+      });
+      if (agency)
+        return { user: session.user, agency, readOnly: true as const };
+    }
+    redirect("/admin");
+  }
   if (session.user.role !== "AGENCY") redirect("/");
   const agency = await prisma.agency.findUnique({
     where: { ownerId: session.user.id },
   });
   if (!agency) redirect("/agency/onboarding");
-  return { user: session.user, agency };
+  return { user: session.user, agency, readOnly: false as const };
 }
 
 export function calculateProfileCompleteness(profile: {

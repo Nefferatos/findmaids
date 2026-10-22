@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { enquirySubmissionSchema } from "@/lib/validation";
 import { checkLeadLimit } from "@/lib/payments/domain";
+import { hasBlockedPattern, hashBlockValue } from "@/lib/moderation";
 
 async function verifyTurnstile(token: string | undefined, request: Request) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
       { error: "Please check the enquiry details and consent." },
       { status: 400 },
     );
+  const clientIp = request.headers.get("cf-connecting-ip") ?? ip;
+  if (await hasBlockedPattern({ email: parsed.data.email, phone: parsed.data.phone, ip: clientIp }))
+    return NextResponse.json({ error: "Enquiry submission unavailable." }, { status: 403 });
   if (parsed.data.website)
     return NextResponse.json({ message: "Enquiry received." });
   if (!(await verifyTurnstile(parsed.data.turnstileToken, request)))
@@ -95,6 +99,7 @@ export async function POST(request: Request) {
       phone: parsed.data.phone || null,
       message: parsed.data.message,
       consentGiven: true,
+      sourceIpHash: hashBlockValue(clientIp),
       source: "WEB",
       preferredStartDate: parsed.data.preferredStartDate,
       budget: parsed.data.budget,

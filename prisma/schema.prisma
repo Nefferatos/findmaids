@@ -12,6 +12,7 @@ datasource db {
 enum UserRole {
   VISITOR
   AGENCY
+  STAFF
   ADMIN
 }
 
@@ -19,6 +20,7 @@ enum AgencyStatus {
   PENDING
   APPROVED
   NEEDS_CHANGES
+  REJECTED
   SUSPENDED
 }
 
@@ -32,10 +34,19 @@ enum SubscriptionStatus {
 
 enum PaymentStatus {
   PENDING
+  PENDING_BANK_TRANSFER
+  PARTIAL
   PAID
   FAILED
   REFUNDED
   EXPIRED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
 }
 
 enum BillingPeriod {
@@ -115,6 +126,11 @@ model User {
   emailVerified           DateTime?
   image                   String?
   role                    UserRole                 @default(VISITOR)
+  disabled                Boolean                  @default(false)
+  totpSecret              String?
+  totpPendingSecret       String?
+  totpEnabled             Boolean                  @default(false)
+  totpVerifiedAt          DateTime?
   notificationPreferences Json?
   agencies                Agency[]
   conversations           Conversation[]
@@ -124,6 +140,10 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   dataDeletionRequests    DataDeletionRequest[]
   agencyOnboardingDraft   AgencyOnboardingDraft?
+  reportsCreated          Report[]                 @relation("ReportCreator")
+  reportsResolved         Report[]                 @relation("ReportResolver")
+  verifiedAgencies        Agency[]                 @relation("AgencyVerifier")
+  manualPayments          Payment[]                @relation("PaymentReconciler")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -158,6 +178,12 @@ model Agency {
   profileCompleteness Int                 @default(0)
   onboardingStep      Int                 @default(1)
   submittedAt         DateTime?
+  rejectedAt          DateTime?
+  rejectionReason     String?             @db.Text
+  approvalChecklist   Json?
+  verifiedAt          DateTime?
+  verifiedById        String?
+  verifiedBy          User?               @relation("AgencyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   photos              AgencyPhoto[]
   subscriptions       Subscription[]
   adPlacements        AdPlacement[]
@@ -247,23 +273,35 @@ model Subscription {
 }
 
 model Payment {
-  id             String        @id @default(cuid())
-  subscriptionId String
-  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  amount         Decimal       @db.Decimal(10, 2)
-  currency       String        @default("PHP") @db.VarChar(3)
-  status         PaymentStatus @default(PENDING)
-  provider       String
-  providerRef    String?
-  checkoutRef    String?
-  billingPeriod  BillingPeriod @default(MONTHLY)
-  invoiceUrl     String?
-  expiresAt      DateTime?
-  prorated       Boolean       @default(false)
-  invoiceNumber  String        @unique
-  paidAt         DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  subscriptionId     String
+  subscription       Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount             Decimal       @db.Decimal(10, 2)
+  currency           String        @default("PHP") @db.VarChar(3)
+  status             PaymentStatus @default(PENDING)
+  provider           String
+  providerRef        String?
+  checkoutRef        String?
+  billingPeriod      BillingPeriod @default(MONTHLY)
+  invoiceUrl         String?
+  expiresAt          DateTime?
+  prorated           Boolean       @default(false)
+  bankReference      String?
+  referenceCode      String?       @unique
+  bankNotes          String?       @db.Text
+  proofUrl           String?
+  receivedAmount     Decimal?      @db.Decimal(10, 2)
+  receivedAt         DateTime?
+  reconciledById     String?
+  reconciledBy       User?         @relation("PaymentReconciler", fields: [reconciledById], references: [id], onDelete: SetNull)
+  reconciliationNote String?       @db.Text
+  refundAmount       Decimal?      @db.Decimal(10, 2)
+  refundReason       String?       @db.Text
+  creditNoteNumber   String?
+  invoiceNumber      String        @unique
+  paidAt             DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@index([subscriptionId, status])
   @@index([provider, providerRef])
@@ -300,6 +338,7 @@ model Enquiry {
   consentGiven       Boolean       @default(false)
   privateNotes       String?       @db.Text
   anonymizedAt       DateTime?
+  sourceIpHash       String?
   source             EnquirySource @default(WEB)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -349,6 +388,8 @@ model Review {
   agencyId        String
   agency          Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   authorName      String
+  reviewerEmail   String?
+  authorIpHash    String?
   rating          Int
   title           String
   body            String       @db.Text
@@ -386,12 +427,59 @@ model AuditLog {
   entity    String
   entityId  String?
   metadata  Json?
+  before    Json?
+  after     Json?
+  ipAddress String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, createdAt])
   @@index([agencyId, createdAt])
   @@index([entity, entityId])
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String?
+  reporter       User?        @relation("ReportCreator", fields: [reporterId], references: [id], onDelete: SetNull)
+  agencyId       String?
+  reviewId       String?
+  targetType     String
+  targetId       String
+  reason         String       @db.Text
+  status         ReportStatus @default(OPEN)
+  resolutionNote String?      @db.Text
+  resolvedById   String?
+  resolvedBy     User?        @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@index([agencyId, status])
+}
+
+model BlockList {
+  id        String   @id @default(cuid())
+  type      String
+  valueHash String   @unique
+  reason    String   @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, active])
+}
+
+model AdminSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedById])
 }
 
 model Conversation {

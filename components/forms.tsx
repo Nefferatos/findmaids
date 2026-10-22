@@ -33,6 +33,7 @@ export function LoginForm() {
     const result = await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
+      totp: formData.get("totp"),
       redirect: false,
       redirectTo: callbackUrl,
     });
@@ -68,6 +69,10 @@ export function LoginForm() {
           required
           maxLength={128}
         />
+      </label>
+      <label className="block text-sm font-semibold">
+        Authenticator code (ADMIN accounts with 2FA)
+        <input className={inputClass} name="totp" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} />
       </label>
       <Status state={state} />
       <button className="bg-primary min-h-11 w-full rounded-md px-4 font-bold text-white hover:brightness-90">
@@ -386,6 +391,10 @@ export function ReviewForm({ agencyId }: { agencyId: string }) {
           maxLength={100}
         />
       </label>
+        <label className="block text-sm font-semibold">
+          Email (optional)
+          <input className={inputClass} name="reviewerEmail" type="email" maxLength={254} autoComplete="email" />
+        </label>
       <label className="block text-sm font-semibold">
         Rating
         <select className={inputClass} name="rating" required defaultValue="5">

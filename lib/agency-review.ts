@@ -1,5 +1,9 @@
 import type { AgencyStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+
+export function approvalQueueAgeHours(submittedAt: Date, now = new Date()) {
+  return Math.floor((now.getTime() - submittedAt.getTime()) / 3_600_000);
+}
 import { sendEmail } from "@/lib/email";
 
 export async function changeAgencyReviewStatus(
