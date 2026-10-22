@@ -1,0 +1,201 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authorizeAdminApi } from "@/lib/admin-auth";
+import { prisma } from "@/lib/prisma";
+
+const dateSchema = z.iso.date();
+
+export async function GET(request: Request) {
+  const access = await authorizeAdminApi("reports");
+  if (!access.user)
+    return NextResponse.json(
+      { error: "ADMIN reports permission required." },
+      { status: access.status },
+    );
+  const params = new URL(request.url).searchParams;
+  const fromRaw = params.get("from");
+  const toRaw = params.get("to");
+  if (
+    (fromRaw && !dateSchema.safeParse(fromRaw).success) ||
+    (toRaw && !dateSchema.safeParse(toRaw).success)
+  )
+    return NextResponse.json(
+      { error: "Use YYYY-MM-DD dates." },
+      { status: 400 },
+    );
+  const from = fromRaw
+    ? new Date(`${fromRaw}T00:00:00.000Z`)
+    : new Date(Date.now() - 30 * 86_400_000);
+  const to = toRaw ? new Date(`${toRaw}T23:59:59.999Z`) : new Date();
+  if (to < from)
+    return NextResponse.json(
+      { error: "End date must be after start date." },
+      { status: 400 },
+    );
+  const [
+    payments,
+    subscriptions,
+    agencies,
+    reviews,
+    topAgencies,
+    overdue,
+    enquiries,
+  ] = await Promise.all([
+    prisma.payment.findMany({
+      where: { createdAt: { gte: from, lte: to } },
+      include: { subscription: { include: { plan: true, agency: true } } },
+      take: 5000,
+    }),
+    prisma.subscription.groupBy({
+      by: ["status"],
+      where: { createdAt: { gte: from, lte: to } },
+      _count: { id: true },
+    }),
+    prisma.agency.groupBy({
+      by: ["status"],
+      where: { createdAt: { gte: from, lte: to } },
+      _count: { id: true },
+    }),
+    prisma.review.groupBy({
+      by: ["status"],
+      where: { createdAt: { gte: from, lte: to } },
+      _count: { id: true },
+    }),
+    prisma.analyticsEvent.groupBy({
+      by: ["agencyId"],
+      where: { agencyId: { not: null }, createdAt: { gte: from, lte: to } },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 20,
+    }),
+    prisma.subscription.findMany({
+      where: {
+        status: { in: ["PAST_DUE", "EXPIRED"] },
+        endDate: { lte: to },
+      },
+      include: {
+        agency: { select: { name: true } },
+        plan: { select: { name: true } },
+      },
+      take: 500,
+    }),
+    prisma.enquiry.findMany({
+      where: { createdAt: { gte: from, lte: to } },
+      include: { agency: { select: { city: true, services: true } } },
+      take: 10000,
+    }),
+  ]);
+  const revenueByProvider = new Map<string, number>();
+  const revenueByPlan = new Map<string, number>();
+  const revenueByMonth = new Map<string, number>();
+  for (const payment of payments.filter((item) => item.status === "PAID")) {
+    const amount = Number(payment.amount);
+    revenueByProvider.set(
+      payment.provider,
+      (revenueByProvider.get(payment.provider) ?? 0) + amount,
+    );
+    revenueByPlan.set(
+      payment.subscription.plan.name,
+      (revenueByPlan.get(payment.subscription.plan.name) ?? 0) + amount,
+    );
+    const month = (payment.paidAt ?? payment.createdAt)
+      .toISOString()
+      .slice(0, 7);
+    revenueByMonth.set(month, (revenueByMonth.get(month) ?? 0) + amount);
+  }
+  const agenciesById = new Map(
+    (
+      await prisma.agency.findMany({
+        where: {
+          id: { in: topAgencies.map((item) => item.agencyId!).filter(Boolean) },
+        },
+        select: { id: true, name: true, city: true },
+      })
+    ).map((agency) => [agency.id, agency]),
+  );
+  const rows = [...revenueByMonth]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, revenue]) => ({ month, revenue }));
+  const leadsByCity = new Map<string, number>();
+  const leadsBySource = new Map<string, number>();
+  const leadsByService = new Map<string, number>();
+  const leadsByStatus = new Map<string, number>();
+  for (const enquiry of enquiries) {
+    leadsByCity.set(
+      enquiry.agency.city,
+      (leadsByCity.get(enquiry.agency.city) ?? 0) + 1,
+    );
+    leadsBySource.set(
+      enquiry.source,
+      (leadsBySource.get(enquiry.source) ?? 0) + 1,
+    );
+    leadsByStatus.set(
+      enquiry.status,
+      (leadsByStatus.get(enquiry.status) ?? 0) + 1,
+    );
+    for (const service of enquiry.agency.services)
+      leadsByService.set(service, (leadsByService.get(service) ?? 0) + 1);
+  }
+  if (params.get("format") === "csv") {
+    const quote = (value: unknown) =>
+      `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csvRows: (string | number | undefined)[][] = [
+      ["metric", "key", "value"],
+      ...[...revenueByProvider].map(([key, value]) => [
+        "revenue_provider",
+        key,
+        value,
+      ]),
+      ...[...revenueByPlan].map(([key, value]) => ["revenue_plan", key, value]),
+      ...rows.map((row) => ["revenue_month", row.month, row.revenue]),
+      ...topAgencies.map((row) => [
+        "agency_events",
+        agenciesById.get(row.agencyId!)?.name,
+        Number(row._count.id),
+      ]),
+    ];
+    const csv = csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": "attachment; filename=findmaids-report.csv",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
+  return NextResponse.json({
+    from,
+    to,
+    revenueTotal: payments
+      .filter((item) => item.status === "PAID")
+      .reduce((sum, item) => sum + Number(item.amount), 0),
+    revenueByProvider: Object.fromEntries(revenueByProvider),
+    revenueByPlan: Object.fromEntries(revenueByPlan),
+    revenueByMonth: rows,
+    subscriptionGrowth: subscriptions,
+    agencyGrowth: agencies,
+    moderation: reviews,
+    leadsByCity: Object.fromEntries(leadsByCity),
+    leadsBySource: Object.fromEntries(leadsBySource),
+    leadsByService: Object.fromEntries(leadsByService),
+    leadsByStatus: Object.fromEntries(leadsByStatus),
+    enquiryCount: enquiries.length,
+    contactedConversionRate: enquiries.length
+      ? (enquiries.filter(
+          (item) => item.status === "CONTACTED" || item.status === "CLOSED",
+        ).length /
+          enquiries.length) *
+        100
+      : 0,
+    topAgencies: topAgencies.map((item) => ({
+      agency: agenciesById.get(item.agencyId!),
+      eventCount: Number(item._count.id),
+    })),
+    overdue: overdue.map((item) => ({
+      agency: item.agency.name,
+      plan: item.plan.name,
+      status: item.status,
+      endDate: item.endDate,
+    })),
+  });
+}

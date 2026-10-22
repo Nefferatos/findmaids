@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { rotateFeatured, scoreAgency } from "@/lib/ranking";
+import { getRankingWeights, rotateFeatured, scoreAgency } from "@/lib/ranking";
 
 export type DirectoryFilters = {
   city?: string;
@@ -77,6 +77,7 @@ export async function getDirectoryPage(
 ) {
   const where = buildAgencyWhere(filters);
   const now = new Date();
+  const weights = await getRankingWeights();
   const agencies = await prisma.agency.findMany({
     where,
     include: {
@@ -131,7 +132,7 @@ export async function getDirectoryPage(
           ? agency.profileCompleteness / 100
           : completeness,
       daysSinceActivity: (Date.now() - agency.updatedAt.getTime()) / 86_400_000,
-    });
+    }, weights);
     return {
       ...agency,
       rating: average,

@@ -29,6 +29,7 @@ export const enquirySubmissionSchema = z.object({
 export const reviewSubmissionSchema = z.object({
   agencyId: z.string().min(1),
   authorName: z.string().trim().min(2).max(100),
+  reviewerEmail: z.string().trim().email().max(254).optional().or(z.literal("")),
   rating: z.coerce.number().int().min(1).max(5),
   title: z.string().trim().min(3).max(120),
   body: z.string().trim().min(10).max(3000),

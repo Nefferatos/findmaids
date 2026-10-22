@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/prisma";
+
 export const rankingWeights = {
   planPriority: 0.25,
   rating: 3,
@@ -5,6 +7,18 @@ export const rankingWeights = {
   profileCompleteness: 2,
   recentActivity: 1,
 } as const;
+export type RankingWeights = { planPriority: number; rating: number; reviewCount: number; profileCompleteness: number; recentActivity: number };
+
+export async function getRankingWeights(): Promise<RankingWeights> {
+  try {
+    const setting = await prisma.adminSetting.findUnique({ where: { key: "rankingWeights" }, select: { value: true } });
+    if (!setting || !setting.value || typeof setting.value !== "object" || Array.isArray(setting.value)) return rankingWeights;
+    const candidate = setting.value as Partial<RankingWeights>;
+    return { planPriority: candidate.planPriority ?? rankingWeights.planPriority, rating: candidate.rating ?? rankingWeights.rating, reviewCount: candidate.reviewCount ?? rankingWeights.reviewCount, profileCompleteness: candidate.profileCompleteness ?? rankingWeights.profileCompleteness, recentActivity: candidate.recentActivity ?? rankingWeights.recentActivity };
+  } catch {
+    return rankingWeights;
+  }
+}
 
 export type RankableAgency = {
   id: string;
@@ -15,7 +29,7 @@ export type RankableAgency = {
   daysSinceActivity: number;
 };
 
-export function scoreAgency(agency: RankableAgency, weights = rankingWeights) {
+export function scoreAgency(agency: RankableAgency, weights: RankingWeights = rankingWeights) {
   const activity = Math.max(0, 1 - agency.daysSinceActivity / 90);
   return (
     agency.listingPriority * weights.planPriority +
