@@ -1,0 +1,70 @@
+import PDFDocument from "pdfkit";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import type { Prisma } from "@prisma/client";
+import { invoiceNumber } from "./domain";
+
+export async function reserveInvoiceNumber(
+  tx: Prisma.TransactionClient,
+  date = new Date(),
+) {
+  const year = date.getUTCFullYear();
+  const rows = await tx.$queryRaw<Array<{ lastValue: number }>>`
+    INSERT INTO "InvoiceSequence" ("year", "lastValue", "createdAt", "updatedAt")
+    VALUES (${year}, 1, NOW(), NOW())
+    ON CONFLICT ("year") DO UPDATE SET "lastValue" = "InvoiceSequence"."lastValue" + 1, "updatedAt" = NOW()
+    RETURNING "lastValue"
+  `;
+  return invoiceNumber(year, rows[0].lastValue);
+}
+
+export async function storeInvoicePdf(input: {
+  paymentId: string;
+  invoiceNumber: string;
+  agencyName: string;
+  amount: number;
+  currency: string;
+  paidAt: Date;
+}) {
+  const directory = path.join(process.cwd(), "private", "invoices");
+  await mkdir(directory, { recursive: true });
+  const filename = `${input.paymentId}.pdf`;
+  const filepath = path.join(directory, filename);
+  const chunks: Buffer[] = [];
+  const document = new PDFDocument({
+    size: "A4",
+    margin: 56,
+    info: {
+      Title: `FindMaids invoice ${input.invoiceNumber}`,
+      Author: "FindMaids",
+    },
+  });
+  document.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const finished = new Promise<Buffer>((resolve, reject) => {
+    document.on("end", () => resolve(Buffer.concat(chunks)));
+    document.on("error", reject);
+  });
+  document
+    .fontSize(24)
+    .fillColor("#176b4d")
+    .text("FindMaids", { align: "left" });
+  document.moveDown().fillColor("#173328").fontSize(18).text("Payment receipt");
+  document.moveDown().fontSize(12).text(`Invoice: ${input.invoiceNumber}`);
+  document.text(`Agency: ${input.agencyName}`);
+  document.text(`Paid: ${input.paidAt.toISOString()}`);
+  document
+    .moveDown()
+    .fontSize(16)
+    .text(`Amount paid: ${input.currency} ${input.amount.toFixed(2)}`);
+  document
+    .moveDown()
+    .fontSize(10)
+    .fillColor("#52665a")
+    .text(
+      "This receipt confirms payment for FindMaids directory services. It is not a tax invoice unless separately identified as such.",
+    );
+  document.end();
+  const buffer = await finished;
+  await writeFile(filepath, buffer, { mode: 0o600 });
+  return `/api/agency/invoices/${input.paymentId}`;
+}
