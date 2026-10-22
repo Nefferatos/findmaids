@@ -61,7 +61,13 @@ export async function processPaymentWebhook(
       const paidAt = new Date();
       await tx.payment.update({
         where: { id: payment.id },
-        data: { status: "PAID", paidAt },
+        data: {
+          status: "PAID",
+          paidAt,
+          ...(providerName === "PAYMONGO" && event.providerTransactionId
+            ? { providerRef: event.providerTransactionId }
+            : {}),
+        },
       });
       await tx.subscription.updateMany({
         where: {

@@ -18,6 +18,7 @@ const payMongoEventSchema = z
             reference_number: z.string().min(1).optional(),
             data: z
               .object({
+                id: z.string().optional(),
                 attributes: z
                   .object({ reference_number: z.string().min(1).optional() })
                   .passthrough(),
@@ -45,6 +46,7 @@ export type VerifiedWebhook = {
   type: string;
   paymentReference: string;
   status: "paid" | "failed" | "expired";
+  providerTransactionId?: string;
 };
 
 export interface PaymentProvider {
@@ -191,6 +193,7 @@ export class PayMongoProvider implements PaymentProvider {
       type,
       paymentReference: reference,
       status,
+      providerTransactionId: event.data.attributes.data?.id,
     };
   }
 

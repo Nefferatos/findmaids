@@ -249,10 +249,16 @@ export async function POST(request: Request) {
       providerRef: checkout.checkoutId,
     },
   });
-  return NextResponse.json({
-    checkoutUrl: checkout.checkoutUrl,
-    amountPhp: amount,
-    invoiceNumber: pending.payment.invoiceNumber,
-    prorated,
-  });
+    const vatRate = 0.12;
+    const vatIncluded = Math.round((amount * vatRate / (1 + vatRate)) * 100) / 100;
+    const netAmount = Math.round((amount - vatIncluded) * 100) / 100;
+    return NextResponse.json({
+      checkoutUrl: checkout.checkoutUrl,
+      amountPhp: amount,
+      netPhp: netAmount,
+      vatPhp: vatIncluded,
+      vatRate,
+      invoiceNumber: pending.payment.invoiceNumber,
+      prorated,
+    });
 }

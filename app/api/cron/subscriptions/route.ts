@@ -19,6 +19,39 @@ export async function GET(request: Request) {
   let reminders = 0;
   let downgrades = 0;
   let expired = 0;
+  const bankTransfers = await prisma.payment.findMany({
+    where: {
+      provider: "MANUAL",
+      status: { in: ["PENDING_BANK_TRANSFER", "PARTIAL"] },
+      expiresAt: { lte: now },
+    },
+    select: {
+      id: true,
+      subscriptionId: true,
+      subscription: { select: { agencyId: true } },
+    },
+    take: 500,
+  });
+  for (const payment of bankTransfers) {
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: "EXPIRED" },
+      }),
+      prisma.subscription.updateMany({
+        where: { id: payment.subscriptionId, status: "PENDING" },
+        data: { status: "CANCELLED" },
+      }),
+      prisma.auditLog.create({
+        data: {
+          agencyId: payment.subscription.agencyId,
+          action: "BANK_TRANSFER_EXPIRED",
+          entity: "Payment",
+          entityId: payment.id,
+        },
+      }),
+    ]);
+  }
 
   for (const days of [7, 1]) {
     const start = new Date(now.getTime() + (days - 0.5) * oneDay);
@@ -225,6 +258,7 @@ export async function GET(request: Request) {
     reminders,
     downgrades,
     expired,
+    bankTransfersExpired: bankTransfers.length,
     enquiriesAnonymized: anonymized.count,
   });
 }
