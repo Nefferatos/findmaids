@@ -5,6 +5,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "FindMaids",
   description: "FindMaids application foundation",
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost:3000"),
+  openGraph: { siteName: "FindMaids", type: "website" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

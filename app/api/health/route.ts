@@ -12,7 +12,11 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { status: database === "ok" ? "ok" : "degraded", database, aiProvider: getAiProvider().name },
+    {
+      status: database === "ok" ? "ok" : "degraded",
+      database,
+      aiProvider: getAiProvider().name,
+    },
     { status: database === "ok" ? 200 : 503 },
   );
 }
