@@ -35,30 +35,85 @@ const plans = [
     priceMonthly: 1999,
     priceYearly: 19990,
     listingPriority: 20,
-    featuredSlots: 3,
+    featuredSlots: 1,
     maxPhotos: 25,
     leadLimit: null,
-    features: ["Premium profile", "Up to 25 photos", "Featured placement"],
+    features: [
+      "Premium profile",
+      "Up to 25 photos",
+      "Homepage banner",
+      "Featured card",
+      "Category top placement",
+    ],
   },
 ];
 
 const agencies = [
-  ["Harborlight Home Partners", "harborlight-home-partners", "Makati", "Metro Manila"],
-  ["Bayanihan Care Network", "bayanihan-care-network", "Quezon City", "Metro Manila"],
-  ["Greenfield Household Services", "greenfield-household-services", "Pasig", "Metro Manila"],
-  ["Northstar Domestic Staffing", "northstar-domestic-staffing", "Manila", "Metro Manila"],
+  [
+    "Harborlight Home Partners",
+    "harborlight-home-partners",
+    "Makati",
+    "Metro Manila",
+  ],
+  [
+    "Bayanihan Care Network",
+    "bayanihan-care-network",
+    "Quezon City",
+    "Metro Manila",
+  ],
+  [
+    "Greenfield Household Services",
+    "greenfield-household-services",
+    "Pasig",
+    "Metro Manila",
+  ],
+  [
+    "Northstar Domestic Staffing",
+    "northstar-domestic-staffing",
+    "Manila",
+    "Metro Manila",
+  ],
   ["Cebu Kindred Home Agency", "cebu-kindred-home-agency", "Cebu City", "Cebu"],
-  ["Island Welcome Household Care", "island-welcome-household-care", "Mandaue", "Cebu"],
-  ["Sugbo Family Support Services", "sugbo-family-support-services", "Lapu-Lapu", "Cebu"],
-  ["Davao Hearthside Placement", "davao-hearthside-placement", "Davao City", "Davao del Sur"],
-  ["Durian City Care Partners", "durian-city-care-partners", "Davao City", "Davao del Sur"],
-  ["Southern Cross Home Staffing", "southern-cross-home-staffing", "Tagum", "Davao del Norte"],
+  [
+    "Island Welcome Household Care",
+    "island-welcome-household-care",
+    "Mandaue",
+    "Cebu",
+  ],
+  [
+    "Sugbo Family Support Services",
+    "sugbo-family-support-services",
+    "Lapu-Lapu",
+    "Cebu",
+  ],
+  [
+    "Davao Hearthside Placement",
+    "davao-hearthside-placement",
+    "Davao City",
+    "Davao del Sur",
+  ],
+  [
+    "Durian City Care Partners",
+    "durian-city-care-partners",
+    "Davao City",
+    "Davao del Sur",
+  ],
+  [
+    "Southern Cross Home Staffing",
+    "southern-cross-home-staffing",
+    "Tagum",
+    "Davao del Norte",
+  ],
 ] as const;
 
 async function main() {
   const planRecords = await Promise.all(
     plans.map((plan) =>
-      prisma.plan.upsert({ where: { name: plan.name }, update: plan, create: plan }),
+      prisma.plan.upsert({
+        where: { name: plan.name },
+        update: plan,
+        create: plan,
+      }),
     ),
   );
 
@@ -70,7 +125,7 @@ async function main() {
         create: {
           name,
           slug,
-          description: `${name} is a sample household staffing agency profile for local development.` ,
+          description: `${name} is a sample household staffing agency profile for local development.`,
           address: `${100 + index} Sample Street`,
           city,
           province,
@@ -113,7 +168,11 @@ async function main() {
         create: {
           id: `seed-enquiry-${index + 1}`,
           agencyId: agency.id,
-          name: ["Sample Visitor One", "Sample Visitor Two", "Sample Visitor Three"][index],
+          name: [
+            "Sample Visitor One",
+            "Sample Visitor Two",
+            "Sample Visitor Three",
+          ][index],
           email: `visitor${index + 1}@example.test`,
           phone: "+63 900 000 0000",
           message: "This is sample enquiry data for local development.",
@@ -125,21 +184,32 @@ async function main() {
     ),
   );
 
-  const featureKeys = ["employer_assistant", "agency_auto_reply", "agency_knowledge_base"];
+  const featureKeys = [
+    "employer_assistant",
+    "agency_auto_reply",
+    "agency_knowledge_base",
+  ];
   await Promise.all(
     featureKeys.map(async (key) => {
       const existing = await prisma.featureFlag.findFirst({
         where: { key, scope: FeatureFlagScope.GLOBAL, agencyId: null },
       });
       if (existing) {
-        await prisma.featureFlag.update({ where: { id: existing.id }, data: { enabled: false } });
+        await prisma.featureFlag.update({
+          where: { id: existing.id },
+          data: { enabled: false },
+        });
       } else {
-        await prisma.featureFlag.create({ data: { key, scope: FeatureFlagScope.GLOBAL, enabled: false } });
+        await prisma.featureFlag.create({
+          data: { key, scope: FeatureFlagScope.GLOBAL, enabled: false },
+        });
       }
     }),
   );
 
-  console.info(`Seeded ${planRecords.length} plans, ${agencyRecords.length} agencies, and disabled AI flags.`);
+  console.info(
+    `Seeded ${planRecords.length} plans, ${agencyRecords.length} agencies, and disabled AI flags.`,
+  );
 }
 
 main()

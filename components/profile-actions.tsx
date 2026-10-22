@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
 
 export function TrackedLink({
@@ -20,6 +20,12 @@ export function TrackedLink({
       href={href}
       className={className}
       onClick={() => {
+        if (eventType === "placement_click") {
+          const key = `placement-click:${agencyId}`;
+          const lastClick = Number(sessionStorage.getItem(key) ?? 0);
+          if (Date.now() - lastClick < 1000) return;
+          sessionStorage.setItem(key, String(Date.now()));
+        }
         void fetch("/api/analytics", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -64,4 +70,40 @@ export function ShareButton({ title }: { title: string }) {
       )}
     </div>
   );
+}
+
+export function PlacementImpression({ agencyIds }: { agencyIds: string[] }) {
+  const uniqueAgencyIds = [...new Set(agencyIds)];
+  return (
+    <>
+      {uniqueAgencyIds.filter(Boolean).map((agencyId) => (
+        <ImpressionOnce key={agencyId} agencyId={agencyId} />
+      ))}
+    </>
+  );
+}
+
+function ImpressionOnce({ agencyId }: { agencyId: string }) {
+  const [seen, setSeen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!ref.current || seen) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setSeen(true);
+        void fetch("/api/analytics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencyId, type: "placement_impression" }),
+          keepalive: true,
+        });
+        observer.disconnect();
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [agencyId, seen]);
+  return <span ref={ref} className="block h-px w-full" aria-hidden="true" />;
 }

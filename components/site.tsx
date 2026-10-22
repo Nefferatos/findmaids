@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Check, MapPin, Star } from "lucide-react";
+import { PlacementImpression, TrackedLink } from "@/components/profile-actions";
 
 export function Container({
   children,
@@ -215,6 +216,7 @@ export type AgencyCardData = {
   logoUrl?: string | null;
   verifiedBadge: boolean;
   sponsored?: boolean;
+  homepageFeatured?: boolean;
   rating?: number;
   reviewCount?: number;
 };
@@ -222,6 +224,7 @@ export type AgencyCardData = {
 export function AgencyCard({ agency }: { agency: AgencyCardData }) {
   return (
     <article className="flex h-full flex-col rounded-md border bg-white p-5 shadow-sm">
+      {agency.sponsored && <PlacementImpression agencyIds={[agency.id]} />}
       <div className="mb-4 flex flex-wrap gap-2">
         {agency.sponsored && <Badge tone="yellow">Featured / Sponsored</Badge>}
         {agency.verifiedBadge && (
@@ -248,9 +251,23 @@ export function AgencyCard({ agency }: { agency: AgencyCardData }) {
         </div>
         <div>
           <h3 className="font-display text-xl font-bold">
-            <Link href={`/agencies/${agency.slug}`} className="hover:underline">
-              {agency.name}
-            </Link>
+            {agency.sponsored ? (
+              <TrackedLink
+                agencyId={agency.id}
+                eventType="placement_click"
+                href={`/agencies/${agency.slug}`}
+                className="hover:underline"
+              >
+                {agency.name}
+              </TrackedLink>
+            ) : (
+              <Link
+                href={`/agencies/${agency.slug}`}
+                className="hover:underline"
+              >
+                {agency.name}
+              </Link>
+            )}
           </h3>
           <p className="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
             <MapPin aria-hidden="true" className="size-3.5" />

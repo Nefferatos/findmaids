@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Search, ShieldCheck, UsersRound, ArrowRight } from "lucide-react";
 import {
   AgencyCard,
@@ -7,6 +8,7 @@ import {
   SectionHeading,
 } from "@/components/site";
 import { getDirectoryPage, parseDirectoryFilters } from "@/lib/directory";
+import { PlacementImpression, TrackedLink } from "@/components/profile-actions";
 
 export const revalidate = 300;
 export const metadata = {
@@ -22,11 +24,13 @@ export const metadata = {
 
 export default async function HomePage() {
   let featured: Awaited<ReturnType<typeof getDirectoryPage>>["agencies"] = [];
+  let homepageFeature: (typeof featured)[number] | undefined;
   let topRated: typeof featured = [];
   try {
     const filters = parseDirectoryFilters({ sort: "recommended" });
     const result = await getDirectoryPage(filters, 6);
     featured = result.agencies.filter((agency) => agency.sponsored).slice(0, 3);
+    homepageFeature = result.agencies.find((agency) => agency.homepageFeatured);
     topRated = (
       await getDirectoryPage({ ...filters, sort: "top-rated" }, 6)
     ).agencies.slice(0, 3);
@@ -146,6 +150,48 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+      {homepageFeature && (
+        <section className="border-b bg-[#f0f3e9] py-5">
+          <Container>
+            <article className="grid overflow-hidden rounded-md border bg-white sm:grid-cols-[240px_1fr]">
+              <PlacementImpression agencyIds={[homepageFeature.id]} />
+              <div className="relative min-h-36 bg-[#dce8dc]">
+                {homepageFeature.bannerUrl && (
+                  <Image
+                    src={homepageFeature.bannerUrl}
+                    alt={`${homepageFeature.name} featured banner`}
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                )}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+                <div>
+                  <p className="text-primary text-xs font-bold uppercase">
+                    Featured / Sponsored
+                  </p>
+                  <h2 className="font-display mt-1 text-2xl font-bold">
+                    {homepageFeature.name}
+                  </h2>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {homepageFeature.city}, {homepageFeature.province}
+                  </p>
+                </div>
+                <TrackedLink
+                  agencyId={homepageFeature.id}
+                  eventType="placement_click"
+                  href={`/agencies/${homepageFeature.slug}`}
+                  className="bg-primary inline-flex min-h-11 items-center rounded-md px-4 font-bold text-white"
+                >
+                  View agency
+                </TrackedLink>
+              </div>
+            </article>
+          </Container>
+        </section>
+      )}
       <section className="py-14">
         <Container>
           <SectionHeading
@@ -154,11 +200,13 @@ export default async function HomePage() {
             description="Sponsored placements are labeled. Review each profile and contact agencies directly to confirm details."
           />
           {featured.length ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              {featured.map((agency) => (
-                <AgencyCard key={agency.id} agency={agency} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 md:grid-cols-3">
+                {featured.map((agency) => (
+                  <AgencyCard key={agency.id} agency={agency} />
+                ))}
+              </div>
+            </>
           ) : (
             <EmptyState
               title="Agency listings are being prepared"

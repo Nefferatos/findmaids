@@ -76,22 +76,26 @@ export async function getDirectoryPage(
   pageSize = 12,
 ) {
   const where = buildAgencyWhere(filters);
+  const now = new Date();
   const agencies = await prisma.agency.findMany({
     where,
     include: {
       photos: { select: { id: true }, take: 1 },
       reviews: { where: { status: "PUBLISHED" }, select: { rating: true } },
       subscriptions: {
-        where: { status: "ACTIVE" },
+        where: {
+          status: "ACTIVE",
+          OR: [{ endDate: null }, { endDate: { gte: now } }],
+        },
         include: { plan: { select: { listingPriority: true } } },
       },
       adPlacements: {
         where: {
           status: "ACTIVE",
-          startDate: { lte: new Date() },
-          endDate: { gte: new Date() },
+          startDate: { lte: now },
+          endDate: { gte: now },
         },
-        select: { id: true },
+        select: { id: true, type: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -122,7 +126,10 @@ export async function getDirectoryPage(
       ),
       rating: average,
       reviewCount: agency.reviews.length,
-      profileCompleteness: completeness,
+      profileCompleteness:
+        agency.profileCompleteness > 0
+          ? agency.profileCompleteness / 100
+          : completeness,
       daysSinceActivity: (Date.now() - agency.updatedAt.getTime()) / 86_400_000,
     });
     return {
@@ -131,6 +138,9 @@ export async function getDirectoryPage(
       reviewCount: agency.reviews.length,
       score,
       sponsored: agency.adPlacements.length > 0,
+      homepageFeatured: agency.adPlacements.some(
+        (placement) => placement.type === "HOMEPAGE",
+      ),
     };
   });
 

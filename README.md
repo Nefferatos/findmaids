@@ -1,6 +1,6 @@
 # FindMaids
 
-FindMaids is a directory and advertising platform for independent domestic staffing agencies in the Philippines. This release includes account authentication, public directory pages, agency enquiries and reviews, advertiser information, and the initial AI-ready foundation. It does not include payments, an agency management dashboard, or live AI calls.
+FindMaids is a directory and advertising platform for independent domestic staffing agencies in the Philippines. This release includes authentication, public pages, agency onboarding and a tenant-scoped dashboard, enquiries/reviews, hosted payments, and the AI-ready foundation. It does not include an admin panel, automated card-on-file renewal, or live AI calls.
 
 ## Requirements
 
@@ -32,26 +32,34 @@ npm run build
 npm run test:e2e
 ```
 
+Run `npx prisma migrate deploy` in production after setting a trusted database URL. The local `.env.example` defaults to `PAYMENT_PROVIDER=mock`; use `PAYMENT_PROVIDER=paymongo` only with PayMongo test credentials and the configured webhook signing secret. Read [docs/PAYMENTS.md](docs/PAYMENTS.md) for local webhook and cron setup.
+
 The Playwright enquiry test requires an approved agency row and `E2E_AGENCY_SLUG` set to its slug. The account lifecycle test uses the database and requires migrations. To stop PostgreSQL, run `docker compose down`; data persists in the named volume. `docker compose down -v` also removes that local database data.
 
 ## Configuration
 
 `.env` and secret-bearing env files are git-ignored; `.env.example` contains placeholders only. Set matching strong random values for `AUTH_SECRET` and `NEXTAUTH_SECRET`. Google sign-in requires `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`. Resend delivery requires `RESEND_API_KEY` and a verified `EMAIL_FROM`; without a key, emails are logged to the server console for development only. Optional Cloudflare Turnstile requires both `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
 
+Payment configuration uses `PAYMENT_PROVIDER`, `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET`, and `PAYMENT_WEBHOOK_SECRET` (mock mode only). Configure `CRON_SECRET` for the subscription lifecycle job and `DATA_REQUEST_EMAIL` for privacy request notifications. Agency media and invoice PDFs currently use local filesystem storage for development; set `MEDIA_STORAGE=local` only for a persistent Node host. Cloudflare Worker deployments need an R2-backed storage adapter before uploads or invoice PDFs are production-ready.
+
 The consent, Terms, and Privacy copy is draft text and requires review by qualified Philippine counsel/privacy professionals before launch. Enquiry details are sent only to the selected agency and the employer confirmation goes to the submitting email. Agency listings and reviews do not constitute a guarantee or endorsement.
 
-Gold and Platinum plan amounts are development placeholders (PHP 999/₱9,990 and PHP 1,999/₱19,990); Basic Free is PHP 0. Review them before launch. `AI_PROVIDER=make` remains an adapter placeholder and makes no requests.
+Gold and Platinum plan amounts are development placeholders (PHP 999/₱9,990 and PHP 1,999/₱19,990); Basic Free is PHP 0. Review them before launch. Upgrades use remaining-period proration; downgrades apply at renewal. PayMongo checkout is single-payment hosted checkout: automatic card-on-file charging is not implemented, so renewal reminders link the agency back to checkout. `AI_PROVIDER=make` remains an adapter placeholder and makes no requests.
+
+The consent, Terms, and Privacy copy is draft text and requires review by qualified Philippine counsel/privacy professionals before launch. Enquiry details are sent only to the selected agency and employer confirmation. The configured 12-month enquiry anonymization interval must also be approved against applicable record-retention requirements before production.
 
 ## Project structure
 
 - `app/(public)`: employer-facing pages
-- `app/(agency)` and `app/(admin)`: role-protected placeholder areas
-- `app/api`: authentication, enquiry, review, analytics, and health endpoints
+- `app/(agency)`: onboarding, billing and role-protected dashboard
+- `app/(admin)`: reserved for the next step
+- `app/api`: authentication, onboarding, payment, webhook, dashboard, enquiry, review and health endpoints
 - `components`: shared responsive UI and forms
 - `lib/ai`: provider contracts, guardrails, logging, flags, prompts, and tool stubs
 - `lib/directory.ts` and `lib/ranking.ts`: directory filters and recommendation ranking
 - `prisma`: PostgreSQL/pgvector schema, migrations, and development seed
 - `content/guides`: MDX articles
+- `docs/PAYMENTS.md`: provider and lifecycle setup
 - `tests`: Vitest unit tests; `e2e`: Playwright browser smoke tests
 
 `KnowledgeDocument.embedding` uses PostgreSQL `vector(1536)`. After schema changes, run `npx prisma generate` and create/apply a migration.

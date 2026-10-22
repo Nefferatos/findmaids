@@ -95,7 +95,10 @@ export default async function AgenciesPage({
                   "Live-in placement",
                   "Newborn care",
                 ].map((service) => (
-                  <label key={service} className="flex min-h-9 items-center gap-2 text-sm">
+                  <label
+                    key={service}
+                    className="flex min-h-9 items-center gap-2 text-sm"
+                  >
                     <input
                       type="checkbox"
                       name="service"
@@ -108,15 +111,22 @@ export default async function AgenciesPage({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-semibold">Nationalities served</legend>
+              <legend className="text-sm font-semibold">
+                Nationalities served
+              </legend>
               <div className="mt-2 space-y-2">
                 {["Filipino", "Indonesian", "Sri Lankan"].map((nationality) => (
-                  <label key={nationality} className="flex min-h-9 items-center gap-2 text-sm">
+                  <label
+                    key={nationality}
+                    className="flex min-h-9 items-center gap-2 text-sm"
+                  >
                     <input
                       type="checkbox"
                       name="nationality"
                       value={nationality}
-                      defaultChecked={filters.nationalities.includes(nationality)}
+                      defaultChecked={filters.nationalities.includes(
+                        nationality,
+                      )}
                     />
                     {nationality}
                   </label>
@@ -186,11 +196,13 @@ export default async function AgenciesPage({
             </p>
           </div>
           {result.agencies.length ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {result.agencies.map((agency) => (
-                <AgencyCard key={agency.id} agency={agency} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {result.agencies.map((agency) => (
+                  <AgencyCard key={agency.id} agency={agency} />
+                ))}
+              </div>
+            </>
           ) : (
             <EmptyState
               title="No agencies match those filters"

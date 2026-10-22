@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { enquirySubmissionSchema } from "@/lib/validation";
+import { checkLeadLimit } from "@/lib/payments/domain";
 
 async function verifyTurnstile(token: string | undefined, request: Request) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
@@ -49,12 +50,42 @@ export async function POST(request: Request) {
 
   const agency = await prisma.agency.findFirst({
     where: { id: parsed.data.agencyId, status: "APPROVED" },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      owner: { select: { email: true, notificationPreferences: true } },
+    },
   });
   if (!agency)
     return NextResponse.json(
       { error: "This agency is not currently available." },
       { status: 404 },
+    );
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
+  const [activeSubscription, leadsThisMonth, basicPlan] = await Promise.all([
+    prisma.subscription.findFirst({
+      where: { agencyId: agency.id, status: "ACTIVE" },
+      include: { plan: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.enquiry.count({
+      where: { agencyId: agency.id, createdAt: { gte: startOfMonth } },
+    }),
+    prisma.plan.findUnique({ where: { name: "Basic Free" } }),
+  ]);
+  const leadLimit =
+    activeSubscription?.plan.leadLimit ?? basicPlan?.leadLimit ?? null;
+  const capacity = checkLeadLimit(leadLimit, leadsThisMonth);
+  if (!capacity.allowed)
+    return NextResponse.json(
+      {
+        error:
+          "This agency has reached its monthly enquiry limit. The agency can upgrade its plan to receive more leads.",
+      },
+      { status: 429 },
     );
   const enquiry = await prisma.enquiry.create({
     data: {
@@ -69,20 +100,32 @@ export async function POST(request: Request) {
       budget: parsed.data.budget,
     },
   });
-  const emailResults = await Promise.allSettled([
+  const ownerPreferences = agency.owner?.notificationPreferences;
+  const shouldNotify = !(
+    ownerPreferences &&
+    typeof ownerPreferences === "object" &&
+    "leadEmails" in ownerPreferences &&
+    ownerPreferences.leadEmails === false
+  );
+  const emailTasks = [
     sendEmail(
       enquiry.email,
       "We received your FindMaids enquiry",
       `Your enquiry to ${agency.name} was received. The agency may contact you using the details you provided.`,
     ),
-    sendEmail(
-      agency.email,
-      `New enquiry for ${agency.name}`,
-      `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
-    ),
-  ]);
+  ];
+  if (shouldNotify)
+    emailTasks.push(
+      sendEmail(
+        agency.email,
+        `New enquiry for ${agency.name}`,
+        `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
+      ),
+    );
+  const emailResults = await Promise.allSettled(emailTasks);
   for (const result of emailResults) {
-    if (result.status === "rejected") console.error("Unable to send enquiry email", result.reason);
+    if (result.status === "rejected")
+      console.error("Unable to send enquiry email", result.reason);
   }
   return NextResponse.json(
     { message: "Your enquiry has been sent." },
