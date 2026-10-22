@@ -371,6 +371,20 @@ export function AdminSettingsEditor({
         "contentOverrides",
         "emailTemplates",
       ];
+  const featureFlags = (() => {
+    if (key !== "featureFlags") return {};
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  })();
+  function setFeatureFlag(flag: string, enabled: boolean) {
+    setValue(JSON.stringify({ ...featureFlags, [flag]: enabled }, null, 2));
+  }
   return (
     <section className="max-w-3xl rounded-md border bg-white p-5">
       <label className="block text-sm font-semibold">
@@ -385,6 +399,45 @@ export function AdminSettingsEditor({
           ))}
         </select>
       </label>
+      {key === "featureFlags" && (
+        <fieldset className="mt-4 space-y-3 rounded border p-4">
+          <legend className="px-1 text-sm font-bold">
+            AI demos · disabled by default
+          </legend>
+          {[
+            [
+              "employer_assistant",
+              "Employer assistant",
+              "Grounded FAQ answers and approved agency listings.",
+            ],
+            [
+              "agency_auto_reply",
+              "Agency lead reply drafts",
+              "Editable drafts only; nothing is sent automatically.",
+            ],
+            [
+              "agency_profile_helper",
+              "Agency profile helper",
+              "Suggests profile copy from the agency's saved facts.",
+            ],
+          ].map(([flag, title, description]) => (
+            <label key={flag} className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={featureFlags[flag] === true}
+                onChange={(event) => setFeatureFlag(flag, event.target.checked)}
+                className="mt-1 size-4"
+              />
+              <span>
+                <strong>{title}</strong>
+                <span className="text-muted-foreground block text-xs">
+                  {description}
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
       <label className="mt-4 block text-sm font-semibold">
         JSON value
         <textarea

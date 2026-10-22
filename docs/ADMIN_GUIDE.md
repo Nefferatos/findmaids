@@ -5,6 +5,8 @@
 - `ADMIN` can access all admin sections and all financial, plan, user, report and settings actions.
 - `STAFF` is limited to agency approvals, review moderation and lead moderation. STAFF cannot view payment details, change plans, roles, settings or audit history.
 - Bootstrap the first ADMIN only after the initial account is registered and email-verified: apply the migrations, then set that account's `User.role` to `ADMIN` using a controlled database administration session. Never add a default admin password or promote an unverified account.
+- AI demonstrations are disabled by default. In Settings, set the JSON `featureFlags` object, for example `{"employer_assistant":true,"agency_auto_reply":true,"agency_profile_helper":true}`. The assistant uses retrieved public directory facts and curated FAQs; agency reply and profile helpers create editable drafts only. They do not send messages or call an external model.
+- Configure the Supabase `findmaids-media` bucket as public for approved agency listing images, and `findmaids-private` as private for bank proofs and invoice PDFs. Keep the service-role key server-only. Never make the private bucket public; all private object reads pass through authenticated ownership/admin checks.
 - Configure a strong `AUTH_SECRET` and `NEXTAUTH_SECRET`. To require TOTP for an ADMIN, configure `TOTP_ENCRYPTION_KEY` as base64 for exactly 32 random bytes, sign in as that ADMIN, open `/admin/2fa`, scan the QR code and verify a current six-digit code. Once enabled, password login requires the code; Google OAuth is refused for TOTP-enabled ADMIN accounts.
 - Account disablement is checked against the database on every JWT refresh and protected-route request.
 

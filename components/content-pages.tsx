@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container, SectionHeading } from "@/components/site";
+import { EmployerAssistant } from "@/components/employer-assistant";
 
 const content: Record<
   string,
@@ -186,6 +187,7 @@ export function FaqPage() {
           </details>
         ))}
       </div>
+      <EmployerAssistant />
       <p className="text-muted-foreground mt-8 text-sm">
         FindMaids is a directory/advertising platform and does not recruit or
         guarantee agency services.

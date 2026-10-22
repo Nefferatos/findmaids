@@ -32,6 +32,7 @@ export function AgencyProfileEditor({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [data, setData] = useState({
     ...agency,
     services: agency.services.join(", "),
@@ -90,6 +91,22 @@ export function AgencyProfileEditor({
     );
     if (response.ok) router.refresh();
   }
+  async function suggestDescription() {
+    setSuggesting(true);
+    const response = await fetch("/api/agency/ai/profile-helper", {
+      method: "POST",
+    });
+    const result = await response.json();
+    setSuggesting(false);
+    if (!response.ok) {
+      setMessage(result.error ?? "Profile helper is unavailable.");
+      return;
+    }
+    set("description", result.suggestion);
+    setMessage(
+      "Draft added to the description field. Review and save to publish.",
+    );
+  }
   return (
     <form
       onSubmit={submit}
@@ -131,6 +148,14 @@ export function AgencyProfileEditor({
       ))}
       <label className="block text-sm font-semibold sm:col-span-2">
         Description
+        <button
+          type="button"
+          disabled={suggesting}
+          onClick={() => void suggestDescription()}
+          className="ml-3 rounded border px-2 py-1 text-xs font-semibold disabled:opacity-60"
+        >
+          {suggesting ? "Preparing…" : "Suggest draft"}
+        </button>
         <textarea
           className={`${input} min-h-32`}
           value={data.description}

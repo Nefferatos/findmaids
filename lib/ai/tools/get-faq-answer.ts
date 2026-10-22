@@ -7,5 +7,39 @@ export type GetFaqAnswerInput = z.infer<typeof getFaqAnswerInput>;
 
 export async function getFaqAnswer(input: GetFaqAnswerInput) {
   const query = getFaqAnswerInput.parse(input);
-  return { answer: null, query, source: null };
+  const question = query.question.toLowerCase();
+  const entries = [
+    {
+      match: /fee|cost|price|pay/,
+      answer:
+        "FindMaids directory browsing is free for employers. Any service fees are set by each agency; contact the agency directly to confirm before proceeding.",
+      source: "Fees and payments",
+    },
+    {
+      match: /verify|verified|license|licence/,
+      answer:
+        "A verified badge means FindMaids reviewed the agency's submitted licensing information. It is not a guarantee of service quality or a substitute for your own checks.",
+      source: "Agency verification",
+    },
+    {
+      match: /contact|enquir|message/,
+      answer:
+        "Open an approved agency profile and use its enquiry form. Your contact details and message are sent to that agency so it can respond.",
+      source: "Contacting an agency",
+    },
+    {
+      match: /visa|immigration|legal|employment law/,
+      answer:
+        "I cannot provide legal, immigration, visa, or employment-law advice. Please consult a qualified professional.",
+      source: "Safety policy",
+    },
+  ];
+  const entry = entries.find((item) => item.match.test(question));
+  return {
+    answer:
+      entry?.answer ??
+      "I don't have a verified answer for that. Please review the agency profile or contact our support team.",
+    query,
+    source: entry?.source ?? null,
+  };
 }

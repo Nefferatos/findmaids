@@ -187,6 +187,7 @@ async function main() {
   const featureKeys = [
     "employer_assistant",
     "agency_auto_reply",
+    "agency_profile_helper",
     "agency_knowledge_base",
   ];
   await Promise.all(

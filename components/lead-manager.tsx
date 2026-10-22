@@ -15,6 +15,8 @@ type Lead = {
 
 export function LeadManager({ leads: initialLeads }: { leads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [draftBusy, setDraftBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
@@ -49,6 +51,23 @@ export function LeadManager({ leads: initialLeads }: { leads: Lead[] }) {
       items.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)),
     );
     setMessage("Lead updated.");
+  }
+
+  async function suggestReply(leadId: string) {
+    setDraftBusy(leadId);
+    const response = await fetch("/api/agency/ai/reply-draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enquiryId: leadId }),
+    });
+    const result = await response.json();
+    setDraftBusy(null);
+    if (!response.ok) {
+      setMessage(result.error ?? "Reply helper is unavailable.");
+      return;
+    }
+    setDrafts((items) => ({ ...items, [leadId]: result.draft }));
+    setMessage("Editable reply draft prepared. It has not been sent.");
   }
 
   return (
@@ -106,7 +125,7 @@ export function LeadManager({ leads: initialLeads }: { leads: Lead[] }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="bg-[#f7f7f0]">
             <tr>
               <th className="p-3">Lead</th>
@@ -114,6 +133,7 @@ export function LeadManager({ leads: initialLeads }: { leads: Lead[] }) {
               <th className="p-3">Message</th>
               <th className="p-3">Status</th>
               <th className="p-3">Private notes</th>
+              <th className="p-3">Reply draft</th>
             </tr>
           </thead>
           <tbody>
@@ -178,6 +198,38 @@ export function LeadManager({ leads: initialLeads }: { leads: Lead[] }) {
                         });
                     }}
                   />
+                </td>
+                <td className="p-3">
+                  {!drafts[lead.id] ? (
+                    <button
+                      type="button"
+                      disabled={draftBusy === lead.id}
+                      onClick={() => void suggestReply(lead.id)}
+                      className="min-h-9 rounded border px-2 text-xs font-semibold disabled:opacity-60"
+                    >
+                      {draftBusy === lead.id ? "Preparing…" : "Suggest reply"}
+                    </button>
+                  ) : (
+                    <>
+                      <textarea
+                        aria-label={`Editable reply draft for ${lead.name}`}
+                        className="min-h-32 w-64 rounded border p-2"
+                        value={drafts[lead.id]}
+                        onChange={(event) =>
+                          setDrafts((items) => ({
+                            ...items,
+                            [lead.id]: event.target.value,
+                          }))
+                        }
+                      />
+                      <a
+                        className="text-primary mt-2 block text-xs font-bold underline"
+                        href={`mailto:${encodeURIComponent(lead.email)}?subject=${encodeURIComponent("Re: Your FindMaids enquiry")}&body=${encodeURIComponent(drafts[lead.id])}`}
+                      >
+                        Open in email
+                      </a>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
