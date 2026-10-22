@@ -5,7 +5,10 @@ const patterns = [
 ];
 
 export function maskPii(text: string): string {
-  return patterns.reduce((masked, pattern) => masked.replace(pattern, "[REDACTED]"), text);
+  return patterns.reduce(
+    (masked, pattern) => masked.replace(pattern, "[REDACTED]"),
+    text,
+  );
 }
 
 export function checkInputLength(text: string, maxLength = 4000): boolean {

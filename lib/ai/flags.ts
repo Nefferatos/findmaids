@@ -1,7 +1,10 @@
 import { FeatureFlagScope } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export async function isFeatureEnabled(key: string, agencyId?: string): Promise<boolean> {
+export async function isFeatureEnabled(
+  key: string,
+  agencyId?: string,
+): Promise<boolean> {
   if (agencyId) {
     const agencyFlag = await prisma.featureFlag.findFirst({
       where: { key, scope: FeatureFlagScope.AGENCY, agencyId },
