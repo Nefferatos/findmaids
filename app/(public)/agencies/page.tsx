@@ -86,33 +86,43 @@ export default async function AgenciesPage({
                 defaultValue={filters.province}
               />
             </label>
-            <label className="block text-sm font-semibold">
-              Service
-              <select
-                className="mt-1 min-h-10 w-full rounded border px-3"
-                name="service"
-                defaultValue={filters.services[0] ?? ""}
-              >
-                <option value="">Any service</option>
-                <option>Full-time placement</option>
-                <option>Part-time placement</option>
-                <option>Live-in placement</option>
-                <option>Newborn care</option>
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
-              Nationality served
-              <select
-                className="mt-1 min-h-10 w-full rounded border px-3"
-                name="nationality"
-                defaultValue={filters.nationalities[0] ?? ""}
-              >
-                <option value="">Any nationality</option>
-                <option>Filipino</option>
-                <option>Indonesian</option>
-                <option>Sri Lankan</option>
-              </select>
-            </label>
+            <fieldset>
+              <legend className="text-sm font-semibold">Services</legend>
+              <div className="mt-2 space-y-2">
+                {[
+                  "Full-time placement",
+                  "Part-time placement",
+                  "Live-in placement",
+                  "Newborn care",
+                ].map((service) => (
+                  <label key={service} className="flex min-h-9 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      name="service"
+                      value={service}
+                      defaultChecked={filters.services.includes(service)}
+                    />
+                    {service}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="text-sm font-semibold">Nationalities served</legend>
+              <div className="mt-2 space-y-2">
+                {["Filipino", "Indonesian", "Sri Lankan"].map((nationality) => (
+                  <label key={nationality} className="flex min-h-9 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      name="nationality"
+                      value={nationality}
+                      defaultChecked={filters.nationalities.includes(nationality)}
+                    />
+                    {nationality}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className="block text-sm font-semibold">
               Language
               <input

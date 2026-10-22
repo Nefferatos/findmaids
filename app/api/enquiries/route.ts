@@ -42,7 +42,10 @@ export async function POST(request: Request) {
   if (parsed.data.website)
     return NextResponse.json({ message: "Enquiry received." });
   if (!(await verifyTurnstile(parsed.data.turnstileToken, request)))
-    return NextResponse.json({ error: "Please complete the verification challenge." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Please complete the verification challenge." },
+      { status: 403 },
+    );
 
   const agency = await prisma.agency.findFirst({
     where: { id: parsed.data.agencyId, status: "APPROVED" },

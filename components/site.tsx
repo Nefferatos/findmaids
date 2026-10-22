@@ -29,9 +29,11 @@ export function SectionHeading({
 }) {
   return (
     <div className="mb-7 max-w-2xl">
-      <p className="text-primary mb-2 text-sm font-bold tracking-wider uppercase">
-        {eyebrow}
-      </p>
+      {eyebrow && (
+        <p className="text-primary mb-2 text-sm font-bold tracking-wider uppercase">
+          {eyebrow}
+        </p>
+      )}
       <h2 className="font-display text-3xl font-bold sm:text-4xl">{title}</h2>
       {description && (
         <p className="text-muted-foreground mt-3 leading-7">{description}</p>
