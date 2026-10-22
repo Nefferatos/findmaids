@@ -1,9 +1,8 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { storeInvoicePdf } from "@/lib/payments/invoices";
+import { readPrivateObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -40,13 +39,7 @@ export async function GET(
       where: { id: payment.id },
       data: { invoiceUrl: url },
     });
-  const filepath = path.join(
-    process.cwd(),
-    "private",
-    "invoices",
-    `${payment.id}.pdf`,
-  );
-  const pdf = await readFile(filepath);
+  const pdf = await readPrivateObject(`invoices/${payment.id}.pdf`);
   return new Response(pdf, {
     headers: {
       "Content-Type": "application/pdf",

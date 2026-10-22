@@ -1,6 +1,4 @@
-import { readFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeAdminApi } from "@/lib/admin-auth";
@@ -9,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PayMongoProvider } from "@/lib/payments/provider";
 import { processPaymentWebhook } from "@/lib/payments/service";
 import { calculateRefund, classifyBankPayment } from "@/lib/admin-workflows";
+import { readPrivateObject } from "@/lib/storage";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
@@ -114,13 +113,7 @@ export async function GET(request: Request) {
     if (!payment || payment.provider !== "MANUAL" || !payment.proofUrl)
       return NextResponse.json({ error: "Proof not found." }, { status: 404 });
     try {
-      const filepath = path.join(
-        process.cwd(),
-        "private",
-        "bank-proofs",
-        path.basename(payment.proofUrl),
-      );
-      const data = await readFile(filepath);
+      const data = await readPrivateObject(payment.proofUrl);
       const contentType = payment.proofUrl.endsWith(".pdf")
         ? "application/pdf"
         : payment.proofUrl.endsWith(".png")
@@ -479,14 +472,7 @@ export async function PATCH(request: Request) {
   if (!payment || payment.provider !== "MANUAL" || !payment.proofUrl)
     return NextResponse.json({ error: "Proof not found." }, { status: 404 });
   try {
-    const data = await readFile(
-      path.join(
-        process.cwd(),
-        "private",
-        "bank-proofs",
-        path.basename(payment.proofUrl),
-      ),
-    );
+    const data = await readPrivateObject(payment.proofUrl);
     return new Response(data, {
       headers: {
         "Content-Type": payment.proofUrl.endsWith(".pdf")

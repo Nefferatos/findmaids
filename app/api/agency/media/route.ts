@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { storeObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -15,19 +14,43 @@ const allowedFormats = new Set(["jpeg", "png", "webp"]);
 const kindSchema = z.enum(["logo", "banner", "photo"]);
 const sizeSchema = z.number().int().positive().max(maxBytes);
 
+async function prepareImage(input: Buffer, kind: "logo" | "banner" | "photo") {
+  try {
+    const image = sharp(input, {
+      limitInputPixels: 40_000_000,
+      failOn: "error",
+    });
+    const metadata = await image.metadata();
+    if (!metadata.format || !allowedFormats.has(metadata.format))
+      return {
+        ok: false as const,
+        status: 415,
+        error: "Use JPG, PNG, or WebP images.",
+      };
+    const output = await image
+      .rotate()
+      .resize({
+        width: kind === "logo" ? 1200 : 2400,
+        height: kind === "logo" ? 1200 : 1600,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+    return { ok: true as const, metadata, output };
+  } catch {
+    return {
+      ok: false as const,
+      status: 400,
+      error: "The uploaded file is not a valid image.",
+    };
+  }
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user || session.user.role !== "AGENCY")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.MEDIA_STORAGE !== "local"
-  ) {
-    return NextResponse.json(
-      { error: "Production media storage is not configured." },
-      { status: 503 },
-    );
-  }
   if (!(await checkRateLimit(`media:${session.user.id}`, 20, 3600)).allowed)
     return NextResponse.json(
       { error: "Upload limit reached. Try later." },
@@ -69,53 +92,41 @@ export async function POST(request: Request) {
       );
   }
   const input = Buffer.from(await file.arrayBuffer());
-  try {
-    const image = sharp(input, {
-      limitInputPixels: 40_000_000,
-      failOn: "error",
-    });
-    const metadata = await image.metadata();
-    if (!metadata.format || !allowedFormats.has(metadata.format))
-      return NextResponse.json(
-        { error: "Use JPG, PNG, or WebP images." },
-        { status: 415 },
-      );
-    const output = await image
-      .rotate()
-      .resize({
-        width: kind === "logo" ? 1200 : 2400,
-        height: kind === "logo" ? 1200 : 1600,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 82, effort: 4 })
-      .toBuffer();
-    const directory = path.join(process.cwd(), "public", "uploads");
-    await mkdir(directory, { recursive: true });
-    const filename = `${randomUUID()}.webp`;
-    await writeFile(path.join(directory, filename), output, { flag: "wx" });
-    if (kind === "photo") {
-      const ownedAgency = await prisma.agency.findFirst({
-        where: { ownerId: session.user.id },
-        select: { id: true },
-      });
-      if (ownedAgency)
-        await prisma.agencyPhoto.create({
-          data: { agencyId: ownedAgency.id, url: `/uploads/${filename}` },
-        });
-    }
+  const processed = await prepareImage(input, kind);
+  if (!processed.ok)
     return NextResponse.json(
-      {
-        url: `/uploads/${filename}`,
-        width: metadata.width,
-        height: metadata.height,
-      },
-      { status: 201 },
+      { error: processed.error },
+      { status: processed.status },
     );
+  const { metadata, output } = processed;
+  const filename = `${randomUUID()}.webp`;
+  let url: string;
+  try {
+    url = await storeObject({
+      bucket: "media",
+      key: filename,
+      body: output,
+      contentType: "image/webp",
+      public: true,
+    });
   } catch {
     return NextResponse.json(
-      { error: "The uploaded file is not a valid image." },
-      { status: 400 },
+      { error: "Image storage is temporarily unavailable. Please retry." },
+      { status: 503 },
     );
   }
+  if (kind === "photo") {
+    const ownedAgency = await prisma.agency.findFirst({
+      where: { ownerId: session.user.id },
+      select: { id: true },
+    });
+    if (ownedAgency)
+      await prisma.agencyPhoto.create({
+        data: { agencyId: ownedAgency.id, url },
+      });
+  }
+  return NextResponse.json(
+    { url, width: metadata.width, height: metadata.height },
+    { status: 201 },
+  );
 }

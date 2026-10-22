@@ -1,8 +1,7 @@
 import PDFDocument from "pdfkit";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { invoiceNumber } from "./domain";
+import { storeObject } from "@/lib/storage";
 
 export async function reserveInvoiceNumber(
   tx: Prisma.TransactionClient,
@@ -26,10 +25,6 @@ export async function storeInvoicePdf(input: {
   currency: string;
   paidAt: Date;
 }) {
-  const directory = path.join(process.cwd(), "private", "invoices");
-  await mkdir(directory, { recursive: true });
-  const filename = `${input.paymentId}.pdf`;
-  const filepath = path.join(directory, filename);
   const chunks: Buffer[] = [];
   const document = new PDFDocument({
     size: "A4",
@@ -54,8 +49,13 @@ export async function storeInvoicePdf(input: {
   document.text(`Paid: ${input.paidAt.toISOString()}`);
   const netAmount = Math.round((input.amount / 1.12) * 100) / 100;
   const vatAmount = Math.round((input.amount - netAmount) * 100) / 100;
-  document.moveDown().fontSize(12).text(`Net amount: ${input.currency} ${netAmount.toFixed(2)}`);
-  document.text(`VAT included (12%): ${input.currency} ${vatAmount.toFixed(2)}`);
+  document
+    .moveDown()
+    .fontSize(12)
+    .text(`Net amount: ${input.currency} ${netAmount.toFixed(2)}`);
+  document.text(
+    `VAT included (12%): ${input.currency} ${vatAmount.toFixed(2)}`,
+  );
   document
     .moveDown()
     .fontSize(16)
@@ -69,6 +69,11 @@ export async function storeInvoicePdf(input: {
     );
   document.end();
   const buffer = await finished;
-  await writeFile(filepath, buffer, { mode: 0o600 });
+  await storeObject({
+    bucket: "private",
+    key: `invoices/${input.paymentId}.pdf`,
+    body: buffer,
+    contentType: "application/pdf",
+  });
   return `/api/agency/invoices/${input.paymentId}`;
 }
