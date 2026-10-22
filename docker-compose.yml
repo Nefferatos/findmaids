@@ -1,0 +1,21 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: findmaids-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: findmaids
+      POSTGRES_PASSWORD: findmaids
+      POSTGRES_DB: findmaids
+    ports:
+      - "5432:5432"
+    volumes:
+      - findmaids-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U findmaids -d findmaids"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  findmaids-postgres-data:

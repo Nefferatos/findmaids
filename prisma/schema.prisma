@@ -1,0 +1,432 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+enum UserRole {
+  VISITOR
+  AGENCY
+  ADMIN
+}
+
+enum AgencyStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AdPlacementType {
+  FEATURED
+  HOMEPAGE
+  SEARCH
+}
+
+enum AdPlacementStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+enum EnquirySource {
+  WEB
+  CHAT
+  WHATSAPP
+  EMAIL
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum ConversationChannel {
+  WEB
+  WHATSAPP
+  EMAIL
+}
+
+enum ConversationStatus {
+  OPEN
+  HANDED_OFF
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  AGENCY
+}
+
+enum HandoffStatus {
+  OPEN
+  ACCEPTED
+  RESOLVED
+  CANCELLED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole       @default(VISITOR)
+  agencies      Agency[]
+  conversations Conversation[]
+  aiCallLogs    AiCallLog[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role])
+}
+
+model Agency {
+  id                  String              @id @default(cuid())
+  ownerId             String?
+  owner               User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  name                String
+  slug                String              @unique
+  description         String              @db.Text
+  logoUrl             String?
+  bannerUrl           String?
+  licenseNumber       String?
+  address             String
+  city                String
+  province            String
+  phone               String
+  whatsapp            String?
+  email               String
+  website             String?
+  services            String[]
+  nationalitiesServed String[]
+  languages           String[]
+  status              AgencyStatus        @default(PENDING)
+  verifiedBadge       Boolean             @default(false)
+  photos              AgencyPhoto[]
+  subscriptions       Subscription[]
+  adPlacements        AdPlacement[]
+  enquiries           Enquiry[]
+  reviews             Review[]
+  analyticsEvents     AnalyticsEvent[]
+  conversations       Conversation[]
+  aiCallLogs          AiCallLog[]
+  featureFlags        FeatureFlag[]
+  aiSettings          AgencyAiSettings?
+  knowledgeDocuments  KnowledgeDocument[]
+  auditLogs           AuditLog[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([city, province, status])
+  @@index([status, verifiedBadge])
+}
+
+model AgencyPhoto {
+  id        String   @id @default(cuid())
+  agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, sortOrder])
+}
+
+model Plan {
+  id              String         @id @default(cuid())
+  name            String         @unique
+  priceMonthly    Decimal        @db.Decimal(10, 2)
+  priceYearly     Decimal        @db.Decimal(10, 2)
+  features        Json
+  listingPriority Int            @default(0)
+  featuredSlots   Int            @default(0)
+  maxPhotos       Int            @default(5)
+  leadLimit       Int?
+  isActive        Boolean        @default(true)
+  subscriptions   Subscription[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([isActive, listingPriority])
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  agencyId    String
+  agency      Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  planId      String
+  plan        Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  status      SubscriptionStatus @default(PENDING)
+  startDate   DateTime
+  endDate     DateTime?
+  autoRenew   Boolean            @default(false)
+  providerRef String?
+  payments    Payment[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([agencyId, status])
+  @@index([planId, status])
+  @@index([endDate])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("PHP") @db.VarChar(3)
+  status         PaymentStatus @default(PENDING)
+  provider       String
+  providerRef    String?
+  invoiceNumber  String        @unique
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([subscriptionId, status])
+  @@index([provider, providerRef])
+}
+
+model AdPlacement {
+  id          String            @id @default(cuid())
+  agencyId    String
+  agency      Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  type        AdPlacementType
+  startDate   DateTime
+  endDate     DateTime
+  status      AdPlacementStatus @default(SCHEDULED)
+  impressions Int               @default(0)
+  clicks      Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([agencyId, status, startDate, endDate])
+  @@index([type, status])
+}
+
+model Enquiry {
+  id           String        @id @default(cuid())
+  agencyId     String
+  agency       Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  phone        String?
+  message      String        @db.Text
+  status       EnquiryStatus @default(NEW)
+  consentGiven Boolean       @default(false)
+  source       EnquirySource @default(WEB)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([agencyId, status, createdAt])
+  @@index([email])
+}
+
+model Review {
+  id         String       @id @default(cuid())
+  agencyId   String
+  agency     Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  authorName String
+  rating     Int
+  title      String
+  body       String       @db.Text
+  status     ReviewStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([agencyId, status, createdAt])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  agencyId  String?
+  agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, type, createdAt])
+  @@index([type, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agencyId  String?
+  agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([agencyId, createdAt])
+  @@index([entity, entityId])
+}
+
+model Conversation {
+  id        String              @id @default(cuid())
+  channel   ConversationChannel
+  userId    String?
+  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agencyId  String?
+  agency    Agency?             @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  status    ConversationStatus  @default(OPEN)
+  messages  Message[]
+  handoffs  HandoffRequest[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([channel, status, createdAt])
+  @@index([userId, status])
+  @@index([agencyId, status])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String       @db.Text
+  tokens         Int?
+  feedback       AiFeedback?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([conversationId, createdAt])
+}
+
+model AiCallLog {
+  id            String   @id @default(cuid())
+  feature       String
+  model         String
+  promptVersion String
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  latencyMs     Int      @default(0)
+  costEstimate  Decimal? @db.Decimal(12, 6)
+  status        String
+  errorMessage  String?  @db.Text
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agencyId      String?
+  agency        Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([feature, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([agencyId, createdAt])
+}
+
+model FeatureFlag {
+  id        String           @id @default(cuid())
+  key       String
+  enabled   Boolean          @default(false)
+  scope     FeatureFlagScope @default(GLOBAL)
+  agencyId  String?
+  agency    Agency?          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([key, scope, agencyId])
+  @@index([key, scope, enabled])
+  @@index([agencyId])
+}
+
+model AgencyAiSettings {
+  id               String   @id @default(cuid())
+  agencyId         String   @unique
+  agency           Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  autoReplyEnabled Boolean  @default(false)
+  replyTone        String   @default("professional")
+  businessHours    Json?
+  languages        String[]
+  escalationEmail  String?
+  knowledgeBase    String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([autoReplyEnabled])
+}
+
+model KnowledgeDocument {
+  id        String                       @id @default(cuid())
+  agencyId  String?
+  agency    Agency?                      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  title     String
+  content   String                       @db.Text
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime                     @default(now())
+  updatedAt DateTime                     @updatedAt
+
+  @@index([agencyId])
+}
+
+model AiFeedback {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rating, createdAt])
+}
+
+model HandoffRequest {
+  id             String        @id @default(cuid())
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  reason         String        @db.Text
+  status         HandoffStatus @default(OPEN)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([conversationId, status])
+  @@index([status, createdAt])
+}
