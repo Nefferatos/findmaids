@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { enquirySubmissionSchema } from "@/lib/validation";
-import { checkLeadLimit } from "@/lib/payments/domain";
 import { hasBlockedPattern, hashBlockValue } from "@/lib/moderation";
+import { enqueueJob } from "@/lib/jobs/queue";
+import { sendOutboundLeadEvent } from "@/lib/jobs/outbound";
+import { summarizeLead } from "@/lib/jobs/lead-summary";
+import { logger } from "@/lib/logger";
+import { getLeadCapMode } from "@/lib/leads/cap";
+import { getConsentedAcquisitionSource } from "@/lib/attribution-consent";
 
 async function verifyTurnstile(token: string | undefined, request: Request) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
@@ -42,8 +47,17 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   const clientIp = request.headers.get("cf-connecting-ip") ?? ip;
-  if (await hasBlockedPattern({ email: parsed.data.email, phone: parsed.data.phone, ip: clientIp }))
-    return NextResponse.json({ error: "Enquiry submission unavailable." }, { status: 403 });
+  if (
+    await hasBlockedPattern({
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      ip: clientIp,
+    })
+  )
+    return NextResponse.json(
+      { error: "Enquiry submission unavailable." },
+      { status: 403 },
+    );
   if (parsed.data.website)
     return NextResponse.json({ message: "Enquiry received." });
   if (!(await verifyTurnstile(parsed.data.turnstileToken, request)))
@@ -58,7 +72,6 @@ export async function POST(request: Request) {
       id: true,
       name: true,
       email: true,
-      owner: { select: { email: true, notificationPreferences: true } },
     },
   });
   if (!agency)
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
   startOfMonth.setUTCHours(0, 0, 0, 0);
   const [activeSubscription, leadsThisMonth, basicPlan] = await Promise.all([
     prisma.subscription.findFirst({
-      where: { agencyId: agency.id, status: "ACTIVE" },
+      where: { agencyId: agency.id, status: "ACTIVE", OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
       include: { plan: true },
       orderBy: { createdAt: "desc" },
     }),
@@ -80,17 +93,10 @@ export async function POST(request: Request) {
     }),
     prisma.plan.findUnique({ where: { name: "Basic Free" } }),
   ]);
-  const leadLimit =
-    activeSubscription?.plan.leadLimit ?? basicPlan?.leadLimit ?? null;
-  const capacity = checkLeadLimit(leadLimit, leadsThisMonth);
-  if (!capacity.allowed)
-    return NextResponse.json(
-      {
-        error:
-          "This agency has reached its monthly enquiry limit. The agency can upgrade its plan to receive more leads.",
-      },
-      { status: 429 },
-    );
+  const leadLimit = activeSubscription ? activeSubscription.plan.leadLimit : (basicPlan?.leadLimit ?? null);
+  const acquisitionSource = await getConsentedAcquisitionSource(
+    parsed.data.acquisitionSource,
+  );
   const enquiry = await prisma.enquiry.create({
     data: {
       agencyId: agency.id,
@@ -99,19 +105,23 @@ export async function POST(request: Request) {
       phone: parsed.data.phone || null,
       message: parsed.data.message,
       consentGiven: true,
+      consentAt: new Date(),
+      consentPolicyVersion: "enquiry-consent-v1-draft",
+      acquisitionSource: acquisitionSource ?? undefined,
       sourceIpHash: hashBlockValue(clientIp),
       source: "WEB",
       preferredStartDate: parsed.data.preferredStartDate,
       budget: parsed.data.budget,
     },
   });
-  const ownerPreferences = agency.owner?.notificationPreferences;
-  const shouldNotify = !(
-    ownerPreferences &&
-    typeof ownerPreferences === "object" &&
-    "leadEmails" in ownerPreferences &&
-    ownerPreferences.leadEmails === false
-  );
+  await sendOutboundLeadEvent("lead.created", {
+    enquiryId: enquiry.id,
+    agencyId: agency.id,
+    source: "WEB",
+  }).catch(() => false);
+  const summaryQueued = await enqueueJob({ type: "lead.summary", enquiryId: enquiry.id }).catch(() => false);
+  if (!summaryQueued) await summarizeLead(enquiry.id).catch(() => null);
+  const waitingCount = leadLimit === null ? 0 : Math.max(0, leadsThisMonth + 1 - leadLimit);
   const emailTasks = [
     sendEmail(
       enquiry.email,
@@ -119,18 +129,24 @@ export async function POST(request: Request) {
       `Your enquiry to ${agency.name} was received. The agency may contact you using the details you provided.`,
     ),
   ];
-  if (shouldNotify)
-    emailTasks.push(
-      sendEmail(
-        agency.email,
-        `New enquiry for ${agency.name}`,
-        `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
-      ),
-    );
+  emailTasks.push(
+    sendEmail(
+      agency.email,
+      waitingCount > 0
+        ? `New enquiry waiting for ${agency.name}`
+        : `New enquiry for ${agency.name}`,
+      waitingCount > 0
+        ? `A new enquiry was saved and delivered to your inbox. Reference: ${enquiry.id}. ${waitingCount} lead${waitingCount === 1 ? " is" : "s are"} currently above your plan allowance. ${getLeadCapMode() === "LOCK_DETAILS" ? "Contact details are locked until you upgrade." : "Contact details remain available under the current delivery setting."} Sign in to review leads and plan options.`
+        : `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
+    ),
+  );
+  await enqueueJob({ type: "lead.reply-draft", enquiryId: enquiry.id }).catch(
+    () => false,
+  );
   const emailResults = await Promise.allSettled(emailTasks);
   for (const result of emailResults) {
     if (result.status === "rejected")
-      console.error("Unable to send enquiry email", result.reason);
+      logger.error({ enquiryId: enquiry.id, errorType: result.reason instanceof Error ? result.reason.name : "unknown" }, "Unable to send enquiry email");
   }
   return NextResponse.json(
     { message: "Your enquiry has been sent." },

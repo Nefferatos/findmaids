@@ -40,6 +40,7 @@ export async function GET(request: Request) {
     topAgencies,
     overdue,
     enquiries,
+    chatEvents,
   ] = await Promise.all([
     prisma.payment.findMany({
       where: { createdAt: { gte: from, lte: to } },
@@ -81,8 +82,28 @@ export async function GET(request: Request) {
     }),
     prisma.enquiry.findMany({
       where: { createdAt: { gte: from, lte: to } },
-      include: { agency: { select: { city: true, services: true } } },
+      include: {
+        agency: {
+          select: { id: true, name: true, city: true, services: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
       take: 10000,
+    }),
+    prisma.analyticsEvent.findMany({
+      where: {
+        type: {
+          in: [
+            "SITE_VISIT",
+            "CHAT_OPENED",
+            "CHAT_MESSAGE_SENT",
+            "CHAT_ENQUIRY_CREATED",
+          ],
+        },
+        createdAt: { gte: from, lte: to },
+      },
+      select: { type: true, metadata: true, createdAt: true },
+      take: 20000,
     }),
   ]);
   const revenueByProvider = new Map<string, number>();
@@ -120,6 +141,20 @@ export async function GET(request: Request) {
   const leadsBySource = new Map<string, number>();
   const leadsByService = new Map<string, number>();
   const leadsByStatus = new Map<string, number>();
+  const responseByAgency = new Map<
+    string,
+    {
+      agencyId: string;
+      agency: string;
+      city: string;
+      total: number;
+      responded: number;
+      elapsedMs: number;
+      within24: number;
+      overdueUnresponded: number;
+    }
+  >();
+  const weeklySourceCity = new Map<string, number>();
   for (const enquiry of enquiries) {
     leadsByCity.set(
       enquiry.agency.city,
@@ -135,7 +170,94 @@ export async function GET(request: Request) {
     );
     for (const service of enquiry.agency.services)
       leadsByService.set(service, (leadsByService.get(service) ?? 0) + 1);
+    const response = responseByAgency.get(enquiry.agencyId) ?? {
+      agencyId: enquiry.agencyId,
+      agency: enquiry.agency.name,
+      city: enquiry.agency.city,
+      total: 0,
+      responded: 0,
+      elapsedMs: 0,
+      within24: 0,
+      overdueUnresponded: 0,
+    };
+    response.total += 1;
+    if (
+      !enquiry.firstRespondedAt &&
+      enquiry.createdAt.getTime() <= Date.now() - 24 * 60 * 60 * 1000
+    )
+      response.overdueUnresponded += 1;
+    if (enquiry.firstRespondedAt) {
+      const elapsed = Math.max(
+        0,
+        enquiry.firstRespondedAt.getTime() - enquiry.createdAt.getTime(),
+      );
+      response.responded += 1;
+      response.elapsedMs += elapsed;
+      if (elapsed <= 24 * 60 * 60 * 1000) response.within24 += 1;
+    }
+    responseByAgency.set(enquiry.agencyId, response);
+    const source =
+      enquiry.acquisitionSource &&
+      typeof enquiry.acquisitionSource === "object" &&
+      !Array.isArray(enquiry.acquisitionSource)
+        ? String(
+            (enquiry.acquisitionSource as Record<string, unknown>)
+              .sourceCategory ?? enquiry.source,
+          )
+        : enquiry.source;
+    const weekDate = new Date(enquiry.createdAt);
+    weekDate.setUTCDate(
+      weekDate.getUTCDate() - ((weekDate.getUTCDay() + 6) % 7),
+    );
+    const week = weekDate.toISOString().slice(0, 10);
+    const key = `${week}|${enquiry.agency.city}|${source}|${enquiry.source}`;
+    weeklySourceCity.set(key, (weeklySourceCity.get(key) ?? 0) + 1);
   }
+  const responseReport = [...responseByAgency.values()].map((item) => ({
+    agencyId: item.agencyId,
+    agency: item.agency,
+    city: item.city,
+    total: item.total,
+    responded: item.responded,
+    averageMinutes: item.responded
+      ? item.elapsedMs / item.responded / 60_000
+      : null,
+    within24HoursPercent: item.total
+      ? (item.within24 / item.total) * 100
+      : null,
+    overdueUnresponded: item.overdueUnresponded,
+  }));
+  const slowResponseAgencies = responseReport
+    .filter(
+      (item) =>
+        item.overdueUnresponded > 0 ||
+        (item.responded > 0 &&
+          (item.averageMinutes! > 24 * 60 ||
+            (item.within24HoursPercent ?? 100) < 50)),
+    )
+    .sort((a, b) => (b.averageMinutes ?? 0) - (a.averageMinutes ?? 0));
+  const visitorIdsByEvent = (type: string) =>
+    new Set(
+      chatEvents
+        .filter(
+          (event) =>
+            event.type === type &&
+            event.metadata &&
+            typeof event.metadata === "object" &&
+            "anonymousVisitorId" in event.metadata,
+        )
+        .map((event) =>
+          String(
+            (event.metadata as Record<string, unknown>).anonymousVisitorId,
+          ),
+        ),
+    );
+  const chatVisitors = visitorIdsByEvent("CHAT_OPENED");
+  const consentedVisitors = visitorIdsByEvent("SITE_VISIT");
+  const chatConversions = visitorIdsByEvent("CHAT_ENQUIRY_CREATED");
+  const chatConvertedVisitors = [...chatVisitors].filter((visitorId) =>
+    chatConversions.has(visitorId),
+  ).length;
   if (params.get("format") === "csv") {
     const quote = (value: unknown) =>
       `"${String(value ?? "").replaceAll('"', '""')}"`;
@@ -148,6 +270,16 @@ export async function GET(request: Request) {
       ]),
       ...[...revenueByPlan].map(([key, value]) => ["revenue_plan", key, value]),
       ...rows.map((row) => ["revenue_month", row.month, row.revenue]),
+      ...responseReport.map((row) => [
+        "agency_response_minutes",
+        row.agency,
+        row.averageMinutes ?? "not_responded",
+      ]),
+      ...[...weeklySourceCity].map(([key, value]) => [
+        "weekly_enquiry",
+        key,
+        value,
+      ]),
       ...topAgencies.map((row) => [
         "agency_events",
         agenciesById.get(row.agencyId!)?.name,
@@ -197,5 +329,24 @@ export async function GET(request: Request) {
       status: item.status,
       endDate: item.endDate,
     })),
+    responseByAgency: responseReport,
+    slowResponseAgencies,
+    chatFunnel: {
+      visitors: consentedVisitors.size,
+      chatStarts: chatVisitors.size,
+      convertedVisitors: chatConvertedVisitors,
+      conversionPercent: chatVisitors.size
+        ? (chatConvertedVisitors / chatVisitors.size) * 100
+        : 0,
+      messageEvents: chatEvents.filter(
+        (event) => event.type === "CHAT_MESSAGE_SENT",
+      ).length,
+    },
+    weeklyEnquiriesBySourceCityChannel: [...weeklySourceCity].map(
+      ([key, count]) => {
+        const [week, city, sourceCategory, channel] = key.split("|");
+        return { week, city, sourceCategory, channel, count };
+      },
+    ),
   });
 }

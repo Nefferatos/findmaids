@@ -35,6 +35,10 @@ type ReportData = {
     status: string;
     endDate: string | null;
   }[];
+  chatFunnel?: { visitors: number; chatStarts: number; convertedVisitors: number; conversionPercent: number; messageEvents: number };
+  responseByAgency?: { agencyId: string; agency: string; city: string; total: number; responded: number; averageMinutes: number | null; within24HoursPercent: number | null; overdueUnresponded: number }[];
+  slowResponseAgencies?: { agencyId: string; agency: string; city: string; total: number; responded: number; averageMinutes: number | null; within24HoursPercent: number | null; overdueUnresponded: number }[];
+  weeklyEnquiriesBySourceCityChannel?: { week: string; city: string; sourceCategory: string; channel: string; count: number }[];
 };
 export function AdminReportDashboard() {
   const today = new Date();
@@ -137,6 +141,21 @@ export function AdminReportDashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </section>
+          <section className="rounded-md border bg-white p-5">
+            <h2 className="font-display text-xl font-bold">Acquisition and chat funnel</h2>
+            <p className="mt-2 text-sm">{data.chatFunnel?.visitors ?? 0} consented anonymous visitors · {data.chatFunnel?.chatStarts ?? 0} chat starts · {data.chatFunnel?.convertedVisitors ?? 0} chat-to-enquiry visitors · {(data.chatFunnel?.conversionPercent ?? 0).toFixed(1)}% conversion.</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-sm">
+                <thead><tr><th className="p-2">Week</th><th className="p-2">City</th><th className="p-2">Source</th><th className="p-2">Channel</th><th className="p-2">Enquiries</th></tr></thead>
+                <tbody>{(data.weeklyEnquiriesBySourceCityChannel ?? []).map((item, index) => <tr className="border-t" key={`${item.week}-${item.city}-${item.sourceCategory}-${index}`}><td className="p-2">{item.week}</td><td className="p-2">{item.city}</td><td className="p-2">{item.sourceCategory}</td><td className="p-2">{item.channel}</td><td className="p-2">{item.count}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </section>
+          <section className="rounded-md border bg-white p-5">
+            <h2 className="font-display text-xl font-bold">Agency response time · internal</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Provisional signal: any lead unanswered for over 24h, average above 24h, or fewer than half responded within 24h. Confirm thresholds with Uncle Ricky.</p>
+            <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead><tr><th className="p-2">Agency</th><th className="p-2">City</th><th className="p-2">Leads</th><th className="p-2">Responded</th><th className="p-2">Average</th><th className="p-2">Within 24h</th><th className="p-2">Unanswered &gt;24h</th><th className="p-2">Review</th></tr></thead><tbody>{(data.responseByAgency ?? []).map((item) => <tr className="border-t" key={item.agencyId}><td className="p-2">{item.agency}</td><td className="p-2">{item.city}</td><td className="p-2">{item.total}</td><td className="p-2">{item.responded}</td><td className="p-2">{item.averageMinutes === null ? "—" : `${(item.averageMinutes / 60).toFixed(1)}h`}</td><td className="p-2">{item.within24HoursPercent === null ? "—" : `${item.within24HoursPercent.toFixed(0)}%`}</td><td className="p-2">{item.overdueUnresponded}</td><td className="p-2">{(data.slowResponseAgencies ?? []).some((slow) => slow.agencyId === item.agencyId) ? "Review" : "—"}</td></tr>)}</tbody></table></div>
           </section>
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-md border bg-white p-5">

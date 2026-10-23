@@ -9,9 +9,13 @@ import {
   ReportReviewButton,
 } from "@/components/agency-dashboard-forms";
 import { LeadManager } from "@/components/lead-manager";
+import { AgencyAiSettings } from "@/components/agency-ai-settings";
 import { Badge, Container, SectionHeading } from "@/components/site";
 import { calculateProfileCompleteness, requireOwnedAgency } from "@/lib/agency";
 import { prisma } from "@/lib/prisma";
+import { getAgencyLeadAllowance } from "@/lib/leads/access";
+import { redactLockedLeadDetails } from "@/lib/leads/presentation";
+import { calculateResponseMetrics } from "@/lib/leads/response-metrics";
 
 export const metadata = {
   title: "Agency dashboard | FindMaids",
@@ -26,6 +30,7 @@ const tabs = [
   "ads",
   "analytics",
   "settings",
+  "ai-assistant",
 ] as const;
 type Tab = (typeof tabs)[number];
 
@@ -57,6 +62,8 @@ export default async function AgencyDashboardPage({
     events,
     plans,
     user,
+    basicPlan,
+    sourceEnquiries,
   ] = await Promise.all([
     prisma.agency.findUnique({
       where: { id: agency.id },
@@ -110,9 +117,32 @@ export default async function AgencyDashboardPage({
       where: { id: agency.ownerId ?? "" },
       select: { name: true, email: true, notificationPreferences: true },
     }),
+    prisma.plan.findUnique({ where: { name: "Basic Free" } }),
+    prisma.enquiry.findMany({
+      where: { agencyId: agency.id, createdAt: { gte: new Date(now.getTime() - 30 * 86_400_000) } },
+      select: { source: true, acquisitionSource: true },
+      take: 5000,
+    }),
   ]);
+  const leadAllowance = await getAgencyLeadAllowance(agency.id);
+  const { lockedIds, ...leadCapSummary } = leadAllowance;
   const completeness = calculateProfileCompleteness(profile ?? agency);
-  const leadLimit = active?.plan.leadLimit ?? null;
+  const leadLimit = active ? active.plan.leadLimit : (basicPlan?.leadLimit ?? null);
+  const responseStart = new Date(now.getTime() - 30 * 86_400_000);
+  const responseSamples = await prisma.enquiry.findMany({
+    where: { agencyId: agency.id, createdAt: { gte: responseStart } },
+    select: { createdAt: true, firstRespondedAt: true },
+    take: 5000,
+  });
+  const responseMetrics = calculateResponseMetrics(responseSamples);
+  const enquirySourceCounts = sourceEnquiries.reduce<Record<string, number>>((counts, lead) => {
+    const attribution = lead.acquisitionSource;
+    const sourceCategory = attribution && typeof attribution === "object" && !Array.isArray(attribution) && "sourceCategory" in attribution
+      ? String(attribution.sourceCategory)
+      : lead.source;
+    counts[sourceCategory] = (counts[sourceCategory] ?? 0) + 1;
+    return counts;
+  }, {});
   const averageRating = reviews.length
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
@@ -216,6 +246,14 @@ export default async function AgencyDashboardPage({
         </div>
       </div>
       {nav}
+      {agency.foundingAgency && agency.foundingPeriodEndsAt && agency.foundingPeriodEndsAt > now && (
+        <section className="mt-5 border border-[#9b7700] bg-[#fff7d6] p-4" aria-label="Founding agency benefits">
+          <h2 className="font-display text-lg font-bold">Founding Agency · Gold benefits</h2>
+          <p className="mt-1 text-sm">Your founding period ends {agency.foundingPeriodEndsAt.toLocaleDateString("en-PH")}. No payment will be collected automatically.</p>
+          <p className="mt-2 text-sm">Last 30 days: {events.filter((event) => event.createdAt >= responseStart && event.type === "profile_view").length} profile views · {events.filter((event) => event.createdAt >= responseStart && ["phone_click","whatsapp_click","website_click"].includes(event.type)).length} contact clicks · {sourceEnquiries.length} enquiries · {responseMetrics.averageMinutes === null ? "no recorded first responses" : `${(responseMetrics.averageMinutes / 60).toFixed(1)}h average first response`}.</p>
+          <a className="mt-2 inline-block font-semibold underline" href="/api/agency/founding-summary">Download 30-day summary PDF</a>
+        </section>
+      )}
       <div className="pt-7">
         {tab === "overview" && (
           <>
@@ -229,6 +267,7 @@ export default async function AgencyDashboardPage({
                 ["Profile views", views],
                 ["Contact clicks", clicks],
                 ["Enquiries this month", leadCount],
+                ["Responded within 24h", responseMetrics.within24HoursPercent === null ? "—" : `${responseMetrics.within24HoursPercent.toFixed(0)}%`],
                 [
                   "Average rating",
                   `${averageRating.toFixed(1)} (${reviews.length})`,
@@ -317,10 +356,9 @@ export default async function AgencyDashboardPage({
                   : `Plan allowance: ${leadCount} / ${leadLimit} enquiries this month.`
               }
             />
-            {leadLimit !== null && leadCount >= leadLimit && (
+            {leadAllowance.overLimitCount > 0 && (
               <p className="mb-4 rounded-md bg-[#fff1bf] p-4 text-sm">
-                Your monthly lead limit is reached. New enquiries are rejected
-                with an upgrade prompt.{" "}
+                {leadAllowance.overLimitCount} additional lead{leadAllowance.overLimitCount === 1 ? " is" : "s are"} saved above your {leadAllowance.planName} allowance. {leadAllowance.lockedCount > 0 ? "Their details are locked until you upgrade." : "Their details remain available under DELIVER_ALL."}{" "}
                 <Link
                   className="font-bold underline"
                   href="/agency/dashboard?view=billing"
@@ -330,9 +368,23 @@ export default async function AgencyDashboardPage({
               </p>
             )}
             <LeadManager
+              leadCap={{
+                mode: leadCapSummary.mode,
+                planName: leadCapSummary.planName,
+                monthlyLimit: leadCapSummary.monthlyLimit,
+                monthlyCount: leadCapSummary.monthlyCount,
+                overLimitCount: leadCapSummary.overLimitCount,
+                lockedCount: leadCapSummary.lockedCount,
+                upgradePlanName: leadCapSummary.upgradePlanName,
+                upgradePlanFeatures: leadCapSummary.upgradePlanFeatures,
+                upgradePriceMonthly: leadCapSummary.upgradePriceMonthly,
+              }}
+              responseMetrics={responseMetrics}
+              enquirySourceCounts={enquirySourceCounts}
               leads={recentLeads.map((lead) => ({
-                ...lead,
+                ...redactLockedLeadDetails(lead, lockedIds.has(lead.id)),
                 createdAt: lead.createdAt.toISOString(),
+                firstRespondedAt: lead.firstRespondedAt?.toISOString() ?? null,
               }))}
             />
           </>
@@ -559,6 +611,16 @@ export default async function AgencyDashboardPage({
                 Contact support
               </Link>
             </section>
+          </>
+        )}
+        {tab === "ai-assistant" && (
+          <>
+            <SectionHeading
+              eyebrow="Agency tools"
+              title="AI Assistant"
+              description="Configure verified agency facts and review-only lead reply drafts."
+            />
+            <AgencyAiSettings />
           </>
         )}
       </div>
