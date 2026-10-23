@@ -119,6 +119,18 @@ enum HandoffStatus {
   CANCELLED
 }
 
+enum ProspectStage {
+  IDENTIFIED
+  CONTACTED
+  INTERESTED
+  PROFILE_DRAFTED
+  LISTED_FREE
+  TRIAL
+  PAYING
+  DECLINED
+  DO_NOT_CONTACT
+}
+
 model User {
   id                      String                   @id @default(cuid())
   name                    String?
@@ -132,6 +144,7 @@ model User {
   totpPendingSecret       String?
   totpEnabled             Boolean                  @default(false)
   totpVerifiedAt          DateTime?
+  passwordChangedAt       DateTime?
   notificationPreferences Json?
   agencies                Agency[]
   conversations           Conversation[]
@@ -140,11 +153,13 @@ model User {
   verificationTokens      EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   dataDeletionRequests    DataDeletionRequest[]
+  cookieConsents          CookieConsent[]
   agencyOnboardingDraft   AgencyOnboardingDraft?
   reportsCreated          Report[]                 @relation("ReportCreator")
   reportsResolved         Report[]                 @relation("ReportResolver")
   verifiedAgencies        Agency[]                 @relation("AgencyVerifier")
   manualPayments          Payment[]                @relation("PaymentReconciler")
+  ownedProspects          Prospect[]               @relation("ProspectOwner")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -177,6 +192,9 @@ model Agency {
   verifiedBadge       Boolean             @default(false)
   adminNote           String?             @db.Text
   profileCompleteness Int                 @default(0)
+  foundingAgency      Boolean             @default(false)
+  foundingPeriodStartsAt DateTime?
+  foundingPeriodEndsAt DateTime?
   onboardingStep      Int                 @default(1)
   submittedAt         DateTime?
   rejectedAt          DateTime?
@@ -196,6 +214,7 @@ model Agency {
   featureFlags        FeatureFlag[]
   aiSettings          AgencyAiSettings?
   knowledgeDocuments  KnowledgeDocument[]
+  prospects           Prospect[]
   auditLogs           AuditLog[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -203,6 +222,7 @@ model Agency {
   @@unique([ownerId])
   @@index([city, province, status])
   @@index([status, verifiedBadge])
+  @@index([createdAt])
 }
 
 model AgencyOnboardingDraft {
@@ -238,6 +258,7 @@ model Plan {
   featuredSlots          Int            @default(0)
   maxPhotos              Int            @default(5)
   leadLimit              Int?
+  aiMonthlyBudgetPhp     Decimal?       @db.Decimal(10, 2)
   isActive               Boolean        @default(true)
   subscriptions          Subscription[]
   scheduledSubscriptions Subscription[] @relation("ScheduledPlan")
@@ -261,6 +282,9 @@ model Subscription {
   graceEndsAt          DateTime?
   scheduledPlanId      String?
   downgradeEffectiveAt DateTime?
+  foundingAgency       Boolean            @default(false)
+  foundingPeriodStartsAt DateTime?
+  foundingPeriodEndsAt DateTime?
   scheduledPlan        Plan?              @relation("ScheduledPlan", fields: [scheduledPlanId], references: [id], onDelete: SetNull)
   billingPeriod        BillingPeriod      @default(MONTHLY)
   providerRef          String?
@@ -316,6 +340,7 @@ model AdPlacement {
   startDate   DateTime
   endDate     DateTime
   status      AdPlacementStatus @default(SCHEDULED)
+  foundingGrant Boolean         @default(false)
   impressions Int               @default(0)
   clicks      Int               @default(0)
   createdAt   DateTime          @default(now())
@@ -336,16 +361,33 @@ model Enquiry {
   preferredStartDate DateTime?
   budget             Decimal?      @db.Decimal(10, 2)
   status             EnquiryStatus @default(NEW)
+  firstRespondedAt   DateTime?
+  acquisitionSource  Json?
   consentGiven       Boolean       @default(false)
+  consentAt          DateTime?
+  consentPolicyVersion String?
   privateNotes       String?       @db.Text
   anonymizedAt       DateTime?
   sourceIpHash       String?
+  aiSummary          String?       @db.Text
+  aiHelperType       String?
+  aiLocation         String?
+  aiBudgetText       String?
+  aiStartDateText    String?
+  aiUrgency          String?
+  aiQualityScore     Int?
+  aiQualityReasons   Json?
+  aiSpamProbability  Float?
+  aiReplyDraft       String?       @db.Text
+  aiReplyApprovedAt  DateTime?
+  aiReplySentAt      DateTime?
   source             EnquirySource @default(WEB)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@index([agencyId, status, createdAt])
   @@index([email])
+  @@index([agencyId, createdAt])
 }
 
 model EmailVerificationToken {
@@ -415,6 +457,7 @@ model AnalyticsEvent {
   updatedAt DateTime @updatedAt
 
   @@index([agencyId, type, createdAt])
+  @@index([agencyId, createdAt])
   @@index([type, createdAt])
 }
 
@@ -491,6 +534,11 @@ model Conversation {
   agencyId  String?
   agency    Agency?             @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   status    ConversationStatus  @default(OPEN)
+  visitorTokenHash String?      @unique
+  consentAt DateTime?
+  retentionExpiresAt DateTime?
+  language String?
+  sourceIpHash String?
   messages  Message[]
   handoffs  HandoffRequest[]
   createdAt DateTime            @default(now())
@@ -506,6 +554,7 @@ model Message {
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           MessageRole
+  providerMessageId String?   @unique
   content        String       @db.Text
   tokens         Int?
   feedback       AiFeedback?
@@ -558,6 +607,7 @@ model AgencyAiSettings {
   agencyId         String   @unique
   agency           Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   autoReplyEnabled Boolean  @default(false)
+  replyMode        String   @default("DRAFT")
   replyTone        String   @default("professional")
   businessHours    Json?
   languages        String[]
@@ -651,4 +701,50 @@ model DataDeletionRequest {
 
   @@index([status, createdAt])
   @@index([email])
+}
+
+model Prospect {
+  id                   String        @id @default(cuid())
+  agencyName           String
+  contactName          String?
+  phone                String?
+  whatsapp             String?
+  email                String?
+  city                 String
+  licenseNumber        String?
+  licenseCheckedAt     DateTime?
+  licenseSource        String?
+  contactDetailsSource String        @db.Text
+  stage                ProspectStage @default(IDENTIFIED)
+  source               String
+  notes                String?       @db.Text
+  lastContactedAt      DateTime?
+  nextActionAt         DateTime?
+  ownerUserId          String?
+  owner                User?         @relation("ProspectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  agencyId             String?
+  agency               Agency?       @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([stage, nextActionAt])
+  @@index([city, stage])
+  @@index([agencyId])
+  @@index([ownerUserId, stage])
+  @@index([email])
+}
+
+model CookieConsent {
+  id             String   @id @default(cuid())
+  consentKeyHash String   @unique
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  policyVersion  String
+  analytics      Boolean  @default(false)
+  capturedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, capturedAt])
+  @@index([capturedAt])
 }

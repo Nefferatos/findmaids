@@ -15,6 +15,7 @@ export function PlanEditor({
     featuredSlots: number;
     maxPhotos: number;
     leadLimit: number | null;
+    aiMonthlyBudgetPhp: number | null;
     isActive: boolean;
     _count: { subscriptions: number };
   }[];
@@ -76,6 +77,7 @@ export function PlanEditor({
               "featuredSlots",
               "maxPhotos",
               "leadLimit",
+              "aiMonthlyBudgetPhp",
             ] as const
           ).map((field) => (
             <label key={field} className="text-sm font-semibold">
@@ -361,7 +363,7 @@ export function AdminSettingsEditor({
     setMessage("Setting saved and audited.");
   }
   const keys = contentMode
-    ? ["contentOverrides", "emailTemplates"]
+    ? ["contentOverrides", "emailTemplates", "platformFaq"]
     : [
         "bankDetails",
         "rankingWeights",
@@ -370,6 +372,7 @@ export function AdminSettingsEditor({
         "featureFlags",
         "contentOverrides",
         "emailTemplates",
+        "platformFaq",
       ];
   const featureFlags = (() => {
     if (key !== "featureFlags") return {};

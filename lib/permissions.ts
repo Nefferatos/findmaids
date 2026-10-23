@@ -10,6 +10,7 @@ export const adminPermissions = {
   plans: ["ADMIN"],
   placements: ["ADMIN"],
   reports: ["ADMIN"],
+  prospects: ["ADMIN"],
   content: ["ADMIN"],
   users: ["ADMIN"],
   audit: ["ADMIN"],

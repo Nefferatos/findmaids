@@ -9,6 +9,15 @@ import {
 
 const prisma = new PrismaClient();
 
+if (
+  process.env.NODE_ENV === "production" ||
+  process.env.ALLOW_SAMPLE_SEED !== "true"
+) {
+  throw new Error(
+    "Sample seed is blocked. Set ALLOW_SAMPLE_SEED=true only for an isolated local/CI database; use scripts/seed-production-catalog.ts for reviewed catalog data.",
+  );
+}
+
 const plans = [
   {
     name: "Basic Free",
