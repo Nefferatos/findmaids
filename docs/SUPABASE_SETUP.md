@@ -41,3 +41,9 @@ Supabase Storage is the only object-storage implementation. Populate these value
 ## AI Demo Flags
 
 The employer assistant, agency reply draft, and profile helper are deterministic workflows. They do not call Claude, Make.com, or any external model, and are disabled by default. An ADMIN can enable them in Admin > Settings > `featureFlags`. Reply and profile suggestions are drafts only. Agency-scoped `FeatureFlag` records override the global setting.
+
+## Make.com AI and Embeddings
+
+`AI_PROVIDER=make` uses `AI_WEBHOOK_URL` for generation/moderation and `AI_EMBEDDINGS_WEBHOOK_URL` for embeddings. Both are disabled when the URLs are absent. The embeddings webhook receives `{action:"embed",text,dimensions:1536}` and must respond with exactly 1536 numeric values in `{embedding:[...]}`. Protect it with `AI_WEBHOOK_SECRET`; implement the same Bearer token validation in the Make scenario. Never log unmasked request text in Make history; configure scenario data retention accordingly.
+
+Claude is selected only with `AI_PROVIDER=claude` and a server-side `AI_API_KEY`. `AI_PROVIDER=mock` remains the default and requires no provider credentials. Redis-backed jobs need `REDIS_URL` and `npm run jobs:worker`; see [JOBS.md](JOBS.md).
