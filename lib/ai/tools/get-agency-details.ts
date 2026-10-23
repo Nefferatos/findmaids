@@ -11,6 +11,7 @@ export async function getAgencyDetails(input: GetAgencyDetailsInput) {
   const agency = await prisma.agency.findFirst({
     where: { slug: query.slug, status: "APPROVED" },
     select: {
+      id: true,
       name: true,
       slug: true,
       description: true,

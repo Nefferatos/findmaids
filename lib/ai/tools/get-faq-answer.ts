@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { getAiProvider } from "@/lib/ai/provider";
 
 export const getFaqAnswerInput = z.object({
   question: z.string().trim().min(3).max(1000),
@@ -8,6 +10,44 @@ export type GetFaqAnswerInput = z.infer<typeof getFaqAnswerInput>;
 export async function getFaqAnswer(input: GetFaqAnswerInput) {
   const query = getFaqAnswerInput.parse(input);
   const question = query.question.toLowerCase();
+  const configured =
+    getAiProvider().name === "mock"
+      ? null
+      : await prisma.adminSetting
+          .findUnique({
+            where: { key: "platformFaq" },
+            select: { value: true },
+          })
+          .catch(() => null);
+  const customFaq = configured?.value;
+  if (
+    customFaq &&
+    typeof customFaq === "object" &&
+    !Array.isArray(customFaq) &&
+    "entries" in customFaq &&
+    Array.isArray(customFaq.entries)
+  ) {
+    const entries = customFaq.entries.filter(
+      (entry): entry is { question: string; answer: string } =>
+        Boolean(
+          entry &&
+          typeof entry === "object" &&
+          "question" in entry &&
+          "answer" in entry &&
+          typeof entry.question === "string" &&
+          typeof entry.answer === "string",
+        ),
+    );
+    const matched = entries.find((entry) =>
+      entry.question
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((word) => word.length > 3)
+        .some((word) => question.includes(word)),
+    );
+    if (matched)
+      return { answer: matched.answer, query, source: "Platform FAQ" };
+  }
   const entries = [
     {
       match: /fee|cost|price|pay/,

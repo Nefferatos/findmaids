@@ -135,6 +135,12 @@ export function Footer() {
               <li>
                 <Link href="/privacy">Privacy</Link>
               </li>
+              <li>
+                <Link href="/cookies">Cookies</Link>
+              </li>
+              <li>
+                <Link href="/security">Security reporting</Link>
+              </li>
             </ul>
           </div>
         </div>
