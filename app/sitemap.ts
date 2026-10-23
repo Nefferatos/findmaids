@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+ import { logger } from "@/lib/logger";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const staticPaths = [
     "",
     "/agencies",
@@ -12,6 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/faq",
     "/terms",
     "/privacy",
+    "/cookies",
+    "/security",
     "/guides",
     "/guides/choosing-an-agency",
     "/guides/preparing-for-a-conversation",
@@ -27,8 +30,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { status: "APPROVED" },
       select: { slug: true, updatedAt: true },
     })
-    .catch((error) => {
-      console.error("Unable to load sitemap agency URLs", error);
+      .catch((error) => {
+        logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load sitemap agency URLs");
       return [];
     });
   return [

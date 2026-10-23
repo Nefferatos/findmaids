@@ -33,6 +33,12 @@ export function AgencyProfileEditor({
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
+  const [aiExtras, setAiExtras] = useState<{
+    services: string[];
+    adCopy: string;
+    socialPost: string;
+    filipino: string;
+  } | null>(null);
   const [data, setData] = useState({
     ...agency,
     services: agency.services.join(", "),
@@ -102,7 +108,13 @@ export function AgencyProfileEditor({
       setMessage(result.error ?? "Profile helper is unavailable.");
       return;
     }
-    set("description", result.suggestion);
+    set("description", result.suggestion.description);
+    setAiExtras({
+      services: result.suggestion.services,
+      adCopy: result.suggestion.adCopy,
+      socialPost: result.suggestion.socialPost,
+      filipino: result.suggestion.filipino,
+    });
     setMessage(
       "Draft added to the description field. Review and save to publish.",
     );
@@ -163,6 +175,27 @@ export function AgencyProfileEditor({
           onChange={(event) => set("description", event.target.value)}
         />
       </label>
+      {aiExtras && (
+        <section className="space-y-3 border-y py-4 text-sm sm:col-span-2">
+          <h3 className="font-display font-bold">Other editable suggestions</h3>
+          <p>
+            <strong>Service bullets:</strong> {aiExtras.services.join(" · ")}
+          </p>
+          <p>
+            <strong>Short ad:</strong> {aiExtras.adCopy}
+          </p>
+          <p>
+            <strong>Social post:</strong> {aiExtras.socialPost}
+          </p>
+          <p>
+            <strong>Filipino:</strong> {aiExtras.filipino}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            These are drafts based on your saved facts. Only the description
+            field is saved with this profile form.
+          </p>
+        </section>
+      )}
       <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">
         {(["logo", "banner", "photo"] as const).map((kind) => (
           <label

@@ -122,8 +122,14 @@ export async function getDirectoryPage(
       listingPriority: Math.max(
         0,
         ...agency.subscriptions.map(
-          (subscription) => subscription.plan.listingPriority,
+          (subscription) =>
+            subscription.foundingAgency &&
+            subscription.foundingPeriodEndsAt &&
+            subscription.foundingPeriodEndsAt > now
+              ? Math.max(subscription.plan.listingPriority, 10)
+              : subscription.plan.listingPriority,
         ),
+        ...(agency.foundingAgency && agency.foundingPeriodEndsAt && agency.foundingPeriodEndsAt > now ? [10] : []),
       ),
       rating: average,
       reviewCount: agency.reviews.length,

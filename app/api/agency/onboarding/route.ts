@@ -103,6 +103,17 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   const completeness = calculateProfileCompleteness(data);
+  const pendingProspect = await prisma.prospect.findFirst({
+    where: {
+      agencyId: null,
+      OR: [
+        { email: { equals: data.email, mode: "insensitive" } },
+        ...(data.licenseNumber ? [{ licenseNumber: data.licenseNumber }] : []),
+        { agencyName: { equals: data.name, mode: "insensitive" } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+  });
   const agency = await prisma.$transaction(async (tx) => {
     const created = await tx.agency.create({
       data: {
@@ -143,6 +154,13 @@ export async function POST(request: Request) {
     await tx.agencyOnboardingDraft.deleteMany({ where: { userId: user.id } });
     return created;
   });
+  if (pendingProspect) {
+    const nextStage = pendingProspect.stage === "DO_NOT_CONTACT" ? pendingProspect.stage : "PROFILE_DRAFTED";
+    await prisma.$transaction([
+      prisma.prospect.update({ where: { id: pendingProspect.id }, data: { agencyId: agency.id, stage: nextStage } }),
+      prisma.auditLog.create({ data: { userId: user.id, agencyId: agency.id, action: "PROSPECT_LINKED_TO_AGENCY", entity: "Prospect", entityId: pendingProspect.id, after: { agencyId: agency.id, stage: nextStage } } }),
+    ]);
+  }
   return NextResponse.json(
     { agencyId: agency.id, status: agency.status },
     { status: 201 },

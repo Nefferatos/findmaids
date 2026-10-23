@@ -6,6 +6,7 @@ import {
   type AdminPermission,
 } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { adminMfaSatisfied } from "@/lib/security/admin-mfa";
 
 export async function requireAdminPermission(permission: AdminPermission) {
   const session = await auth();
@@ -22,7 +23,14 @@ export async function requireAdminPermission(permission: AdminPermission) {
       select: { disabled: true, totpEnabled: true },
     });
     if (!user || user.disabled) redirect("/login?error=account_disabled");
-    if (user.totpEnabled && !session.user.adminMfaVerified)
+    if (
+      !adminMfaSatisfied({
+        role: session.user.role,
+        permission,
+        totpEnabled: user.totpEnabled,
+        sessionVerified: session.user.adminMfaVerified,
+      })
+    )
       redirect("/admin/2fa");
   }
   return session.user;
@@ -39,9 +47,14 @@ export async function authorizeAdminApi(permission: AdminPermission) {
   });
   if (!account || account.disabled || account.role !== session.user.role)
     return { user: null, status: 403 as const };
-  if (session.user.role === "ADMIN" && permission !== "twoFactor") {
-    if (account.totpEnabled && !session.user.adminMfaVerified)
-      return { user: null, status: 403 as const };
-  }
+  if (
+    !adminMfaSatisfied({
+      role: session.user.role,
+      permission,
+      totpEnabled: account.totpEnabled,
+      sessionVerified: session.user.adminMfaVerified,
+    })
+  )
+    return { user: null, status: 403 as const };
   return { user: session.user, status: 200 as const };
 }

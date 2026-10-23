@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container, SectionHeading } from "@/components/site";
 import { prisma } from "@/lib/prisma";
+ import { logger } from "@/lib/logger";
 
 export const revalidate = 300;
 export const metadata = {
@@ -19,8 +20,8 @@ export default async function AdvertisePage() {
       where: { isActive: true },
       orderBy: { listingPriority: "asc" },
     })
-    .catch((error) => {
-      console.error("Unable to load plans", error);
+      .catch((error) => {
+        logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load plans");
       return [];
     });
   return (

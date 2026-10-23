@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -8,12 +9,31 @@ import { storeObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
 const schema = z.object({ paymentId: z.string().min(1) });
-const accepted = new Map([
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-  ["application/pdf", ".pdf"],
+const accepted = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
 ]);
+
+function matchesDeclaredType(bytes: Uint8Array, mime: string) {
+  if (mime === "image/jpeg")
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === "image/png")
+    return bytes
+      .subarray(0, 8)
+      .every(
+        (byte, index) => byte === [137, 80, 78, 71, 13, 10, 26, 10][index],
+      );
+  if (mime === "image/webp")
+    return (
+      Buffer.from(bytes.subarray(0, 4)).toString() === "RIFF" &&
+      Buffer.from(bytes.subarray(8, 12)).toString() === "WEBP"
+    );
+  if (mime === "application/pdf")
+    return Buffer.from(bytes.subarray(0, 5)).toString() === "%PDF-";
+  return false;
+}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -56,14 +76,45 @@ export async function POST(request: Request) {
       { error: "Pending bank payment was not found or has expired." },
       { status: 404 },
     );
-  const extension = accepted.get(file.type)!;
+  const input = new Uint8Array(await file.arrayBuffer());
+  if (!matchesDeclaredType(input, file.type))
+    return NextResponse.json(
+      { error: "The proof content does not match its file type." },
+      { status: 415 },
+    );
+  let body = input;
+  let contentType = file.type;
+  const extension = file.type === "application/pdf" ? ".pdf" : ".webp";
+  if (file.type !== "application/pdf") {
+    try {
+      body = await sharp(input, {
+        limitInputPixels: 40_000_000,
+        failOn: "error",
+      })
+        .rotate()
+        .resize({
+          width: 2400,
+          height: 2400,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 82 })
+        .toBuffer();
+      contentType = "image/webp";
+    } catch {
+      return NextResponse.json(
+        { error: "The proof image could not be decoded." },
+        { status: 415 },
+      );
+    }
+  }
   const filename = `${randomUUID()}${extension}`;
   const objectKey = `bank-proofs/${payment.id}/${filename}`;
   await storeObject({
     bucket: "private",
     key: objectKey,
-    body: new Uint8Array(await file.arrayBuffer()),
-    contentType: file.type,
+    body,
+    contentType,
   });
   await prisma.payment.update({
     where: { id: payment.id },

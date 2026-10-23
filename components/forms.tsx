@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { getFirstTouch } from "@/lib/attribution-client";
 
 type FormState = { message: string; error: boolean };
 
@@ -260,6 +261,7 @@ export function EnquiryForm({
         ...Object.fromEntries(formData),
         agencyId,
         turnstileToken,
+        acquisitionSource: getFirstTouch(),
       }),
     });
     const data = await response.json();

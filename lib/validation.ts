@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { acquisitionSourceSchema } from "@/lib/attribution";
 
 export const enquirySubmissionSchema = z.object({
   agencyId: z.string().min(1),
@@ -24,6 +25,7 @@ export const enquirySubmissionSchema = z.object({
   ),
   website: z.string().max(0).optional(),
   turnstileToken: z.string().optional(),
+  acquisitionSource: acquisitionSourceSchema.optional(),
 });
 
 export const reviewSubmissionSchema = z.object({

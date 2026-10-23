@@ -4,6 +4,8 @@ import { auth } from "@/auth";
 import { calculateProfileCompleteness } from "@/lib/agency";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { enqueueJob } from "@/lib/jobs/queue";
+import { isFeatureEnabled } from "@/lib/ai/flags";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(160),
@@ -30,9 +32,25 @@ const schema = z.object({
   services: z.array(z.string().max(80)).max(20),
   nationalitiesServed: z.array(z.string().max(80)).max(20),
   languages: z.array(z.string().max(80)).max(20),
-  logoUrl: z.string().startsWith("/uploads/").optional().or(z.literal("")),
-  bannerUrl: z.string().startsWith("/uploads/").optional().or(z.literal("")),
+  logoUrl: z.string().refine(isAllowedMediaUrl).optional().or(z.literal("")),
+  bannerUrl: z.string().refine(isAllowedMediaUrl).optional().or(z.literal("")),
 });
+
+function isAllowedMediaUrl(value: string) {
+  if (value.startsWith("/uploads/") && !value.includes("..")) return true;
+  try {
+    const url = new URL(value);
+    const storageUrl = process.env.SUPABASE_URL;
+    return Boolean(
+      storageUrl &&
+      url.protocol === "https:" &&
+      url.origin === new URL(storageUrl).origin &&
+      url.pathname.includes("/storage/v1/object/public/"),
+    );
+  } catch {
+    return false;
+  }
+}
 
 export async function PATCH(request: Request) {
   const session = await auth();
@@ -73,6 +91,14 @@ export async function PATCH(request: Request) {
       ...(changedCritical ? { submittedAt: new Date(), adminNote: null } : {}),
     },
   });
+  if (
+    await isFeatureEnabled("agency_knowledge_base", agency.id).catch(
+      () => false,
+    )
+  )
+    await enqueueJob({ type: "agency.embed", agencyId: agency.id }).catch(
+      () => false,
+    );
   if (changedCritical && session.user.email) {
     await sendEmail(
       session.user.email,

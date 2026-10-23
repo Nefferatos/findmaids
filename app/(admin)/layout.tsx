@@ -23,10 +23,13 @@ const navigation: {
   { label: "Plans", href: "/admin/plans", permission: "plans" },
   { label: "Placements", href: "/admin/placements", permission: "placements" },
   { label: "Reports", href: "/admin/reports", permission: "reports" },
+  { label: "Prospects", href: "/admin/prospects", permission: "prospects" },
+  { label: "Founding Agencies", href: "/admin/founding", permission: "plans" },
   { label: "Content", href: "/admin/content", permission: "content" },
   { label: "Users & Roles", href: "/admin/users", permission: "users" },
   { label: "Audit Log", href: "/admin/audit", permission: "audit" },
   { label: "Settings", href: "/admin/settings", permission: "settings" },
+  { label: "AI Control", href: "/admin/ai-control", permission: "settings" },
 ];
 
 function permissionForPath(path: string): AdminPermission {

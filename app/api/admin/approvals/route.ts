@@ -81,6 +81,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid agency status transition." }, { status: 409 });
   }
   const updated = await changeAgencyReviewStatus(agency.id, status, note);
+  if (status === "APPROVED") {
+    const prospect = await prisma.prospect.findFirst({
+      where: { agencyId: agency.id },
+      select: { id: true, stage: true },
+    });
+    if (prospect && prospect.stage !== "DO_NOT_CONTACT") {
+      await prisma.prospect.update({ where: { id: prospect.id }, data: { stage: "LISTED_FREE" } });
+      await writeAdminAudit({ actorId: access.user.id, action: "PROSPECT_MARKED_LISTED_FREE", entity: "Prospect", entityId: prospect.id, agencyId: agency.id, after: { stage: "LISTED_FREE" }, ipAddress });
+    }
+  }
   await writeAdminAudit({ actorId: access.user.id, action: `AGENCY_${parsed.data.action.toUpperCase()}`, entity: "Agency", entityId: agency.id, agencyId: agency.id, before, after: { status, note, checklist: parsed.data.action === "approve" ? parsed.data.checklist : undefined }, ipAddress });
   return NextResponse.json({ agency: updated });
 }

@@ -12,6 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "evals": "tsx tests/ai-evals/run.ts",
+    "jobs:worker": "tsx lib/jobs/worker.ts",
+    "seed:production-catalog": "tsx scripts/seed-production-catalog.ts",
+    "admin:promote": "tsx scripts/promote-admin.ts",
     "seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -20,15 +24,19 @@
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.3",
     "@prisma/client": "^6.19.0",
+    "@sentry/nextjs": "^10.76.2",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^6.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ioredis": "^6.0.0",
     "lucide-react": "^1.61.0",
     "next": "16.4.2",
     "next-auth": "^5.0.0-beta.32",
     "next-mdx-remote": "^6.0.0",
     "otplib": "^13.5.0",
     "pdfkit": "^0.20.2",
+    "pino": "^10.4.0",
     "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -56,9 +64,13 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.12"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "effect": "3.22.3"
   }
 }

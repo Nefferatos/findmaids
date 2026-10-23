@@ -3,13 +3,67 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { canAccess, adminLanding } from "@/lib/permissions";
 import { verifyImpersonationCookie } from "@/lib/impersonation";
+import {
+  isApiBodyWithinLimit,
+  isSameOriginMutation,
+} from "@/lib/security/request-guards";
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const requestId = crypto.randomUUID();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+  const attachRequestId = (response: NextResponse) => {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  };
+  const isProtectedPath =
+    path.startsWith("/admin") ||
+    path.startsWith("/agency") ||
+    path.startsWith("/api/admin/") ||
+    path.startsWith("/api/agency/") ||
+    path === "/api/data-deletion" ||
+    path === "/api/privacy/consent";
+  if (path.startsWith("/api/")) {
+    if (
+      !isApiBodyWithinLimit(path, request.headers.get("content-length"))
+    )
+      return attachRequestId(
+        NextResponse.json({ error: "Request body is too large." }, { status: 413 }),
+      );
+  }
+  if (!isProtectedPath)
+    return attachRequestId(
+      NextResponse.next({ request: { headers: requestHeaders } }),
+    );
+  const mutating = !["GET", "HEAD", "OPTIONS"].includes(request.method);
+  const cookieAuthenticatedMutation =
+    path.startsWith("/admin") ||
+    path.startsWith("/agency") ||
+    path.startsWith("/api/admin/") ||
+    path.startsWith("/api/agency/") ||
+    path === "/api/data-deletion" ||
+    path === "/api/privacy/consent";
+  if (mutating && cookieAuthenticatedMutation) {
+    if (
+      !isSameOriginMutation({
+        origin: request.headers.get("origin"),
+        fetchSite: request.headers.get("sec-fetch-site"),
+        expectedOrigin: request.nextUrl.origin,
+        hasCookie: request.headers.has("cookie"),
+      })
+    )
+      return attachRequestId(
+        NextResponse.json(
+          { error: "Cross-site request rejected." },
+          { status: 403 },
+        ),
+      );
+  }
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   });
-  const path = request.nextUrl.pathname;
   const impersonation = await verifyImpersonationCookie(
     request.cookies.get("fm-admin-impersonation")?.value,
   );
@@ -18,14 +72,16 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/api/agency/") &&
     !["GET", "HEAD"].includes(request.method)
   ) {
-    return NextResponse.json(
-      { error: "Read-only admin impersonation is active." },
-      { status: 403 },
+    return attachRequestId(
+      NextResponse.json(
+        { error: "Read-only admin impersonation is active." },
+        { status: 403 },
+      ),
     );
   }
   if (token?.disabled) {
     const destination = new URL("/login?error=account_disabled", request.url);
-    return NextResponse.redirect(destination);
+    return attachRequestId(NextResponse.redirect(destination));
   }
   const adminSection = path.startsWith("/admin") ? path.split("/")[2] : "";
   const permission =
@@ -53,6 +109,10 @@ export async function middleware(request: NextRequest) {
                           ? "placements"
                           : adminSection === "reports"
                             ? "reports"
+                            : adminSection === "prospects"
+                              ? "prospects"
+                              : adminSection === "founding"
+                                ? "plans"
                             : adminSection === "content"
                               ? "content"
                               : adminSection === "users"
@@ -61,7 +121,9 @@ export async function middleware(request: NextRequest) {
                                   ? "audit"
                                   : adminSection === "settings"
                                     ? "settings"
-                                    : "dashboard";
+                                    : adminSection === "ai-control"
+                                      ? "settings"
+                                      : "dashboard";
   const isReadOnlyImpersonation = Boolean(
     token?.role === "ADMIN" &&
     impersonation?.adminId === token.sub &&
@@ -79,11 +141,12 @@ export async function middleware(request: NextRequest) {
     else destination.searchParams.set("callbackUrl", path);
     return NextResponse.redirect(destination);
   }
-  const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", path);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return attachRequestId(
+    NextResponse.next({ request: { headers: requestHeaders } }),
+  );
 }
 
 export const config = {
-  matcher: ["/agency/:path*", "/api/agency/:path*", "/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

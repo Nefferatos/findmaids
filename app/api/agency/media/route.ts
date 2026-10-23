@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       include: {
         _count: { select: { photos: true } },
         subscriptions: {
-          where: { status: "ACTIVE" },
+          where: { status: "ACTIVE", OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
           include: { plan: true },
           take: 1,
         },

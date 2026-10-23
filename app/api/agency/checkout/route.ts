@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { calculateProration } from "@/lib/payments/domain";
 import { reserveInvoiceNumber } from "@/lib/payments/invoices";
 import { getPaymentProvider } from "@/lib/payments/provider";
+import { logger } from "@/lib/logger";
 
 const schema = z.object({
   planId: z.string().min(1),
@@ -230,10 +231,7 @@ export async function POST(request: Request) {
         },
       }),
     ]);
-    console.error(
-      "Checkout provider failed",
-      error instanceof Error ? error.message : "provider error",
-    );
+    logger.error({ paymentId: pending.payment.id, errorType: error instanceof Error ? error.name : "unknown" }, "Checkout provider failed");
     return NextResponse.json(
       {
         error:

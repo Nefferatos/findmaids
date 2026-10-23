@@ -4,7 +4,7 @@ import { authorizeAdminApi } from "@/lib/admin-auth";
 import { requestIp, writeAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 
-const schema = z.object({ id: z.string().optional(), name: z.string().trim().min(2).max(80), priceMonthly: z.coerce.number().min(0).max(1_000_000), priceYearly: z.coerce.number().min(0).max(10_000_000), features: z.array(z.string().trim().min(1).max(200)).max(50), listingPriority: z.number().int().min(0).max(1000), featuredSlots: z.number().int().min(0).max(100), maxPhotos: z.number().int().min(0).max(500), leadLimit: z.number().int().min(0).nullable(), isActive: z.boolean() });
+const schema = z.object({ id: z.string().optional(), name: z.string().trim().min(2).max(80), priceMonthly: z.coerce.number().min(0).max(1_000_000), priceYearly: z.coerce.number().min(0).max(10_000_000), features: z.array(z.string().trim().min(1).max(200)).max(50), listingPriority: z.number().int().min(0).max(1000), featuredSlots: z.number().int().min(0).max(100), maxPhotos: z.number().int().min(0).max(500), leadLimit: z.number().int().min(0).nullable(), aiMonthlyBudgetPhp: z.number().min(0).max(100000).nullable(), isActive: z.boolean() });
 export async function GET() {
 	const access = await authorizeAdminApi("plans");
 	if (!access.user) return NextResponse.json({ error: "Plan administration requires ADMIN." }, { status: access.status });

@@ -1,5 +1,6 @@
 import { AdPlacementType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
 import { storeInvoicePdf } from "./invoices";
 import type { VerifiedWebhook } from "./provider";
@@ -155,10 +156,7 @@ export async function processPaymentWebhook(
           `Your payment was received. Invoice ${result.payment.invoiceNumber}: ${new URL(receiptUrl, process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
         );
       } catch (error) {
-        console.error(
-          "Payment is recorded; invoice/email delivery needs retry",
-          error instanceof Error ? error.message : "receipt delivery failed",
-        );
+        logger.error({ paymentId: result.payment.id, errorType: error instanceof Error ? error.name : "unknown" }, "Payment is recorded; invoice/email delivery needs retry");
       }
     }
     return result;

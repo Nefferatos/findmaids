@@ -9,6 +9,7 @@ import {
 } from "@/components/site";
 import { getDirectoryPage, parseDirectoryFilters } from "@/lib/directory";
 import { PlacementImpression, TrackedLink } from "@/components/profile-actions";
+ import { logger } from "@/lib/logger";
 
 export const revalidate = 300;
 export const metadata = {
@@ -35,7 +36,7 @@ export default async function HomePage() {
       await getDirectoryPage({ ...filters, sort: "top-rated" }, 6)
     ).agencies.slice(0, 3);
   } catch (error) {
-    console.error("Unable to load agency homepage sections", error);
+      logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load agency homepage sections");
   }
 
   return (

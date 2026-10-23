@@ -15,6 +15,7 @@ export default defineConfig({
         command: "npm run dev",
         url: "http://127.0.0.1:3000/login",
         reuseExistingServer: !process.env.CI,
+        env: { ...process.env, EMAIL_DELIVERY_DISABLED: "true" },
         timeout: 120_000,
       },
 });

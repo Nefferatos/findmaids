@@ -7,6 +7,7 @@ import {
   SectionHeading,
 } from "@/components/site";
 import { getDirectoryPage, parseDirectoryFilters } from "@/lib/directory";
+ import { logger } from "@/lib/logger";
 
 export const revalidate = 300;
 export const metadata = {
@@ -37,7 +38,7 @@ export default async function AgenciesPage({
   try {
     result = await getDirectoryPage(filters);
   } catch (error) {
-    console.error("Unable to load directory results", error);
+      logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load directory results");
   }
   const query = new URLSearchParams();
   if (filters.city) query.set("city", filters.city);

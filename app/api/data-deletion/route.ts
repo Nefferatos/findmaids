@@ -4,6 +4,12 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
+import { cookies } from "next/headers";
+import {
+  chatCookieName,
+  hashVisitorToken,
+  verifyVisitorCookie,
+} from "@/lib/ai/chat-session";
 
 const schema = z.object({
   email: z.string().trim().email().max(254),
@@ -59,4 +65,33 @@ export async function POST(request: Request) {
     },
     { status: 201 },
   );
+}
+
+export async function DELETE(request: Request) {
+  const session = await auth();
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!(await checkRateLimit(`chat-data-delete:${ip}`, 3, 86400)).allowed)
+    return NextResponse.json(
+      { error: "Request limit reached." },
+      { status: 429 },
+    );
+  const jar = await cookies();
+  const token = verifyVisitorCookie(jar.get(chatCookieName)?.value);
+  const conditions = [
+    ...(token ? [{ visitorTokenHash: hashVisitorToken(token) }] : []),
+    ...(session?.user?.id ? [{ userId: session.user.id }] : []),
+  ];
+  if (!conditions.length)
+    return NextResponse.json(
+      { error: "No verifiable chat data was found for this request." },
+      { status: 404 },
+    );
+  const removed = await prisma.conversation.deleteMany({
+    where: { OR: conditions },
+  });
+  return NextResponse.json({
+    deletedConversations: removed.count,
+    messagesDeletedByCascade: true,
+  });
 }

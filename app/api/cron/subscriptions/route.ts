@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { foundingReminderWindow } from "@/lib/leads/founding-period";
 
 export const runtime = "nodejs";
 
@@ -85,6 +86,107 @@ export async function GET(request: Request) {
         );
       reminders += 1;
     }
+  }
+
+  let foundingReminders = 0;
+  let foundingDowngrades = 0;
+  const foundingEmailsEnabled =
+    process.env.FOUNDING_PERIOD_EMAILS_ENABLED === "true";
+  if (foundingEmailsEnabled) {
+    for (const days of [14, 3]) {
+      const { start, end } = foundingReminderWindow(days, now);
+      const due = await prisma.subscription.findMany({
+        where: {
+          status: "ACTIVE",
+          foundingAgency: true,
+          foundingPeriodEndsAt: { gte: start, lt: end },
+        },
+        include: {
+          agency: { include: { owner: { select: { email: true } } } },
+          plan: true,
+        },
+        take: 500,
+      });
+      for (const subscription of due) {
+        const noticeType = `FOUNDING_END_${days}D_${subscription.foundingPeriodEndsAt?.toISOString().slice(0, 10)}`;
+        try {
+          await prisma.subscriptionNotice.create({
+            data: { subscriptionId: subscription.id, noticeType },
+          });
+        } catch {
+          continue;
+        }
+        if (subscription.agency.owner?.email)
+          await sendEmail(
+            subscription.agency.owner.email,
+            `Your FindMaids founding period ends in ${days} days`,
+            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-PH")}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+          );
+        foundingReminders += 1;
+      }
+    }
+  }
+
+  const foundingExpired = await prisma.subscription.findMany({
+    where: {
+      status: "ACTIVE",
+      foundingAgency: true,
+      foundingPeriodEndsAt: { lte: now },
+    },
+    include: { agency: { include: { owner: { select: { email: true } } } } },
+    take: 500,
+  });
+  const foundingBasicPlan = await prisma.plan.findUnique({
+    where: { name: "Basic Free" },
+  });
+  for (const subscription of foundingExpired) {
+    if (!foundingBasicPlan) continue;
+    await prisma.$transaction([
+      prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          planId: foundingBasicPlan.id,
+          foundingAgency: false,
+          foundingPeriodStartsAt: null,
+          foundingPeriodEndsAt: null,
+          startDate: now,
+          endDate: null,
+          autoRenew: false,
+        },
+      }),
+      prisma.agency.update({
+        where: { id: subscription.agencyId },
+        data: {
+          foundingAgency: false,
+          foundingPeriodStartsAt: null,
+          foundingPeriodEndsAt: null,
+        },
+      }),
+      prisma.adPlacement.updateMany({
+        where: {
+          agencyId: subscription.agencyId,
+          foundingGrant: true,
+          status: { in: ["ACTIVE", "SCHEDULED"] },
+        },
+        data: { status: "CANCELLED", endDate: now },
+      }),
+      prisma.auditLog.create({
+        data: {
+          agencyId: subscription.agencyId,
+          action: "FOUNDING_PERIOD_EXPIRED_DOWNGRADE",
+          entity: "Subscription",
+          entityId: subscription.id,
+          metadata: { planId: foundingBasicPlan.id },
+        },
+      }),
+    ]);
+    if (foundingEmailsEnabled && subscription.agency.owner?.email)
+      await sendEmail(
+        subscription.agency.owner.email,
+        "Your FindMaids founding period has ended",
+        `Your free founding Gold-entitlement period has ended. Your account is now on Basic Free. No payment was collected. Review available plans here: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+      );
+    foundingDowngrades += 1;
   }
 
   const scheduled = await prisma.subscription.findMany({
@@ -240,7 +342,11 @@ export async function GET(request: Request) {
     expired += 1;
   }
 
-  const retentionCutoff = new Date(now.getTime() - 365 * oneDay);
+  const retentionDays = Math.max(
+    30,
+    Number(process.env.DATA_RETENTION_DAYS ?? 365),
+  );
+  const retentionCutoff = new Date(now.getTime() - retentionDays * oneDay);
   const anonymized = await prisma.enquiry.updateMany({
     where: { createdAt: { lt: retentionCutoff }, anonymizedAt: null },
     data: {
@@ -254,11 +360,29 @@ export async function GET(request: Request) {
       anonymizedAt: now,
     },
   });
+  const conversationsDeleted = await prisma.conversation.deleteMany({
+    where: { retentionExpiresAt: { lte: now } },
+  });
+  const logCutoff = new Date(now.getTime() - retentionDays * oneDay);
+  const [aiLogsDeleted, cookieConsentsDeleted, rateLimitBucketsDeleted] =
+    await Promise.all([
+      prisma.aiCallLog.deleteMany({ where: { createdAt: { lt: logCutoff } } }),
+      prisma.cookieConsent.deleteMany({
+        where: { capturedAt: { lt: logCutoff } },
+      }),
+      prisma.rateLimitBucket.deleteMany({ where: { expiresAt: { lt: now } } }),
+    ]);
   return NextResponse.json({
     reminders,
     downgrades,
     expired,
     bankTransfersExpired: bankTransfers.length,
     enquiriesAnonymized: anonymized.count,
+    conversationsDeleted: conversationsDeleted.count,
+    foundingReminders,
+    foundingDowngrades,
+    aiCallLogsDeleted: aiLogsDeleted.count,
+    cookieConsentsDeleted: cookieConsentsDeleted.count,
+    rateLimitBucketsDeleted: rateLimitBucketsDeleted.count,
   });
 }

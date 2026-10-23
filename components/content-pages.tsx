@@ -85,6 +85,10 @@ const content: Record<
         title: "Security",
         body: "Passwords are stored as hashes and reset/verification links use single-use tokens. No internet service can promise absolute security.",
       },
+      {
+        title: "Privacy contact and regulatory details",
+        body: "Data Protection Officer: [OWNER TO COMPLETE]. DPO email and mailing address: [OWNER TO COMPLETE]. NPC registration status/reference: [OWNER TO COMPLETE after confirming applicability]. This draft is not legal advice and must be reviewed and approved by qualified Philippine counsel before publication.",
+      },
     ],
   },
 };

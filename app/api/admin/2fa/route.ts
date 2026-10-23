@@ -6,6 +6,7 @@ import { authorizeAdminApi } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { encryptTotpSecret, decryptTotpSecret, totpUri } from "@/lib/totp";
 import { requestIp, writeAdminAudit } from "@/lib/admin-audit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start") }),
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "ADMIN permission required." },
       { status: access.status },
+    );
+  if (!(await checkRateLimit(`admin-totp:${access.user.id}`, 8, 900)).allowed)
+    return NextResponse.json(
+      { error: "Too many authenticator attempts. Try again later." },
+      { status: 429 },
     );
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)

@@ -1,11 +1,21 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: findmaids-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - findmaids-redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
   db:
     image: pgvector/pgvector:pg16
     container_name: findmaids-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: findmaids
-      POSTGRES_PASSWORD: findmaids
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file}
       POSTGRES_DB: findmaids
     ports:
       - "5432:5432"
@@ -19,3 +29,4 @@ services:
 
 volumes:
   findmaids-postgres-data:
+  findmaids-redis-data:

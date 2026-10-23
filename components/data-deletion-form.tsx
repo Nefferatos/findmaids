@@ -33,6 +33,12 @@ export function DataDeletionForm({ email }: { email: string }) {
       <button className="min-h-10 rounded-md border px-4 text-sm font-semibold">
         Submit privacy request
       </button>
+      <a
+        className="ml-3 inline-flex min-h-10 items-center text-sm font-semibold underline"
+        href="/api/data-export"
+      >
+        Download my data
+      </a>
     </form>
   );
 }

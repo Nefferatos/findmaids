@@ -18,7 +18,7 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [
     Credentials({
@@ -137,10 +137,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             disabled: true,
             totpEnabled: true,
             totpVerifiedAt: true,
+            passwordChangedAt: true,
           },
         });
         token.role = account?.role ?? token.role ?? "VISITOR";
-        token.disabled = account?.disabled ?? true;
+        const passwordChangedAfterSession = Boolean(
+          account?.passwordChangedAt &&
+          token.iat !== undefined &&
+          token.iat < Math.floor(account.passwordChangedAt.getTime() / 1000),
+        );
+        token.disabled =
+          (account?.disabled ?? true) || passwordChangedAfterSession;
         if (account?.totpEnabled) {
           token.adminMfaVerified =
             token.adminMfaVerified === true &&

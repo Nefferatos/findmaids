@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: findmaids
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: findmaids
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U findmaids -d findmaids"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://findmaids:ci-only-password@localhost:5432/findmaids
+      DIRECT_URL: postgresql://findmaids:ci-only-password@localhost:5432/findmaids
+      AUTH_SECRET: ci-only-auth-secret-at-least-32-characters-long
+      NEXTAUTH_SECRET: ci-only-auth-secret-at-least-32-characters-long
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      TOTP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      PAYMENT_PROVIDER: mock
+      PAYMENT_WEBHOOK_SECRET: ci-only-payment-secret
+      AI_PROVIDER: mock
+      REDIS_URL: redis://localhost:6379
+      EMAIL_DELIVERY_DISABLED: "true"
+      ALLOW_SAMPLE_SEED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma validate
+      - run: npm run db:deploy
+      - run: npm run seed
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run evals
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          npm run start > /tmp/findmaids-next.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3000/login >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/findmaids-next.log
+          exit 1
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          E2E_AGENCY_SLUG: ""
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

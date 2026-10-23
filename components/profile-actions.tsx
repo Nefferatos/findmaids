@@ -20,6 +20,8 @@ export function TrackedLink({
       href={href}
       className={className}
       onClick={() => {
+        if (localStorage.getItem("findmaids-cookie-consent") !== "analytics-v1")
+          return;
         if (eventType === "placement_click") {
           const key = `placement-click:${agencyId}`;
           const lastClick = Number(sessionStorage.getItem(key) ?? 0);
@@ -92,6 +94,12 @@ function ImpressionOnce({ agencyId }: { agencyId: string }) {
       ([entry]) => {
         if (!entry.isIntersecting) return;
         setSeen(true);
+        if (
+          localStorage.getItem("findmaids-cookie-consent") !== "analytics-v1"
+        ) {
+          observer.disconnect();
+          return;
+        }
         void fetch("/api/analytics", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

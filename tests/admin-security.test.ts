@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { verifyImpersonationCookie } from "@/lib/impersonation";
 import { decryptTotpSecret, encryptTotpSecret } from "@/lib/totp";
+import { adminMfaSatisfied } from "@/lib/security/admin-mfa";
 
 const originalSecret = process.env.AUTH_SECRET;
 const originalTotpKey = process.env.TOTP_ENCRYPTION_KEY;
@@ -27,6 +28,14 @@ function signedCookie(session: {
 }
 
 describe("admin security helpers", () => {
+  it("requires TOTP enrollment and verified session for protected ADMIN access", () => {
+    expect(adminMfaSatisfied({ role: "ADMIN", permission: "settings", totpEnabled: false, sessionVerified: false })).toBe(false);
+    expect(adminMfaSatisfied({ role: "ADMIN", permission: "settings", totpEnabled: true, sessionVerified: false })).toBe(false);
+    expect(adminMfaSatisfied({ role: "ADMIN", permission: "settings", totpEnabled: true, sessionVerified: true })).toBe(true);
+    expect(adminMfaSatisfied({ role: "ADMIN", permission: "twoFactor", totpEnabled: false, sessionVerified: false })).toBe(true);
+    expect(adminMfaSatisfied({ role: "STAFF", permission: "reviews", totpEnabled: false, sessionVerified: false })).toBe(true);
+  });
+
   it("accepts an unexpired signed impersonation cookie and rejects tampering", async () => {
     process.env.AUTH_SECRET = "test-secret";
     const cookie = signedCookie({
