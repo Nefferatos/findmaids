@@ -26,7 +26,7 @@
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.3",
     "@prisma/client": "^6.19.0",
-    "@sentry/nextjs": "^10.76.2",
+    "@sentry/nextjs": "^11.8.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^6.4.0",
     "class-variance-authority": "^0.7.1",
