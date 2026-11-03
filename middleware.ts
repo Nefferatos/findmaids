@@ -132,7 +132,10 @@ export async function middleware(request: NextRequest) {
   );
   const allowed = path.startsWith("/admin")
     ? canAccess(token?.role, permission)
-    : token?.role === "AGENCY" || isReadOnlyImpersonation;
+    : path.startsWith("/api/admin/")
+      ? // Coarse gate only; each admin route enforces its own permission and MFA check.
+        token?.role === "ADMIN" || token?.role === "STAFF"
+      : token?.role === "AGENCY" || isReadOnlyImpersonation;
 
   if (!allowed) {
     const destination = new URL("/login", request.url);
