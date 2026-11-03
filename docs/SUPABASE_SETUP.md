@@ -6,7 +6,7 @@ FindMaids uses Supabase Postgres for Prisma data and Supabase Storage for media 
 
 1. Create a Supabase project and enable the `vector` extension in Database > Extensions before applying Prisma migrations.
 2. Set `DATABASE_URL` to the project transaction-pooler URL for runtime. Use the pooler hostname and port shown in your project dashboard; port `6543` is common. Retain `pgbouncer=true` and use a small `connection_limit` for Prisma serverless connections.
-3. Set `DIRECT_URL` to the project's direct database connection string. Prisma migrations use this direct connection.
+3. Set `DIRECT_URL` to the **Session pooler** string (port `5432`, user `postgres.<project-ref>`). The `db.<ref>.supabase.co` direct host is IPv6-only and fails on many networks. Prisma migrations use this URL.
 4. Keep both URLs in local ignored `.env` or the hosting secret store. URL-encode reserved password characters.
 5. Generate the Prisma client and deploy migrations:
 
@@ -18,7 +18,27 @@ npm run seed
 
 The included `.env.example` has placeholders only. Replace the project ref, region and password with values from your Supabase dashboard. Never commit a populated `.env`.
 
+## Staging project (ref `tajpujqabclbxoggkxse`)
+
+Staging only; production uses its own project. Supabase databases are always named `postgres`, so write-safety is enforced by `lib/security/staging-guard.ts`: `APP_ENV` must be `staging` or `test`, and `STAGING_PROJECT_REF` must appear in both `DATABASE_URL` and `DIRECT_URL`. All write scripts go through `npm run staging:run`.
+
+**Extension:** `vector` (installed in the `extensions` schema).
+
+**Tables (32 app tables + `_prisma_migrations`):** AdminSetting, AdPlacement, Agency, AgencyAiSettings, AgencyOnboardingDraft, AgencyPhoto, AiCallLog, AiFeedback, AnalyticsEvent, AuditLog, BlockList, Conversation, CookieConsent, DataDeletionRequest, EmailVerificationToken, Enquiry, FeatureFlag, HandoffRequest, InvoiceSequence, KnowledgeDocument, Message, PasswordResetToken, Payment, PaymentWebhookEvent, Plan, Prospect, RateLimitBucket, Report, Review, Subscription, SubscriptionNotice, User. Vector data: `KnowledgeDocument.embedding vector(1536)` with HNSW index `KnowledgeDocument_embedding_hnsw_idx`.
+
+**Row Level Security:** enabled on every public table with no policies, so Supabase's public API (anon/authenticated) cannot read or write app data. The app connects with the owning database role, which bypasses RLS. Migration `20261103000000_enable_rls` applies this to existing tables; **any new table in a later migration must also `ENABLE ROW LEVEL SECURITY`.** `storage.objects` has RLS on with no permissive policy, so only the service role can write or read private files.
+
+**Recreate from scratch**
+
+1. Create an empty project (Singapore) and enable `vector`.
+2. Paste `supabase/staging-setup.sql` into the SQL Editor and run it once. It is one transaction, creates the schema, the HNSW index, RLS and both buckets, and refuses to run twice.
+3. Fill `.env.staging` (ignored by Git) with the pooler URLs, `STAGING_PROJECT_REF`, `SUPABASE_URL` and the service-role key.
+4. Record the baseline: `npm run staging:run -- npx --no-install prisma migrate resolve --applied <name>` for each folder in `prisma/migrations` that the SQL already contains, then `npm run staging:migrate` for the rest.
+5. Verify: `npm run staging:run -- npx --no-install tsx scripts/verify-staging-db.ts` (tables, vector index, RLS) and `scripts/verify-staging-storage.ts` (buckets, limits, signed URLs; deletes its own test files).
+
 ## Storage Buckets
+
+Bucket limits: `findmaids-media` is public, 5 MB, JPG/PNG/WebP. `findmaids-private` is private, 10 MB, PDF/JPG/PNG/WebP (the app allows payment proof up to 8 MB).
 
 Create two buckets in Supabase Storage:
 

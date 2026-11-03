@@ -39,7 +39,7 @@ async function ensureBuckets() {
   const list = (await (await fetch(`${base}/storage/v1/bucket`, { headers: service() })).json()) as { id: string; public: boolean; file_size_limit: number | null; allowed_mime_types: string[] | null }[];
   for (const w of wanted) {
     const existing = list.find((b) => b.id === w.id);
-    const body = JSON.stringify({ id: w.id, name: w.id, ...w });
+    const body = JSON.stringify({ name: w.id, ...w });
     const res = existing
       ? await fetch(`${base}/storage/v1/bucket/${w.id}`, { method: "PUT", headers: service({ "Content-Type": "application/json" }), body })
       : await fetch(`${base}/storage/v1/bucket`, { method: "POST", headers: service({ "Content-Type": "application/json" }), body });
