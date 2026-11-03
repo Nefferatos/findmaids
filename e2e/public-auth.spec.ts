@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { createHash } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
+import { createHash, randomBytes } from "node:crypto";
+import { prisma } from "./prisma";
 
-const prisma = new PrismaClient();
 
 test("directory is browseable and role-protected areas redirect visitors", async ({
   page,
@@ -35,7 +34,7 @@ test("register, verify email, then log in", async ({ page, request }) => {
   expect(response.status()).toBe(201);
 
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const rawToken = `e2e-verification-${Date.now()}-token`;
+  const rawToken = randomBytes(24).toString("hex");
   await prisma.emailVerificationToken.create({
     data: {
       userId: user.id,
@@ -71,6 +70,9 @@ test("seeded agency profile enquiry flow", async ({ page }) => {
     .getByLabel("Message", { exact: true })
     .fill("Please share more information about your services.");
   await page.getByRole("checkbox").check();
+  // Turnstile (when configured) must finish before submitting.
+  if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+    await expect(page.locator('input[name="cf-turnstile-response"]')).not.toHaveValue("", { timeout: 45_000 });
   await page.getByRole("button", { name: "Send enquiry" }).click();
   await expect(page.getByRole("status")).toContainText("enquiry has been sent");
 });

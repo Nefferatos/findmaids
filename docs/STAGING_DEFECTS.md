@@ -1,6 +1,19 @@
 # Staging defects and observations
 
-No confirmed bugs in the built features have been found so far. Browser scenarios have not run, so this list is incomplete.
+The browser run found the defects D1 to D3 below (fixed), a security-header decision (D4), and one open item (D5).
+
+## Defects
+
+| # | Severity | Item | Steps to reproduce | Status |
+| --- | --- | --- | --- | --- |
+| D1 | High | Agency checkout page crashed: the plan's `aiMonthlyBudgetSgd` (a Prisma Decimal) was passed to a client component ("Decimal objects are not supported"). Any plan with an AI budget, which the production catalog sets for Gold and Platinum, broke `/agency/billing/checkout`. | Log in as an agency, open `/agency/billing/checkout` | Fixed in `app/(agency)/agency/billing/checkout/page.tsx` (converted to a number). |
+| D2 | High | `middleware.ts` only allowed `/admin` paths for ADMIN/STAFF, so every `/api/admin/*` call from a logged-in admin was redirected to `/login`. Admin tools that save data (prospects, founding grants, and likely payments and plans) could not work in a browser. | Log in as admin, `POST /api/admin/prospects` | Fixed with a coarse ADMIN/STAFF gate for `/api/admin/*`. All 17 admin routes already enforce their own permission and MFA check. **Please review: this is access-control code.** |
+| D3 | Medium | Development CSP blocked `eval()` and the `127.0.0.1` origin, so no page hydrated under `next dev`. Production CSP is unchanged. | Load any form under `next dev` | Fixed in `next.config.ts` (dev-only `unsafe-eval`, `allowedDevOrigins`). |
+| D4 | Medium | The Content-Security-Policy blocks the Google Fonts stylesheet (`style-src` has no `fonts.googleapis.com`), so the site fonts do not load. | Open any page, check the browser console | Open: your decision, because it is a security header. Self-host the fonts or allow the domain. |
+| D5 | Open | `e2e/ai-chat-lead.spec.ts` stalls at the chat's agency selector (it never lists the test agency), so scenarios 2 and 3 are unverified in a browser. Not yet known whether this is test data, ranking or a chat bug. | Run the spec with `E2E_STAGING=1` | Open: needs investigation. |
+| D6 | Info | The existing e2e specs were stale against recent hardening and UI changes (no driver adapter, short verification tokens, missing `Origin` header, renamed labels and buttons). | n/a | Specs updated; no product change needed. |
+
+## Earlier observations
 
 | # | Severity | Item | Steps to reproduce | Status |
 | --- | --- | --- | --- | --- |

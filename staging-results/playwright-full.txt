@@ -1,0 +1,38 @@
+﻿[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer] 
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer] 
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+Running 8 tests using 1 worker
+
+  Γ£ô  1 [chromium] ΓÇ║ e2e\agency-onboarding-payment.spec.ts:27:5 ΓÇ║ agency registration, onboarding, approval, mock checkout and featured listing (47.7s)
+  Γ£ÿ  2 [chromium] ΓÇ║ e2e\ai-chat-lead.spec.ts:15:5 ΓÇ║ visitor chat to consented enquiry to agency-approved reply (2.0m)
+  Γ£ô  3 [chromium] ΓÇ║ e2e\prospect-founding.spec.ts:15:5 ΓÇ║ prospect links to a free listing, founding grant expires and downgrades without charge (18.9s)
+  Γ£ô  4 [chromium] ΓÇ║ e2e\public-auth.spec.ts:6:5 ΓÇ║ directory is browseable and role-protected areas redirect visitors (4.1s)
+  Γ£ô  5 [chromium] ΓÇ║ e2e\public-auth.spec.ts:19:5 ΓÇ║ registration form offers employer and agency roles (1.3s)
+  Γ£ô  6 [chromium] ΓÇ║ e2e\public-auth.spec.ts:28:5 ΓÇ║ register, verify email, then log in (7.5s)
+  Γ£ô  7 [chromium] ΓÇ║ e2e\public-auth.spec.ts:60:5 ΓÇ║ seeded agency profile enquiry flow (12.7s)
+  Γ£ô  8 [chromium] ΓÇ║ e2e\smoke.spec.ts:3:5 ΓÇ║ public launch pages render and expose required policies (9.6s)
+
+
+  1) [chromium] ΓÇ║ e2e\ai-chat-lead.spec.ts:15:5 ΓÇ║ visitor chat to consented enquiry to agency-approved reply 
+
+    Test timeout of 120000ms exceeded.
+
+    Error Context: test-results\ai-chat-lead-visitor-chat--f36fe-ry-to-agency-approved-reply-chromium\error-context.md
+
+    Error Context: test-results\ai-chat-lead-visitor-chat--f36fe-ry-to-agency-approved-reply-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\ai-chat-lead-visitor-chat--f36fe-ry-to-agency-approved-reply-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\ai-chat-lead-visitor-chat--f36fe-ry-to-agency-approved-reply-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  1 failed
+    [chromium] ΓÇ║ e2e\ai-chat-lead.spec.ts:15:5 ΓÇ║ visitor chat to consented enquiry to agency-approved reply 
+  7 passed (4.1m)

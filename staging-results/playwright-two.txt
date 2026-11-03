@@ -1,0 +1,44 @@
+﻿[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer] 
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer] 
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+Running 2 tests using 1 worker
+
+  Γ£ÿ  1 [chromium] ΓÇ║ e2e\agency-onboarding-payment.spec.ts:27:5 ΓÇ║ agency registration, onboarding, approval, mock checkout and featured listing (2.0m)
+  Γ£ô  2 [chromium] ΓÇ║ e2e\prospect-founding.spec.ts:15:5 ΓÇ║ prospect links to a free listing, founding grant expires and downgrades without charge (23.6s)
+
+
+  1) [chromium] ΓÇ║ e2e\agency-onboarding-payment.spec.ts:27:5 ΓÇ║ agency registration, onboarding, approval, mock checkout and featured listing 
+
+    Test timeout of 120000ms exceeded.
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Continue to secure checkout' })
+
+
+      128 |     await page
+      129 |       .getByRole("button", { name: "Continue to secure checkout" })
+    > 130 |       .click();
+          |        ^
+      131 |     await expect(page).toHaveURL(/mockPayment=/);
+      132 |     const paymentId = new URL(page.url()).searchParams.get("mockPayment");
+      133 |     expect(paymentId).toBeTruthy();
+        at C:\B2B - Web\findmaids\e2e\agency-onboarding-payment.spec.ts:130:8
+
+    Error Context: test-results\agency-onboarding-payment--97c53-eckout-and-featured-listing-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\agency-onboarding-payment--97c53-eckout-and-featured-listing-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\agency-onboarding-payment--97c53-eckout-and-featured-listing-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  1 failed
+    [chromium] ΓÇ║ e2e\agency-onboarding-payment.spec.ts:27:5 ΓÇ║ agency registration, onboarding, approval, mock checkout and featured listing 
+  1 passed (2.8m)

@@ -17,9 +17,20 @@ Status key: PASS = verified with evidence; PARTIAL = only the logic or API level
 | 9 | Approval flow | NOT RUN | Needs a browser. |
 | 10 | Safety checks | PARTIAL | 30/30 AI evals (including Taglish and Tagalog cases), `tests/ai-kill-switch.test.ts`, and PII masking in `tests/ai-policy.test.ts` pass. Not tried live in the chat widget. |
 
-## Why the browser scenarios did not run
+## Browser run (Playwright on a separate staging server, port 3100)
 
-A node dev server (PID 30048) holds port 3000 and the Next.js dev lock. It was not stopped, so no staging server could be started for Playwright. See `docs/STAGING.md` for the commands to run once it is stopped.
+Final full run: **7 of 8 tests pass**; 1 fails (`e2e/ai-chat-lead.spec.ts`). Output: `playwright-full.txt`.
+
+| Test | Result | Covers scenario |
+| --- | --- | --- |
+| agency registration, onboarding, approval, mock checkout, featured listing | PASS | 7 (mock checkout), 9 (register, submit, approve, public listing) |
+| prospect links to free listing, founding grant expires and downgrades without charge | PASS | 5 (prospect tracker, audit), 6 (founding expiry, via real admin UI and API) |
+| register, verify email, log in | PASS | auth |
+| seeded agency profile enquiry flow (with Turnstile) | PASS | 1 (enquiry as visitor) |
+| directory browse and role redirects; registration roles; smoke and policies | PASS | 8 (visitor redirects) |
+| visitor chat to consented enquiry, attribution, agency reply | FAIL | 2, 3 (stalls waiting for the agency to appear in the chat's agency selector) |
+
+Scenarios 2 and 3 therefore remain unverified in a browser. Scenarios 4, 8 and 10 remain partial and 7's bank-transfer path and payment-proof upload were not exercised.
 
 ## Full validation
 
@@ -30,6 +41,6 @@ A node dev server (PID 30048) holds port 3000 and the Next.js dev lock. It was n
 | Unit tests | PASS: 15 files, 59 tests | `unit-tests.txt` |
 | AI evals | PASS: 30/30 | `ai-evals.txt` |
 | Build | NOT RUN | would write to `.next` beside the running dev server |
-| Playwright suite | NOT RUN | needs the staging server |
+| Playwright suite | 7 of 8 pass | `playwright-full.txt` |
 | Staging database | PASS: 32 tables + `_prisma_migrations`, none missing, RLS on for all, vector column, HNSW index, 9 migrations applied | `scripts/verify-staging-db.ts` |
 | Staging storage | PASS: 15/15 (buckets, limits, signed URL, public read, test files deleted) | `scripts/verify-staging-storage.ts` |
