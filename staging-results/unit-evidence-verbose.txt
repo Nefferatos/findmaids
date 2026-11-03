@@ -1,0 +1,34 @@
+﻿
+ RUN  v4.1.12 C:/B2B - Web/findmaids
+
+ Γ£ô tests/admin-security.test.ts > admin security helpers > requires TOTP enrollment and verified session for protected ADMIN access 7ms
+ Γ£ô tests/admin-security.test.ts > admin security helpers > accepts an unexpired signed impersonation cookie and rejects tampering 17ms
+ Γ£ô tests/admin-security.test.ts > admin security helpers > rejects expired impersonation cookies 2ms
+ Γ£ô tests/admin-security.test.ts > admin security helpers > encrypts TOTP secrets with authenticated encryption 7ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > defaults to deliver-all and only locks excess details in LOCK_DETAILS mode 8ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > calculates first response average and 24-hour share 5ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > records first response on first status change or added note, but not no-op edits 1ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > classifies acquisition source without accepting contact data 6ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > prevents outreach at suppressed prospect stages 5ms
+ Γ£ô tests/step7-policy.test.ts > Step 7 product policies > uses a 90-day founding default and deterministic reminder windows 4ms
+ Γ£ô tests/ai-policy.test.ts > AI budget, lead decision and safety policy > blocks global and per-agency monthly caps 8ms
+ Γ£ô tests/ai-policy.test.ts > AI budget, lead decision and safety policy > drafts ordinary leads and escalates urgent, complaint, spam, low-confidence or missing-fact cases 3ms
+ Γ£ô tests/ai-policy.test.ts > AI budget, lead decision and safety policy > masks contact and ID-like data and classifies injection/refusal/handoff 6ms
+ Γ£ô tests/ai-kill-switch.test.ts > AI global kill switch > blocks all feature flags before agency or global lookup 13ms
+ Γ£ô tests/ai-kill-switch.test.ts > AI global kill switch > does not block enabled features when the kill switch is off 10ms
+ Γ£ô tests/payments.test.ts > payment domain > allows valid subscription transitions and rejects invalid ones 8ms
+ Γ£ô tests/payments.test.ts > payment domain > prorates only an immediate upgrade over the remaining period 1ms
+ Γ£ô tests/payments.test.ts > payment domain > formats annual invoice sequence values with six digits 1ms
+ Γ£ô tests/payments.test.ts > payment domain > checks lead limits without silently allowing overage 3ms
+ Γ£ô tests/payments.test.ts > payment domain > always constrains agency-owned queries to the authenticated tenant 1ms
+ Γ£ô tests/payments.test.ts > payment domain > mock checkout and signed event contract are deterministic for tests 12ms
+ Γ£ô tests/payments.test.ts > payment domain > does not process a webhook event ID twice 1ms
+ Γ£ô tests/admin-permissions.test.ts > admin permission map > grants ADMIN access to each configured admin capability 4ms
+ Γ£ô tests/admin-permissions.test.ts > admin permission map > limits STAFF to approvals, reviews, leads, and dashboard 2ms
+ Γ£ô tests/admin-permissions.test.ts > admin permission map > denies AGENCY and VISITOR roles 1ms
+
+ Test Files  6 passed (6)
+      Tests  25 passed (25)
+   Start at  11:45:29
+   Duration  2.78s (transform 1.11s, setup 0ms, import 3.56s, tests 163ms, environment 4ms)
+

@@ -1,0 +1,93 @@
+{
+  "ranAt": "2026-11-03T03:44:57.542Z",
+  "results": [
+    {
+      "scenario": "1",
+      "check": "every submission returns success (no error shown to the employer)",
+      "ok": true,
+      "detail": "statuses 201,201,201,201"
+    },
+    {
+      "scenario": "1",
+      "check": "all 4 enquiries are saved to the agency inbox, including those above the cap",
+      "ok": true,
+      "detail": "4/4 saved"
+    },
+    {
+      "scenario": "1",
+      "check": "allowance reports limit 2 and the correct number waiting above it",
+      "ok": true,
+      "detail": "limit=2, thisMonth=4, over=2, mode=DELIVER_ALL, upgrade=Gold"
+    },
+    {
+      "scenario": "1",
+      "check": "an upgrade plan is offered",
+      "ok": true,
+      "detail": "Gold"
+    },
+    {
+      "scenario": "1",
+      "check": "DELIVER_ALL: no lead is locked",
+      "ok": true,
+      "detail": "locked=0"
+    },
+    {
+      "scenario": "4",
+      "check": "first-response time averages only responded leads",
+      "ok": true,
+      "detail": "avg 18h (expected 18h)"
+    },
+    {
+      "scenario": "4",
+      "check": "24-hour share counts on-time leads over all leads",
+      "ok": true,
+      "detail": "50% (2 of 4)"
+    },
+    {
+      "scenario": "6",
+      "check": "precondition: Agency B is on Gold with an active founding grant",
+      "ok": true,
+      "detail": "plan=Gold"
+    },
+    {
+      "scenario": "6",
+      "check": "cron runs with the clock moved 5 days ahead",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "scenario": "6",
+      "check": "Agency B is downgraded to Basic Free",
+      "ok": true,
+      "detail": "plan=Basic Free"
+    },
+    {
+      "scenario": "6",
+      "check": "nobody is charged (no payment rows added)",
+      "ok": true
+    },
+    {
+      "scenario": "6",
+      "check": "paid placement from the founding grant is removed",
+      "ok": true,
+      "detail": "status=CANCELLED"
+    },
+    {
+      "scenario": "6",
+      "check": "downgrade is logged in the audit log",
+      "ok": true,
+      "detail": "1 entry"
+    },
+    {
+      "scenario": "6",
+      "check": "founding emails are disabled, so nothing is sent",
+      "ok": true
+    },
+    {
+      "scenario": "6",
+      "check": "other agencies are unaffected (A Basic active, C Gold active)",
+      "ok": true,
+      "detail": "staging-sub-a:Basic Free:ACTIVE, staging-sub-c:Gold:ACTIVE"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+﻿
+ RUN  v4.1.12 C:/B2B - Web/findmaids
+
+
+ Test Files  15 passed (15)
+      Tests  59 passed (59)
+   Start at  11:42:44
+   Duration  7.82s (transform 2.22s, setup 0ms, import 10.70s, tests 441ms, environment 4ms)
+
