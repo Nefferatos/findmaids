@@ -42,6 +42,7 @@ export default async function AgencyCheckoutPage({
           ...plan,
           priceMonthly: plan.priceMonthly.toNumber(),
           priceYearly: plan.priceYearly.toNumber(),
+          aiMonthlyBudgetSgd: plan.aiMonthlyBudgetSgd?.toNumber() ?? null,
         }))}
       />
       <p className="text-muted-foreground mt-4 text-xs leading-5">
