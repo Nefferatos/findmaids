@@ -45,7 +45,7 @@ async function remove() {
   await prisma.emailVerificationToken.deleteMany({
     where: { userId: { in: ids } },
   });
-  await prisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
+  await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
   console.log(`Removed ${ids.length} test account(s).`);
 }
