@@ -55,6 +55,10 @@ yarn-error.log*
 /dev.err
 /build_log.txt
 /build_output.txt
+/build-check.log
+/npm-install.log
+/cf-fix-*.log
+/cf-fix-*.err.log
 /schema.diff
 /schema.diff2
 /.tsupgrader/

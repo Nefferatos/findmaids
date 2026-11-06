@@ -28,9 +28,18 @@ function emptyStore(): Store {
 }
 
 function readFileStore(): Store | null {
-  if (!MOCK_FILE || !existsSync(MOCK_FILE)) return null;
+  // `MOCK_FILE` comes from an environment variable, so Turbopack cannot resolve
+  // it statically. Without the `turbopackIgnore` opt-out, Next.js decides that
+  // *any* file in the project may be read at runtime and traces the whole repo
+  // into the standalone (OpenNext/Workers) output, which is what exhausted the
+  // build workers' heap. The mirror file is a local/E2E convenience only — the
+  // Worker never uses it — so the tracer can safely skip it.
+  if (!MOCK_FILE || !existsSync(/* turbopackIgnore: true */ MOCK_FILE)) return null;
   try {
-    const parsed = JSON.parse(readFileSync(MOCK_FILE, "utf8"), revive) as {
+    const parsed = JSON.parse(
+      readFileSync(/* turbopackIgnore: true */ MOCK_FILE, "utf8"),
+      revive,
+    ) as {
       store?: Store;
     };
     return parsed.store ?? null;
@@ -55,8 +64,12 @@ function currentStore(): Store {
 function persist() {
   if (!MOCK_FILE) return;
   try {
-    mkdirSync(dirname(MOCK_FILE), { recursive: true });
-    writeFileSync(MOCK_FILE, JSON.stringify({ store: memoryStore }, null, 2));
+    // Same reasoning as `readFileStore`: dynamic path, tracer opt-out.
+    mkdirSync(/* turbopackIgnore: true */ dirname(MOCK_FILE), { recursive: true });
+    writeFileSync(
+      /* turbopackIgnore: true */ MOCK_FILE,
+      JSON.stringify({ store: memoryStore }, null, 2),
+    );
   } catch {
     // Display-only mode must never crash the app because of the mirror file.
   }

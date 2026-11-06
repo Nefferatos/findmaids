@@ -4,10 +4,12 @@ FindMaids is a Singapore-focused directory and advertising platform for independ
 
 ## Requirements
 
-- Node.js 20.19+ (or a supported current LTS)
+- Node.js 20.19+ (or a supported current LTS); CI and the Cloudflare deploy build use Node 22 (see `.nvmrc`)
 - npm
 - A Supabase project for Postgres and Storage
 - Docker Desktop only if you choose to run local PostgreSQL instead
+
+> **Why Node.js 20.19+ matters.** Tailwind CSS 4.3 ships `@tailwindcss/node` as CommonJS but depends on the ESM-only `magic-string` 1.x, so the Turbopack loader can only load it through Node's `require(esm)` support (unflagged from Node 20.19 and 22.12). On older Node versions the build fails with `require() of ES Module ... magic-string\dist\index.mjs not supported`. `package.json` pins `@tailwindcss/node`'s `magic-string` back to the dual CJS/ESM `0.30.21` so the build also works on Node < 20.19; drop that override once every environment runs a current LTS.
 
 ## Local setup
 
