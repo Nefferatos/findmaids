@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     chatEvents,
   ] = await Promise.all([
     prisma.payment.findMany({
-      where: { createdAt: { gte: from, lte: to } },
+      where: { createdAt: { gte: from, lte: to }, currency: "SGD" },
       include: { subscription: { include: { plan: true, agency: true } } },
       take: 5000,
     }),
@@ -106,15 +106,10 @@ export async function GET(request: Request) {
       take: 20000,
     }),
   ]);
-  const revenueByProvider = new Map<string, number>();
   const revenueByPlan = new Map<string, number>();
   const revenueByMonth = new Map<string, number>();
   for (const payment of payments.filter((item) => item.status === "PAID")) {
     const amount = Number(payment.amount);
-    revenueByProvider.set(
-      payment.provider,
-      (revenueByProvider.get(payment.provider) ?? 0) + amount,
-    );
     revenueByPlan.set(
       payment.subscription.plan.name,
       (revenueByPlan.get(payment.subscription.plan.name) ?? 0) + amount,
@@ -263,11 +258,6 @@ export async function GET(request: Request) {
       `"${String(value ?? "").replaceAll('"', '""')}"`;
     const csvRows: (string | number | undefined)[][] = [
       ["metric", "key", "value"],
-      ...[...revenueByProvider].map(([key, value]) => [
-        "revenue_provider",
-        key,
-        value,
-      ]),
       ...[...revenueByPlan].map(([key, value]) => ["revenue_plan", key, value]),
       ...rows.map((row) => ["revenue_month", row.month, row.revenue]),
       ...responseReport.map((row) => [
@@ -301,7 +291,6 @@ export async function GET(request: Request) {
     revenueTotal: payments
       .filter((item) => item.status === "PAID")
       .reduce((sum, item) => sum + Number(item.amount), 0),
-    revenueByProvider: Object.fromEntries(revenueByProvider),
     revenueByPlan: Object.fromEntries(revenueByPlan),
     revenueByMonth: rows,
     subscriptionGrowth: subscriptions,

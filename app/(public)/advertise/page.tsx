@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Container, SectionHeading } from "@/components/site";
 import { prisma } from "@/lib/prisma";
- import { logger } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 
 export const revalidate = 300;
 export const metadata = {
   title: "Advertise your agency | FindMaids",
   description:
-    "Explore directory plans for independent maid agencies in the Philippines.",
+    "Explore directory plans for independent maid agencies based in Singapore.",
   openGraph: {
     title: "Advertise with FindMaids",
     description: "Help families discover your agency profile.",
@@ -20,8 +20,11 @@ export default async function AdvertisePage() {
       where: { isActive: true },
       orderBy: { listingPriority: "asc" },
     })
-      .catch((error) => {
-        logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load plans");
+    .catch((error) => {
+      logger.error(
+        { errorType: error instanceof Error ? error.name : "unknown" },
+        "Unable to load plans",
+      );
       return [];
     });
   return (
@@ -64,14 +67,14 @@ export default async function AdvertisePage() {
                     {plan.name}
                   </h2>
                   <p className="mt-3 text-3xl font-bold">
-                    ₱{Number(plan.priceMonthly).toLocaleString("en-PH")}
+                    S${Number(plan.priceMonthly).toLocaleString("en-SG")}
                     <span className="text-muted-foreground text-sm font-normal">
                       {" "}
                       / month
                     </span>
                   </p>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    ₱{Number(plan.priceYearly).toLocaleString("en-PH")} yearly
+                    S${Number(plan.priceYearly).toLocaleString("en-SG")} yearly
                   </p>
                   <ul className="my-6 flex-1 space-y-2 text-sm">
                     {features.map((feature) => (

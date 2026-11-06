@@ -119,7 +119,10 @@ export default async function AgencyDashboardPage({
     }),
     prisma.plan.findUnique({ where: { name: "Basic Free" } }),
     prisma.enquiry.findMany({
-      where: { agencyId: agency.id, createdAt: { gte: new Date(now.getTime() - 30 * 86_400_000) } },
+      where: {
+        agencyId: agency.id,
+        createdAt: { gte: new Date(now.getTime() - 30 * 86_400_000) },
+      },
       select: { source: true, acquisitionSource: true },
       take: 5000,
     }),
@@ -127,7 +130,9 @@ export default async function AgencyDashboardPage({
   const leadAllowance = await getAgencyLeadAllowance(agency.id);
   const { lockedIds, ...leadCapSummary } = leadAllowance;
   const completeness = calculateProfileCompleteness(profile ?? agency);
-  const leadLimit = active ? active.plan.leadLimit : (basicPlan?.leadLimit ?? null);
+  const leadLimit = active
+    ? active.plan.leadLimit
+    : (basicPlan?.leadLimit ?? null);
   const responseStart = new Date(now.getTime() - 30 * 86_400_000);
   const responseSamples = await prisma.enquiry.findMany({
     where: { agencyId: agency.id, createdAt: { gte: responseStart } },
@@ -135,14 +140,21 @@ export default async function AgencyDashboardPage({
     take: 5000,
   });
   const responseMetrics = calculateResponseMetrics(responseSamples);
-  const enquirySourceCounts = sourceEnquiries.reduce<Record<string, number>>((counts, lead) => {
-    const attribution = lead.acquisitionSource;
-    const sourceCategory = attribution && typeof attribution === "object" && !Array.isArray(attribution) && "sourceCategory" in attribution
-      ? String(attribution.sourceCategory)
-      : lead.source;
-    counts[sourceCategory] = (counts[sourceCategory] ?? 0) + 1;
-    return counts;
-  }, {});
+  const enquirySourceCounts = sourceEnquiries.reduce<Record<string, number>>(
+    (counts, lead) => {
+      const attribution = lead.acquisitionSource;
+      const sourceCategory =
+        attribution &&
+        typeof attribution === "object" &&
+        !Array.isArray(attribution) &&
+        "sourceCategory" in attribution
+          ? String(attribution.sourceCategory)
+          : lead.source;
+      counts[sourceCategory] = (counts[sourceCategory] ?? 0) + 1;
+      return counts;
+    },
+    {},
+  );
   const averageRating = reviews.length
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
@@ -246,14 +258,56 @@ export default async function AgencyDashboardPage({
         </div>
       </div>
       {nav}
-      {agency.foundingAgency && agency.foundingPeriodEndsAt && agency.foundingPeriodEndsAt > now && (
-        <section className="mt-5 border border-[#9b7700] bg-[#fff7d6] p-4" aria-label="Founding agency benefits">
-          <h2 className="font-display text-lg font-bold">Founding Agency · Gold benefits</h2>
-          <p className="mt-1 text-sm">Your founding period ends {agency.foundingPeriodEndsAt.toLocaleDateString("en-PH")}. No payment will be collected automatically.</p>
-          <p className="mt-2 text-sm">Last 30 days: {events.filter((event) => event.createdAt >= responseStart && event.type === "profile_view").length} profile views · {events.filter((event) => event.createdAt >= responseStart && ["phone_click","whatsapp_click","website_click"].includes(event.type)).length} contact clicks · {sourceEnquiries.length} enquiries · {responseMetrics.averageMinutes === null ? "no recorded first responses" : `${(responseMetrics.averageMinutes / 60).toFixed(1)}h average first response`}.</p>
-          <a className="mt-2 inline-block font-semibold underline" href="/api/agency/founding-summary">Download 30-day summary PDF</a>
-        </section>
-      )}
+      {agency.foundingAgency &&
+        agency.foundingPeriodEndsAt &&
+        agency.foundingPeriodEndsAt > now && (
+          <section
+            className="mt-5 border border-[#9b7700] bg-[#fff7d6] p-4"
+            aria-label="Founding agency benefits"
+          >
+            <h2 className="font-display text-lg font-bold">
+              Founding Agency · Gold benefits
+            </h2>
+            <p className="mt-1 text-sm">
+              Your founding period ends{" "}
+              {agency.foundingPeriodEndsAt.toLocaleDateString("en-SG", {
+                timeZone: "Asia/Singapore",
+              })}
+              . No payment will be collected automatically.
+            </p>
+            <p className="mt-2 text-sm">
+              Last 30 days:{" "}
+              {
+                events.filter(
+                  (event) =>
+                    event.createdAt >= responseStart &&
+                    event.type === "profile_view",
+                ).length
+              }{" "}
+              profile views ·{" "}
+              {
+                events.filter(
+                  (event) =>
+                    event.createdAt >= responseStart &&
+                    ["phone_click", "whatsapp_click", "website_click"].includes(
+                      event.type,
+                    ),
+                ).length
+              }{" "}
+              contact clicks · {sourceEnquiries.length} enquiries ·{" "}
+              {responseMetrics.averageMinutes === null
+                ? "no recorded first responses"
+                : `${(responseMetrics.averageMinutes / 60).toFixed(1)}h average first response`}
+              .
+            </p>
+            <a
+              className="mt-2 inline-block font-semibold underline"
+              href="/api/agency/founding-summary"
+            >
+              Download 30-day summary PDF
+            </a>
+          </section>
+        )}
       <div className="pt-7">
         {tab === "overview" && (
           <>
@@ -267,7 +321,12 @@ export default async function AgencyDashboardPage({
                 ["Profile views", views],
                 ["Contact clicks", clicks],
                 ["Enquiries this month", leadCount],
-                ["Responded within 24h", responseMetrics.within24HoursPercent === null ? "—" : `${responseMetrics.within24HoursPercent.toFixed(0)}%`],
+                [
+                  "Responded within 24h",
+                  responseMetrics.within24HoursPercent === null
+                    ? "—"
+                    : `${responseMetrics.within24HoursPercent.toFixed(0)}%`,
+                ],
                 [
                   "Average rating",
                   `${averageRating.toFixed(1)} (${reviews.length})`,
@@ -290,7 +349,7 @@ export default async function AgencyDashboardPage({
                 <p className="mt-2">
                   {active?.plan.name ?? "Basic Free"}
                   {active?.endDate
-                    ? ` · renews/expires ${active.endDate.toLocaleDateString("en-PH")}`
+                    ? ` · renews/expires ${active.endDate.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}`
                     : ""}
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm">
@@ -358,7 +417,12 @@ export default async function AgencyDashboardPage({
             />
             {leadAllowance.overLimitCount > 0 && (
               <p className="mb-4 rounded-md bg-[#fff1bf] p-4 text-sm">
-                {leadAllowance.overLimitCount} additional lead{leadAllowance.overLimitCount === 1 ? " is" : "s are"} saved above your {leadAllowance.planName} allowance. {leadAllowance.lockedCount > 0 ? "Their details are locked until you upgrade." : "Their details remain available under DELIVER_ALL."}{" "}
+                {leadAllowance.overLimitCount} additional lead
+                {leadAllowance.overLimitCount === 1 ? " is" : "s are"} saved
+                above your {leadAllowance.planName} allowance.{" "}
+                {leadAllowance.lockedCount > 0
+                  ? "Their details are locked until you upgrade."
+                  : "Their details remain available under DELIVER_ALL."}{" "}
                 <Link
                   className="font-bold underline"
                   href="/agency/dashboard?view=billing"
@@ -412,7 +476,9 @@ export default async function AgencyDashboardPage({
                     <p className="mt-2 text-sm leading-6">{review.body}</p>
                     <p className="text-muted-foreground mt-2 text-xs">
                       {review.authorName} ·{" "}
-                      {review.createdAt.toLocaleDateString("en-PH")}
+                      {review.createdAt.toLocaleDateString("en-SG", {
+                        timeZone: "Asia/Singapore",
+                      })}
                     </p>
                     {review.agencyReply && (
                       <p className="mt-3 rounded bg-[#f7f7f0] p-3 text-sm">
@@ -446,7 +512,7 @@ export default async function AgencyDashboardPage({
                 </p>
                 <p className="text-muted-foreground mt-1 text-sm">
                   {active?.endDate
-                    ? `Period ends ${active.endDate.toLocaleDateString("en-PH")}`
+                    ? `Period ends ${active.endDate.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}`
                     : "No paid plan active"}
                 </p>
                 {active && active.plan.priceMonthly.toNumber() > 0 && (
@@ -487,14 +553,16 @@ export default async function AgencyDashboardPage({
                         <tr className="border-t" key={payment.id}>
                           <td className="p-3">{payment.invoiceNumber}</td>
                           <td className="p-3">
-                            {payment.createdAt.toLocaleDateString("en-PH")}
+                            {payment.createdAt.toLocaleDateString("en-SG", {
+                              timeZone: "Asia/Singapore",
+                            })}
                           </td>
                           <td className="p-3">
                             {payment.subscription.plan.name}
                           </td>
                           <td className="p-3">
-                            ₱
-                            {Number(payment.amount).toLocaleString("en-PH", {
+                            S$
+                            {Number(payment.amount).toLocaleString("en-SG", {
                               minimumFractionDigits: 2,
                             })}
                           </td>
@@ -552,8 +620,13 @@ export default async function AgencyDashboardPage({
                       <td className="p-3">{placement.type}</td>
                       <td className="p-3">{placement.status}</td>
                       <td className="p-3">
-                        {placement.startDate.toLocaleDateString("en-PH")} –{" "}
-                        {placement.endDate.toLocaleDateString("en-PH")}
+                        {placement.startDate.toLocaleDateString("en-SG", {
+                          timeZone: "Asia/Singapore",
+                        })}{" "}
+                        –{" "}
+                        {placement.endDate.toLocaleDateString("en-SG", {
+                          timeZone: "Asia/Singapore",
+                        })}
                       </td>
                       <td className="p-3">{placement.impressions}</td>
                       <td className="p-3">{placement.clicks}</td>

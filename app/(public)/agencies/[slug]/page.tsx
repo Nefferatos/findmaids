@@ -71,7 +71,7 @@ export default async function AgencyProfilePage({
     ? agency.reviews.reduce((sum, review) => sum + review.rating, 0) /
       agency.reviews.length
     : 0;
-  const address = `${agency.address}, ${agency.city}, ${agency.province}, Philippines`;
+  const address = `${agency.address}, ${agency.city}, ${agency.province}, Singapore`;
   const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
   const safeWebsite = (() => {
     if (!agency.website) return undefined;
@@ -98,7 +98,7 @@ export default async function AgencyProfilePage({
       streetAddress: agency.address,
       addressLocality: agency.city,
       addressRegion: agency.province,
-      addressCountry: "PH",
+      addressCountry: "SG",
     },
     telephone: agency.phone,
     url: safeWebsite,
@@ -192,6 +192,15 @@ export default async function AgencyProfilePage({
             </section>
             <section>
               <h2 className="font-display text-xl font-bold">
+                Service locations
+              </h2>
+              <p className="mt-3 text-sm leading-6">
+                {agency.serviceLocations.join(", ") ||
+                  "Contact agency for service locations"}
+              </p>
+            </section>
+            <section>
+              <h2 className="font-display text-xl font-bold">
                 Languages and nationalities
               </h2>
               <p className="mt-3 text-sm leading-6">
@@ -263,7 +272,9 @@ export default async function AgencyProfilePage({
                     <p className="mt-2 text-sm leading-6">{review.body}</p>
                     <p className="text-muted-foreground mt-3 text-xs">
                       {review.authorName} ·{" "}
-                      {review.createdAt.toLocaleDateString("en-PH")}
+                      {review.createdAt.toLocaleDateString("en-SG", {
+                        timeZone: "Asia/Singapore",
+                      })}
                     </p>
                   </article>
                 ))}

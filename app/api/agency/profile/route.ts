@@ -30,6 +30,7 @@ const schema = z.object({
       .optional(),
   ),
   services: z.array(z.string().max(80)).max(20),
+  serviceLocations: z.array(z.string().trim().min(1).max(80)).max(20),
   nationalitiesServed: z.array(z.string().max(80)).max(20),
   languages: z.array(z.string().max(80)).max(20),
   logoUrl: z.string().refine(isAllowedMediaUrl).optional().or(z.literal("")),

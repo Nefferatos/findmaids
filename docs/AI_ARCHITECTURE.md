@@ -4,7 +4,7 @@
 
 - `lib/ai/provider.ts` defines Mock, Claude, and Make adapters. Mock is selected by default. Claude requires `AI_PROVIDER=claude` and `AI_API_KEY`. Make requires `AI_PROVIDER=make` and a server-side webhook URL.
 - `lib/ai/guardrails.ts` masks common contact information, checks input lengths and detects common prompt-injection language.
-- `lib/ai/budget.ts` estimates PHP cost and checks monthly global/per-agency spend before model calls.
+- `lib/ai/budget.ts` estimates provider cost in SGD and checks monthly global/per-agency spend before model calls.
 - `lib/ai/call.ts` masks prompts before provider calls and records prompt version, usage, duration, cost and status in `AiCallLog`.
 - `lib/jobs/queue.ts` enqueues slow work in BullMQ when `REDIS_URL` is configured. See [JOBS.md](JOBS.md).
 - `Conversation`, `Message`, `HandoffRequest`, `AgencyAiSettings`, `KnowledgeDocument` and `AiCallLog` persist conversation state, approvals and usage.

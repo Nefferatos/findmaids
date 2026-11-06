@@ -12,6 +12,11 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (process.env.MANUAL_BANK_TRANSFER_ENABLED !== "true")
+    return NextResponse.json(
+      { error: "Manual bank transfer is not configured for this test site." },
+      { status: 503 },
+    );
   const session = await auth();
   if (!session?.user || session.user.role !== "AGENCY")
     return NextResponse.json(
@@ -54,9 +59,6 @@ export async function POST(request: Request) {
       { error: "Select a paid plan for the chosen billing period." },
       { status: 400 },
     );
-  const vatRate = 0.12;
-  const netAmount = Math.round((amount / (1 + vatRate)) * 100) / 100;
-  const vatAmount = Math.round((amount - netAmount) * 100) / 100;
   const referenceCode = `FM-${new Date().getUTCFullYear()}-${randomBytes(5).toString("hex").toUpperCase()}`;
   const expiry = new Date(Date.now() + 5 * 86_400_000);
   const created = await prisma.$transaction(async (tx) => {
@@ -75,9 +77,8 @@ export async function POST(request: Request) {
       data: {
         subscriptionId: subscription.id,
         amount,
-        currency: "PHP",
+        currency: "SGD",
         status: "PENDING_BANK_TRANSFER",
-        provider: "MANUAL",
         billingPeriod: parsed.data.billingPeriod,
         invoiceNumber,
         referenceCode,
@@ -99,10 +100,7 @@ export async function POST(request: Request) {
     {
       paymentId: created.payment.id,
       referenceCode,
-      amountPhp: amount,
-      netPhp: netAmount,
-      vatPhp: vatAmount,
-      vatRate,
+      amountSgd: amount,
       expiresAt: expiry,
       bankDetails: settings?.value ?? null,
     },

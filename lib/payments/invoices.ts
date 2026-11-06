@@ -17,6 +17,10 @@ export async function reserveInvoiceNumber(
   return invoiceNumber(year, rows[0].lastValue);
 }
 
+/**
+ * Renders the payment receipt PDF, stores it in the private bucket and returns
+ * the agency-facing download URL.
+ */
 export async function storeInvoicePdf(input: {
   paymentId: string;
   invoiceNumber: string;
@@ -46,26 +50,19 @@ export async function storeInvoicePdf(input: {
   document.moveDown().fillColor("#173328").fontSize(18).text("Payment receipt");
   document.moveDown().fontSize(12).text(`Invoice: ${input.invoiceNumber}`);
   document.text(`Agency: ${input.agencyName}`);
-  document.text(`Paid: ${input.paidAt.toISOString()}`);
-  const netAmount = Math.round((input.amount / 1.12) * 100) / 100;
-  const vatAmount = Math.round((input.amount - netAmount) * 100) / 100;
-  document
-    .moveDown()
-    .fontSize(12)
-    .text(`Net amount: ${input.currency} ${netAmount.toFixed(2)}`);
-  document.text(
-    `VAT included (12%): ${input.currency} ${vatAmount.toFixed(2)}`,
-  );
+  document.text(`Paid: ${input.paidAt.toISOString().slice(0, 10)}`);
   document
     .moveDown()
     .fontSize(16)
-    .text(`Amount paid: ${input.currency} ${input.amount.toFixed(2)}`);
+    .text(
+      `Amount paid: ${input.currency} ${input.amount.toFixed(2)}`,
+    );
   document
     .moveDown()
     .fontSize(10)
     .fillColor("#52665a")
     .text(
-      "This receipt confirms payment for FindMaids directory services. It is not a tax invoice unless separately identified as such.",
+      `This receipt confirms payment for FindMaids directory services and is not a tax invoice. Amounts are in ${input.currency}.`,
     );
   document.end();
   const buffer = await finished;
@@ -77,3 +74,5 @@ export async function storeInvoicePdf(input: {
   });
   return `/api/agency/invoices/${input.paymentId}`;
 }
+
+

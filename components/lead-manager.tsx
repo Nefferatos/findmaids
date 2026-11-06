@@ -174,7 +174,7 @@ export function LeadManager({
               ? "Their contact details are locked until you upgrade."
               : "Their contact details remain available under DELIVER_ALL."}{" "}
             {cap.upgradePlanName
-              ? `${cap.upgradePlanName} is the next plan${cap.upgradePriceMonthly === null ? "" : ` at ₱${cap.upgradePriceMonthly.toLocaleString("en-PH")}/month`}; it includes ${Array.isArray(cap.upgradePlanFeatures) ? cap.upgradePlanFeatures.join(", ") : "the listed plan entitlements"}.`
+              ? `${cap.upgradePlanName} is the next plan${cap.upgradePriceMonthly === null ? "" : ` at S$${cap.upgradePriceMonthly.toLocaleString("en-SG")}/month`}; it includes ${Array.isArray(cap.upgradePlanFeatures) ? cap.upgradePlanFeatures.join(", ") : "the listed plan entitlements"}.`
               : "Contact the FindMaids team to discuss available plans."}
           </p>
           <a
@@ -303,13 +303,20 @@ export function LeadManager({
                 </td>
                 <td className="p-3">{sourceLabel(lead)}</td>
                 <td className="p-3 whitespace-nowrap">
-                  {new Date(lead.createdAt).toLocaleDateString("en-PH")}
+                  {new Date(lead.createdAt).toLocaleDateString("en-SG", {
+                    timeZone: "Asia/Singapore",
+                  })}
                 </td>
                 <td className="p-3 text-xs whitespace-nowrap">
                   {lead.detailsLocked
                     ? "Locked"
                     : lead.firstRespondedAt
-                      ? new Date(lead.firstRespondedAt).toLocaleString("en-PH")
+                      ? new Date(lead.firstRespondedAt).toLocaleString(
+                          "en-SG",
+                          {
+                            timeZone: "Asia/Singapore",
+                          },
+                        )
                       : "Not yet"}
                 </td>
                 <td className="p-3">

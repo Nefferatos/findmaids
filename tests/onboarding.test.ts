@@ -13,16 +13,19 @@ describe("agency onboarding", () => {
       description:
         "A fictional agency description with enough detail to satisfy the minimum length requirement.",
       address: "10 Example Street",
-      city: "Makati",
-      province: "Metro Manila",
-      phone: "+639171234567",
+      city: "Singapore",
+      province: "Central Region",
+      phone: "+65 6123 4567",
       email: "agency@example.test",
       services: ["Full-time placement"],
+      serviceLocations: ["Singapore", "Malaysia"],
       nationalitiesServed: ["Filipino"],
-      languages: ["Filipino"],
+      languages: ["English"],
       photos: [],
     });
     expect(valid.success).toBe(true);
+    if (valid.success)
+      expect(valid.data.serviceLocations).toEqual(["Singapore", "Malaysia"]);
     expect(
       onboardingSubmissionSchema.safeParse({ name: "Incomplete" }).success,
     ).toBe(false);

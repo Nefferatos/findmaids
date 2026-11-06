@@ -137,7 +137,7 @@ export function ApprovalQueue({
                 Submitted{" "}
                 {new Date(
                   agency.submittedAt ?? agency.createdAt,
-                ).toLocaleDateString("en-PH")}
+                ).toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}
               </p>
             </button>
           ))}
@@ -348,7 +348,10 @@ export function ReviewModerationQueue({
           </p>
           <p className="text-muted-foreground mt-3 text-xs">
             {review.authorName} · {review.reviewerEmail ?? "email not supplied"}{" "}
-            · {new Date(review.createdAt).toLocaleString("en-PH")}
+            ·{" "}
+            {new Date(review.createdAt).toLocaleString("en-SG", {
+              timeZone: "Asia/Singapore",
+            })}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button

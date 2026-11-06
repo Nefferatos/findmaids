@@ -5,13 +5,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "FindMaids",
   description: "FindMaids application foundation",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXTAUTH_URL ??
+      "http://localhost:3000",
+  ),
   openGraph: { siteName: "FindMaids", type: "website" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en-SG" className="h-full antialiased">
       <body className="min-h-full">{children}</body>
     </html>
   );

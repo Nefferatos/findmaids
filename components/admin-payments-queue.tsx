@@ -13,7 +13,6 @@ type Payment = {
   receivedAmount: string | number | null;
   refundAmount: string | number | null;
   currency: string;
-  provider: string;
   status: string;
   expiresAt: string | null;
   createdAt: string;
@@ -133,7 +132,7 @@ export function AdminPaymentsQueue({
                 </td>
                 <td className="p-3">
                   {payment.currency}{" "}
-                  {Number(payment.amount).toLocaleString("en-PH", {
+                  {Number(payment.amount).toLocaleString("en-SG", {
                     minimumFractionDigits: 2,
                   })}
                   {payment.receivedAmount != null && (
@@ -158,14 +157,16 @@ export function AdminPaymentsQueue({
                 </td>
                 <td className="p-3">
                   {payment.expiresAt
-                    ? new Date(payment.expiresAt).toLocaleString("en-PH")
+                    ? new Date(payment.expiresAt).toLocaleString("en-SG", {
+                        timeZone: "Asia/Singapore",
+                      })
                     : "—"}
                 </td>
                 <td className="space-y-2 p-3">
                   {payment.status === "PAID" ? (
                     <>
                       <label className="block text-xs font-semibold">
-                        Refund amount PHP
+                        Refund amount ({payment.currency})
                         <input
                           aria-label={`Refund amount for ${payment.invoiceNumber}`}
                           id={`refund-${payment.id}`}
@@ -214,7 +215,7 @@ export function AdminPaymentsQueue({
                               amount,
                               reason,
                             },
-                            `Issue a case-by-case refund of PHP ${amount.toFixed(2)} for ${payment.invoiceNumber}? This cannot be automatically reversed.`,
+                            `Issue a case-by-case refund of ${payment.currency} ${amount.toFixed(2)} for ${payment.invoiceNumber}? This cannot be automatically reversed.`,
                           );
                         }}
                       >
@@ -224,7 +225,7 @@ export function AdminPaymentsQueue({
                   ) : (
                     <>
                       <label className="block text-xs font-semibold">
-                        Cumulative received PHP
+                        Cumulative received ({payment.currency})
                         <input
                           aria-label={`Received amount for ${payment.invoiceNumber}`}
                           type="number"
@@ -283,7 +284,7 @@ export function AdminPaymentsQueue({
                                 ? new Date(dateValue).toISOString()
                                 : new Date().toISOString(),
                             },
-                            `Mark ${payment.invoiceNumber} paid with cumulative received amount PHP ${amount.toFixed(2)}? This activates the plan.`,
+                            `Mark ${payment.invoiceNumber} paid with cumulative received amount ${payment.currency} ${amount.toFixed(2)}? This activates the plan.`,
                           );
                         }}
                       >
@@ -313,7 +314,7 @@ export function AdminPaymentsQueue({
                               receivedAt: new Date().toISOString(),
                               note: "Partial receipt; awaiting balance.",
                             },
-                            `Record partial payment of PHP ${amount.toFixed(2)}?`,
+                            `Record partial payment of ${payment.currency} ${amount.toFixed(2)}?`,
                           );
                         }}
                       >

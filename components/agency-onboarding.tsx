@@ -6,6 +6,7 @@ import { createSlug } from "@/lib/onboarding";
 
 type Draft = Record<string, unknown> & {
   services?: string[];
+  serviceLocations?: string[];
   nationalitiesServed?: string[];
   languages?: string[];
   photos?: { url: string; caption?: string }[];
@@ -21,11 +22,12 @@ const choices = {
   nationalitiesServed: [
     "Filipino",
     "Indonesian",
+    "Myanmar",
     "Sri Lankan",
     "Vietnamese",
     "Other",
   ],
-  languages: ["Filipino", "English", "Cebuano", "Ilocano", "Other"],
+  languages: ["English", "Mandarin", "Malay", "Tamil", "Filipino", "Other"],
 } as const;
 
 function TextField({
@@ -233,14 +235,14 @@ export function AgencyOnboarding({
                 onChange={(value) => set("city", value)}
               />
               <TextField
-                label="Province"
+                label="Region or area"
                 value={data.province}
                 required
                 onChange={(value) => set("province", value)}
               />
             </div>
             <TextField
-              label="Phone"
+              label="Phone (include country code)"
               value={data.phone}
               required
               onChange={(value) => set("phone", value)}
@@ -301,6 +303,21 @@ export function AgencyOnboarding({
               </div>
             </fieldset>
           ))}
+        {step === 3 && (
+          <TextField
+            label="Service locations (comma-separated)"
+            value={(data.serviceLocations ?? []).join(", ")}
+            onChange={(value) =>
+              set(
+                "serviceLocations",
+                value
+                  .split(",")
+                  .map((location) => location.trim())
+                  .filter(Boolean),
+              )
+            }
+          />
+        )}
         {step === 4 && (
           <div className="space-y-5">
             {(["logo", "banner", "photo"] as const).map((kind) => (
@@ -360,6 +377,11 @@ export function AgencyOnboarding({
               <strong>Services:</strong>{" "}
               {(data.services as string[] | undefined)?.join(", ") ||
                 "Not selected"}
+            </p>
+            <p>
+              <strong>Service locations:</strong>{" "}
+              {(data.serviceLocations as string[] | undefined)?.join(", ") ||
+                "Not specified"}
             </p>
             <p>
               <strong>Nationalities:</strong>{" "}

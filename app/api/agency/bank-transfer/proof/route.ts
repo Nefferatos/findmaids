@@ -66,7 +66,6 @@ export async function POST(request: Request) {
     where: {
       id: parsed.data.paymentId,
       status: "PENDING_BANK_TRANSFER",
-      provider: "MANUAL",
       subscription: { agency: { ownerId: session.user.id } },
     },
     select: { id: true, expiresAt: true },

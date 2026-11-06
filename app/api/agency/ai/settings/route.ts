@@ -23,7 +23,9 @@ const settingsSchema = z.object({
       ]),
     )
     .nullable(),
-  languages: z.array(z.enum(["English", "Filipino", "Taglish"])).max(3),
+  languages: z
+    .array(z.enum(["English", "Mandarin", "Malay", "Tamil", "Filipino"]))
+    .max(3),
   escalationEmail: z.email().nullable(),
   knowledgeBase: z.string().max(10000),
 });
@@ -91,15 +93,15 @@ export async function GET() {
     ]);
   const plan = await prisma.subscription.findFirst({
     where: { agencyId: context.agencyId, status: "ACTIVE" },
-    include: { plan: { select: { aiMonthlyBudgetPhp: true } } },
+    include: { plan: { select: { aiMonthlyBudgetSgd: true } } },
     orderBy: { createdAt: "desc" },
   });
   const monthlyCap = Number(
-    plan?.plan.aiMonthlyBudgetPhp ??
-      process.env.AI_DEFAULT_AGENCY_BUDGET_PHP ??
+    plan?.plan.aiMonthlyBudgetSgd ??
+      process.env.AI_DEFAULT_AGENCY_BUDGET_SGD ??
       50,
   );
-  const spendPhp = Number(spend._sum.costEstimate ?? 0);
+  const spendSgd = Number(spend._sum.costEstimate ?? 0);
   return NextResponse.json({
     settings: settings ?? {
       autoReplyEnabled: false,
@@ -112,9 +114,9 @@ export async function GET() {
     },
     usage: {
       calls: callCount,
-      spendPhp,
-      monthlyCapPhp: monthlyCap,
-      remainingPhp: Math.max(0, monthlyCap - spendPhp),
+      spendSgd,
+      monthlyCapSgd: monthlyCap,
+      remainingSgd: Math.max(0, monthlyCap - spendSgd),
     },
     conversations,
     feedbackStats: {

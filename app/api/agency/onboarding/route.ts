@@ -134,6 +134,7 @@ export async function POST(request: Request) {
         website: data.website || null,
         facebook: data.facebook || null,
         services: data.services,
+        serviceLocations: data.serviceLocations ?? [],
         nationalitiesServed: data.nationalitiesServed,
         languages: data.languages,
         logoUrl: data.logoUrl || null,
@@ -155,10 +156,25 @@ export async function POST(request: Request) {
     return created;
   });
   if (pendingProspect) {
-    const nextStage = pendingProspect.stage === "DO_NOT_CONTACT" ? pendingProspect.stage : "PROFILE_DRAFTED";
+    const nextStage =
+      pendingProspect.stage === "DO_NOT_CONTACT"
+        ? pendingProspect.stage
+        : "PROFILE_DRAFTED";
     await prisma.$transaction([
-      prisma.prospect.update({ where: { id: pendingProspect.id }, data: { agencyId: agency.id, stage: nextStage } }),
-      prisma.auditLog.create({ data: { userId: user.id, agencyId: agency.id, action: "PROSPECT_LINKED_TO_AGENCY", entity: "Prospect", entityId: pendingProspect.id, after: { agencyId: agency.id, stage: nextStage } } }),
+      prisma.prospect.update({
+        where: { id: pendingProspect.id },
+        data: { agencyId: agency.id, stage: nextStage },
+      }),
+      prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          agencyId: agency.id,
+          action: "PROSPECT_LINKED_TO_AGENCY",
+          entity: "Prospect",
+          entityId: pendingProspect.id,
+          after: { agencyId: agency.id, stage: nextStage },
+        },
+      }),
     ]);
   }
   return NextResponse.json(

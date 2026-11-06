@@ -1,4 +1,4 @@
-export type SubscriptionState =
+﻿export type SubscriptionState =
   "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
 
 const allowedTransitions: Record<SubscriptionState, SubscriptionState[]> = {
@@ -53,11 +53,4 @@ export function checkLeadLimit(
   };
 }
 
-export function reserveWebhookEvent(
-  seenEventIds: Set<string>,
-  eventId: string,
-) {
-  if (seenEventIds.has(eventId)) return false;
-  seenEventIds.add(eventId);
-  return true;
-}
+

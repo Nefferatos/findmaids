@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       prisma.payment.aggregate({
         where: {
           status: "PAID",
+          currency: "SGD",
           paidAt: { gte: previousMonth, lt: monthStart },
         },
         _sum: { amount: true },
@@ -34,11 +35,12 @@ export async function GET(request: Request) {
         select: { email: true },
       }),
     ]);
-  const month = previousMonth.toLocaleDateString("en-PH", {
+  const month = previousMonth.toLocaleDateString("en-SG", {
     month: "long",
     year: "numeric",
+    timeZone: "Asia/Singapore",
   });
-  const body = `FindMaids monthly summary · ${month}\nRevenue: PHP ${Number(revenue._sum.amount ?? 0).toLocaleString("en-PH")} across ${revenue._count.id} paid transactions\nNew agencies: ${agencies}\nPending approvals: ${approvals}\nPending reviews: ${reviews}\nPending bank transfers: ${bankPayments}`;
+  const body = `FindMaids monthly summary · ${month}\nRevenue: SGD ${Number(revenue._sum.amount ?? 0).toLocaleString("en-SG")} across ${revenue._count.id} SGD-paid transactions\nNew agencies: ${agencies}\nPending approvals: ${approvals}\nPending reviews: ${reviews}\nPending bank transfers: ${bankPayments}`;
   const deliveries = await Promise.allSettled(
     adminUsers.map((user) =>
       sendEmail(user.email, `FindMaids monthly report · ${month}`, body),

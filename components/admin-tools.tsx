@@ -15,7 +15,7 @@ export function PlanEditor({
     featuredSlots: number;
     maxPhotos: number;
     leadLimit: number | null;
-    aiMonthlyBudgetPhp: number | null;
+    aiMonthlyBudgetSgd: number | null;
     isActive: boolean;
     _count: { subscriptions: number };
   }[];
@@ -77,7 +77,7 @@ export function PlanEditor({
               "featuredSlots",
               "maxPhotos",
               "leadLimit",
-              "aiMonthlyBudgetPhp",
+              "aiMonthlyBudgetSgd",
             ] as const
           ).map((field) => (
             <label key={field} className="text-sm font-semibold">

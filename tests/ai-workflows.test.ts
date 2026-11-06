@@ -64,7 +64,7 @@ describe("AI demo safety and Supabase storage selection", () => {
       }),
     ).toBe("skip");
     expect(
-      classifyLeadText("Need a nanny urgently, budget PHP 12000").urgency,
+      classifyLeadText("Need a nanny urgently, budget SGD 1200").urgency,
     ).toBe(true);
     expect(classifyLeadText("This is a fraud complaint").complaint).toBe(true);
   });
@@ -86,7 +86,7 @@ describe("AI demo safety and Supabase storage selection", () => {
 
   it("masks contact information and detects oversized or injection-like input", () => {
     expect(
-      maskPii("Email me at person@example.com or +63 917 123 4567"),
+      maskPii("Email me at person@example.com or +65 8123 4567"),
     ).not.toContain("person@example.com");
     expect(
       looksLikePromptInjection(

@@ -79,9 +79,8 @@ describe("AI budget, lead decision and safety policy", () => {
       }),
     ).toBe("skip");
     expect(
-      classifyLeadText(
-        "Need a nanny urgently, budget PHP 12000, start tomorrow",
-      ).urgency,
+      classifyLeadText("Need a nanny urgently, budget SGD 1200, start tomorrow")
+        .urgency,
     ).toBe(true);
     expect(classifyLeadText("This is a fraud complaint").complaint).toBe(true);
   });

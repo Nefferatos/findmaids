@@ -1,5 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
+  engineType      = "client"
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -167,57 +168,58 @@ model User {
 }
 
 model Agency {
-  id                  String              @id @default(cuid())
-  ownerId             String?
-  owner               User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  name                String
-  slug                String              @unique
-  description         String              @db.Text
-  logoUrl             String?
-  bannerUrl           String?
-  licenseNumber       String?
-  yearEstablished     Int?
-  address             String
-  city                String
-  province            String
-  phone               String
-  whatsapp            String?
-  email               String
-  website             String?
-  facebook            String?
-  services            String[]
-  nationalitiesServed String[]
-  languages           String[]
-  status              AgencyStatus        @default(PENDING)
-  verifiedBadge       Boolean             @default(false)
-  adminNote           String?             @db.Text
-  profileCompleteness Int                 @default(0)
-  foundingAgency      Boolean             @default(false)
+  id                     String              @id @default(cuid())
+  ownerId                String?
+  owner                  User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  name                   String
+  slug                   String              @unique
+  description            String              @db.Text
+  logoUrl                String?
+  bannerUrl              String?
+  licenseNumber          String?
+  yearEstablished        Int?
+  address                String
+  city                   String
+  province               String
+  phone                  String
+  whatsapp               String?
+  email                  String
+  website                String?
+  facebook               String?
+  services               String[]
+  serviceLocations       String[]            @default([])
+  nationalitiesServed    String[]
+  languages              String[]
+  status                 AgencyStatus        @default(PENDING)
+  verifiedBadge          Boolean             @default(false)
+  adminNote              String?             @db.Text
+  profileCompleteness    Int                 @default(0)
+  foundingAgency         Boolean             @default(false)
   foundingPeriodStartsAt DateTime?
-  foundingPeriodEndsAt DateTime?
-  onboardingStep      Int                 @default(1)
-  submittedAt         DateTime?
-  rejectedAt          DateTime?
-  rejectionReason     String?             @db.Text
-  approvalChecklist   Json?
-  verifiedAt          DateTime?
-  verifiedById        String?
-  verifiedBy          User?               @relation("AgencyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
-  photos              AgencyPhoto[]
-  subscriptions       Subscription[]
-  adPlacements        AdPlacement[]
-  enquiries           Enquiry[]
-  reviews             Review[]
-  analyticsEvents     AnalyticsEvent[]
-  conversations       Conversation[]
-  aiCallLogs          AiCallLog[]
-  featureFlags        FeatureFlag[]
-  aiSettings          AgencyAiSettings?
-  knowledgeDocuments  KnowledgeDocument[]
-  prospects           Prospect[]
-  auditLogs           AuditLog[]
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  foundingPeriodEndsAt   DateTime?
+  onboardingStep         Int                 @default(1)
+  submittedAt            DateTime?
+  rejectedAt             DateTime?
+  rejectionReason        String?             @db.Text
+  approvalChecklist      Json?
+  verifiedAt             DateTime?
+  verifiedById           String?
+  verifiedBy             User?               @relation("AgencyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  photos                 AgencyPhoto[]
+  subscriptions          Subscription[]
+  adPlacements           AdPlacement[]
+  enquiries              Enquiry[]
+  reviews                Review[]
+  analyticsEvents        AnalyticsEvent[]
+  conversations          Conversation[]
+  aiCallLogs             AiCallLog[]
+  featureFlags           FeatureFlag[]
+  aiSettings             AgencyAiSettings?
+  knowledgeDocuments     KnowledgeDocument[]
+  prospects              Prospect[]
+  auditLogs              AuditLog[]
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
 
   @@unique([ownerId])
   @@index([city, province, status])
@@ -258,7 +260,7 @@ model Plan {
   featuredSlots          Int            @default(0)
   maxPhotos              Int            @default(5)
   leadLimit              Int?
-  aiMonthlyBudgetPhp     Decimal?       @db.Decimal(10, 2)
+  aiMonthlyBudgetSgd     Decimal?       @db.Decimal(10, 2)
   isActive               Boolean        @default(true)
   subscriptions          Subscription[]
   scheduledSubscriptions Subscription[] @relation("ScheduledPlan")
@@ -269,28 +271,27 @@ model Plan {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  agencyId             String
-  agency               Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  planId               String
-  plan                 Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  status               SubscriptionStatus @default(PENDING)
-  startDate            DateTime
-  endDate              DateTime?
-  autoRenew            Boolean            @default(false)
-  cancelAtPeriodEnd    Boolean            @default(false)
-  graceEndsAt          DateTime?
-  scheduledPlanId      String?
-  downgradeEffectiveAt DateTime?
-  foundingAgency       Boolean            @default(false)
+  id                     String             @id @default(cuid())
+  agencyId               String
+  agency                 Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  planId                 String
+  plan                   Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  status                 SubscriptionStatus @default(PENDING)
+  startDate              DateTime
+  endDate                DateTime?
+  autoRenew              Boolean            @default(false)
+  cancelAtPeriodEnd      Boolean            @default(false)
+  graceEndsAt            DateTime?
+  scheduledPlanId        String?
+  downgradeEffectiveAt   DateTime?
+  foundingAgency         Boolean            @default(false)
   foundingPeriodStartsAt DateTime?
-  foundingPeriodEndsAt DateTime?
-  scheduledPlan        Plan?              @relation("ScheduledPlan", fields: [scheduledPlanId], references: [id], onDelete: SetNull)
-  billingPeriod        BillingPeriod      @default(MONTHLY)
-  providerRef          String?
-  payments             Payment[]
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  foundingPeriodEndsAt   DateTime?
+  scheduledPlan          Plan?              @relation("ScheduledPlan", fields: [scheduledPlanId], references: [id], onDelete: SetNull)
+  billingPeriod          BillingPeriod      @default(MONTHLY)
+  payments               Payment[]
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   @@index([agencyId, status])
   @@index([planId, status])
@@ -302,11 +303,8 @@ model Payment {
   subscriptionId     String
   subscription       Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   amount             Decimal       @db.Decimal(10, 2)
-  currency           String        @default("PHP") @db.VarChar(3)
+  currency           String        @default("SGD") @db.VarChar(3)
   status             PaymentStatus @default(PENDING)
-  provider           String
-  providerRef        String?
-  checkoutRef        String?
   billingPeriod      BillingPeriod @default(MONTHLY)
   invoiceUrl         String?
   expiresAt          DateTime?
@@ -329,61 +327,60 @@ model Payment {
   updatedAt          DateTime      @updatedAt
 
   @@index([subscriptionId, status])
-  @@index([provider, providerRef])
 }
 
 model AdPlacement {
-  id          String            @id @default(cuid())
-  agencyId    String
-  agency      Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  type        AdPlacementType
-  startDate   DateTime
-  endDate     DateTime
-  status      AdPlacementStatus @default(SCHEDULED)
-  foundingGrant Boolean         @default(false)
-  impressions Int               @default(0)
-  clicks      Int               @default(0)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id            String            @id @default(cuid())
+  agencyId      String
+  agency        Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  type          AdPlacementType
+  startDate     DateTime
+  endDate       DateTime
+  status        AdPlacementStatus @default(SCHEDULED)
+  foundingGrant Boolean           @default(false)
+  impressions   Int               @default(0)
+  clicks        Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@index([agencyId, status, startDate, endDate])
   @@index([type, status])
 }
 
 model Enquiry {
-  id                 String        @id @default(cuid())
-  agencyId           String
-  agency             Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  name               String
-  email              String
-  phone              String?
-  message            String        @db.Text
-  preferredStartDate DateTime?
-  budget             Decimal?      @db.Decimal(10, 2)
-  status             EnquiryStatus @default(NEW)
-  firstRespondedAt   DateTime?
-  acquisitionSource  Json?
-  consentGiven       Boolean       @default(false)
-  consentAt          DateTime?
+  id                   String        @id @default(cuid())
+  agencyId             String
+  agency               Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  name                 String
+  email                String
+  phone                String?
+  message              String        @db.Text
+  preferredStartDate   DateTime?
+  budget               Decimal?      @db.Decimal(10, 2)
+  status               EnquiryStatus @default(NEW)
+  firstRespondedAt     DateTime?
+  acquisitionSource    Json?
+  consentGiven         Boolean       @default(false)
+  consentAt            DateTime?
   consentPolicyVersion String?
-  privateNotes       String?       @db.Text
-  anonymizedAt       DateTime?
-  sourceIpHash       String?
-  aiSummary          String?       @db.Text
-  aiHelperType       String?
-  aiLocation         String?
-  aiBudgetText       String?
-  aiStartDateText    String?
-  aiUrgency          String?
-  aiQualityScore     Int?
-  aiQualityReasons   Json?
-  aiSpamProbability  Float?
-  aiReplyDraft       String?       @db.Text
-  aiReplyApprovedAt  DateTime?
-  aiReplySentAt      DateTime?
-  source             EnquirySource @default(WEB)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  privateNotes         String?       @db.Text
+  anonymizedAt         DateTime?
+  sourceIpHash         String?
+  aiSummary            String?       @db.Text
+  aiHelperType         String?
+  aiLocation           String?
+  aiBudgetText         String?
+  aiStartDateText      String?
+  aiUrgency            String?
+  aiQualityScore       Int?
+  aiQualityReasons     Json?
+  aiSpamProbability    Float?
+  aiReplyDraft         String?       @db.Text
+  aiReplyApprovedAt    DateTime?
+  aiReplySentAt        DateTime?
+  source               EnquirySource @default(WEB)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   @@index([agencyId, status, createdAt])
   @@index([email])
@@ -527,22 +524,22 @@ model AdminSetting {
 }
 
 model Conversation {
-  id        String              @id @default(cuid())
-  channel   ConversationChannel
-  userId    String?
-  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-  agencyId  String?
-  agency    Agency?             @relation(fields: [agencyId], references: [id], onDelete: SetNull)
-  status    ConversationStatus  @default(OPEN)
-  visitorTokenHash String?      @unique
-  consentAt DateTime?
+  id                 String              @id @default(cuid())
+  channel            ConversationChannel
+  userId             String?
+  user               User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agencyId           String?
+  agency             Agency?             @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  status             ConversationStatus  @default(OPEN)
+  visitorTokenHash   String?             @unique
+  consentAt          DateTime?
   retentionExpiresAt DateTime?
-  language String?
-  sourceIpHash String?
-  messages  Message[]
-  handoffs  HandoffRequest[]
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  language           String?
+  sourceIpHash       String?
+  messages           Message[]
+  handoffs           HandoffRequest[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([channel, status, createdAt])
   @@index([userId, status])
@@ -550,16 +547,16 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           MessageRole
-  providerMessageId String?   @unique
-  content        String       @db.Text
-  tokens         Int?
-  feedback       AiFeedback?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role              MessageRole
+  providerMessageId String?      @unique
+  content           String       @db.Text
+  tokens            Int?
+  feedback          AiFeedback?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@index([conversationId, createdAt])
 }
@@ -655,19 +652,6 @@ model HandoffRequest {
 
   @@index([conversationId, status])
   @@index([status, createdAt])
-}
-
-model PaymentWebhookEvent {
-  id          String   @id @default(cuid())
-  provider    String
-  eventId     String
-  eventType   String
-  processedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([provider, eventId])
-  @@index([eventType, processedAt])
 }
 
 model SubscriptionNotice {

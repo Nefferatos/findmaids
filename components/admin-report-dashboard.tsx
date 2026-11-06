@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatSgd } from "@/lib/market";
 import {
   CartesianGrid,
   Line,
@@ -14,7 +15,6 @@ import {
 type ReportData = {
   revenueTotal: number;
   revenueByMonth: { month: string; revenue: number }[];
-  revenueByProvider: Record<string, number>;
   revenueByPlan: Record<string, number>;
   subscriptionGrowth: { status: string; _count: { id: number } }[];
   agencyGrowth: { status: string; _count: { id: number } }[];
@@ -35,10 +35,40 @@ type ReportData = {
     status: string;
     endDate: string | null;
   }[];
-  chatFunnel?: { visitors: number; chatStarts: number; convertedVisitors: number; conversionPercent: number; messageEvents: number };
-  responseByAgency?: { agencyId: string; agency: string; city: string; total: number; responded: number; averageMinutes: number | null; within24HoursPercent: number | null; overdueUnresponded: number }[];
-  slowResponseAgencies?: { agencyId: string; agency: string; city: string; total: number; responded: number; averageMinutes: number | null; within24HoursPercent: number | null; overdueUnresponded: number }[];
-  weeklyEnquiriesBySourceCityChannel?: { week: string; city: string; sourceCategory: string; channel: string; count: number }[];
+  chatFunnel?: {
+    visitors: number;
+    chatStarts: number;
+    convertedVisitors: number;
+    conversionPercent: number;
+    messageEvents: number;
+  };
+  responseByAgency?: {
+    agencyId: string;
+    agency: string;
+    city: string;
+    total: number;
+    responded: number;
+    averageMinutes: number | null;
+    within24HoursPercent: number | null;
+    overdueUnresponded: number;
+  }[];
+  slowResponseAgencies?: {
+    agencyId: string;
+    agency: string;
+    city: string;
+    total: number;
+    responded: number;
+    averageMinutes: number | null;
+    within24HoursPercent: number | null;
+    overdueUnresponded: number;
+  }[];
+  weeklyEnquiriesBySourceCityChannel?: {
+    week: string;
+    city: string;
+    sourceCategory: string;
+    channel: string;
+    count: number;
+  }[];
 };
 export function AdminReportDashboard() {
   const today = new Date();
@@ -111,15 +141,13 @@ export function AdminReportDashboard() {
             <article className="rounded-md border bg-white p-4">
               <p className="text-muted-foreground text-sm">Revenue</p>
               <p className="mt-2 text-2xl font-bold">
-                ₱{data.revenueTotal.toLocaleString("en-PH")}
+                {formatSgd(data.revenueTotal)}
               </p>
             </article>
-            {Object.entries(data.revenueByProvider).map(([name, value]) => (
+            {Object.entries(data.revenueByPlan).map(([name, value]) => (
               <article key={name} className="rounded-md border bg-white p-4">
                 <p className="text-muted-foreground text-sm">{name} revenue</p>
-                <p className="mt-2 text-2xl font-bold">
-                  ₱{value.toLocaleString("en-PH")}
-                </p>
+                <p className="mt-2 text-2xl font-bold">{formatSgd(value)}</p>
               </article>
             ))}
           </div>
@@ -143,19 +171,99 @@ export function AdminReportDashboard() {
             </div>
           </section>
           <section className="rounded-md border bg-white p-5">
-            <h2 className="font-display text-xl font-bold">Acquisition and chat funnel</h2>
-            <p className="mt-2 text-sm">{data.chatFunnel?.visitors ?? 0} consented anonymous visitors · {data.chatFunnel?.chatStarts ?? 0} chat starts · {data.chatFunnel?.convertedVisitors ?? 0} chat-to-enquiry visitors · {(data.chatFunnel?.conversionPercent ?? 0).toFixed(1)}% conversion.</p>
+            <h2 className="font-display text-xl font-bold">
+              Acquisition and chat funnel
+            </h2>
+            <p className="mt-2 text-sm">
+              {data.chatFunnel?.visitors ?? 0} consented anonymous visitors ·{" "}
+              {data.chatFunnel?.chatStarts ?? 0} chat starts ·{" "}
+              {data.chatFunnel?.convertedVisitors ?? 0} chat-to-enquiry visitors
+              · {(data.chatFunnel?.conversionPercent ?? 0).toFixed(1)}%
+              conversion.
+            </p>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[620px] text-left text-sm">
-                <thead><tr><th className="p-2">Week</th><th className="p-2">City</th><th className="p-2">Source</th><th className="p-2">Channel</th><th className="p-2">Enquiries</th></tr></thead>
-                <tbody>{(data.weeklyEnquiriesBySourceCityChannel ?? []).map((item, index) => <tr className="border-t" key={`${item.week}-${item.city}-${item.sourceCategory}-${index}`}><td className="p-2">{item.week}</td><td className="p-2">{item.city}</td><td className="p-2">{item.sourceCategory}</td><td className="p-2">{item.channel}</td><td className="p-2">{item.count}</td></tr>)}</tbody>
+                <thead>
+                  <tr>
+                    <th className="p-2">Week</th>
+                    <th className="p-2">City</th>
+                    <th className="p-2">Source</th>
+                    <th className="p-2">Channel</th>
+                    <th className="p-2">Enquiries</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.weeklyEnquiriesBySourceCityChannel ?? []).map(
+                    (item, index) => (
+                      <tr
+                        className="border-t"
+                        key={`${item.week}-${item.city}-${item.sourceCategory}-${index}`}
+                      >
+                        <td className="p-2">{item.week}</td>
+                        <td className="p-2">{item.city}</td>
+                        <td className="p-2">{item.sourceCategory}</td>
+                        <td className="p-2">{item.channel}</td>
+                        <td className="p-2">{item.count}</td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
               </table>
             </div>
           </section>
           <section className="rounded-md border bg-white p-5">
-            <h2 className="font-display text-xl font-bold">Agency response time · internal</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Provisional signal: any lead unanswered for over 24h, average above 24h, or fewer than half responded within 24h. Confirm thresholds with Uncle Ricky.</p>
-            <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead><tr><th className="p-2">Agency</th><th className="p-2">City</th><th className="p-2">Leads</th><th className="p-2">Responded</th><th className="p-2">Average</th><th className="p-2">Within 24h</th><th className="p-2">Unanswered &gt;24h</th><th className="p-2">Review</th></tr></thead><tbody>{(data.responseByAgency ?? []).map((item) => <tr className="border-t" key={item.agencyId}><td className="p-2">{item.agency}</td><td className="p-2">{item.city}</td><td className="p-2">{item.total}</td><td className="p-2">{item.responded}</td><td className="p-2">{item.averageMinutes === null ? "—" : `${(item.averageMinutes / 60).toFixed(1)}h`}</td><td className="p-2">{item.within24HoursPercent === null ? "—" : `${item.within24HoursPercent.toFixed(0)}%`}</td><td className="p-2">{item.overdueUnresponded}</td><td className="p-2">{(data.slowResponseAgencies ?? []).some((slow) => slow.agencyId === item.agencyId) ? "Review" : "—"}</td></tr>)}</tbody></table></div>
+            <h2 className="font-display text-xl font-bold">
+              Agency response time · internal
+            </h2>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Provisional signal: any lead unanswered for over 24h, average
+              above 24h, or fewer than half responded within 24h. Confirm
+              thresholds with Uncle Ricky.
+            </p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[700px] text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-2">Agency</th>
+                    <th className="p-2">City</th>
+                    <th className="p-2">Leads</th>
+                    <th className="p-2">Responded</th>
+                    <th className="p-2">Average</th>
+                    <th className="p-2">Within 24h</th>
+                    <th className="p-2">Unanswered &gt;24h</th>
+                    <th className="p-2">Review</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.responseByAgency ?? []).map((item) => (
+                    <tr className="border-t" key={item.agencyId}>
+                      <td className="p-2">{item.agency}</td>
+                      <td className="p-2">{item.city}</td>
+                      <td className="p-2">{item.total}</td>
+                      <td className="p-2">{item.responded}</td>
+                      <td className="p-2">
+                        {item.averageMinutes === null
+                          ? "—"
+                          : `${(item.averageMinutes / 60).toFixed(1)}h`}
+                      </td>
+                      <td className="p-2">
+                        {item.within24HoursPercent === null
+                          ? "—"
+                          : `${item.within24HoursPercent.toFixed(0)}%`}
+                      </td>
+                      <td className="p-2">{item.overdueUnresponded}</td>
+                      <td className="p-2">
+                        {(data.slowResponseAgencies ?? []).some(
+                          (slow) => slow.agencyId === item.agencyId,
+                        )
+                          ? "Review"
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-md border bg-white p-5">

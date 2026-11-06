@@ -15,7 +15,10 @@
 
 # next.js
 /.next/
+/.next-staging/
 /out/
+/.open-next/
+/.wrangler/
 
 # production
 /build
@@ -30,10 +33,28 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (there is a single .env; .env.example is the template)
 .env
 .env.*
 !.env.example
+!.dev.vars.example
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# display-only E2E artefacts (in-memory Prisma mock store)
+/.next-display/
+/display-e2e.log
+/display-e2e.err.log
+/dev-smoke.log
+/dev-smoke.err.log
+/test-results/
+
+# local run artefacts
+/dev.out
+/dev.err
+/build_log.txt
+/build_output.txt
+/schema.diff
+/schema.diff2
+/.tsupgrader/

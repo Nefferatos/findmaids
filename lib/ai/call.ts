@@ -3,7 +3,7 @@ import {
   type GenerateTextOptions,
   type GenerateTextResult,
 } from "@/lib/ai/provider";
-import { estimateCostPhp } from "@/lib/ai/budget";
+import { estimateCostSgd } from "@/lib/ai/budget";
 import { maskPii } from "@/lib/ai/guardrails";
 import { logAiCall } from "@/lib/ai/logger";
 
@@ -44,7 +44,7 @@ export async function generateLoggedText(
       inputTokens,
       outputTokens,
       latencyMs: Date.now() - started,
-      costEstimate: estimateCostPhp(inputTokens, outputTokens),
+      costEstimate: estimateCostSgd(inputTokens, outputTokens),
       status: result ? "success" : "error",
       errorMessage,
       userId: input.userId,
@@ -93,7 +93,7 @@ export async function* streamLoggedText(
       inputTokens: 0,
       outputTokens: estimatedTokens,
       latencyMs: Date.now() - started,
-      costEstimate: estimateCostPhp(0, estimatedTokens),
+      costEstimate: estimateCostSgd(0, estimatedTokens),
       status,
       errorMessage,
       userId: input.userId,

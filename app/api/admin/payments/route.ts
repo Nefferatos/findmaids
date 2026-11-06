@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeAdminApi } from "@/lib/admin-auth";
 import { requestIp, writeAdminAudit } from "@/lib/admin-audit";
+import { AdPlacementType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { PayMongoProvider } from "@/lib/payments/provider";
-import { processPaymentWebhook } from "@/lib/payments/service";
 import { calculateRefund, classifyBankPayment } from "@/lib/admin-workflows";
 import { readPrivateObject } from "@/lib/storage";
 
@@ -54,7 +53,6 @@ export async function GET(request: Request) {
     );
   const params = new URL(request.url).searchParams;
   const status = params.get("status");
-  const provider = params.get("provider");
   const agencyId = params.get("agencyId");
   const from = params.get("from");
   const to = params.get("to");
@@ -81,7 +79,6 @@ export async function GET(request: Request) {
               | "EXPIRED",
           }
         : {}),
-      ...(provider ? { provider } : {}),
       ...(agencyId ? { subscription: { agencyId } } : {}),
       ...(from || to
         ? {
@@ -108,9 +105,9 @@ export async function GET(request: Request) {
   if (proofId) {
     const payment = await prisma.payment.findUnique({
       where: { id: proofId },
-      select: { proofUrl: true, provider: true },
+      select: { proofUrl: true },
     });
-    if (!payment || payment.provider !== "MANUAL" || !payment.proofUrl)
+    if (!payment || !payment.proofUrl)
       return NextResponse.json({ error: "Proof not found." }, { status: 404 });
     try {
       const data = await readPrivateObject(payment.proofUrl);
@@ -139,17 +136,16 @@ export async function GET(request: Request) {
     const q = (value: unknown) =>
       `"${String(value ?? "").replaceAll('"', '""')}"`;
     const csv = [
-      "invoice,agency,plan,provider,status,amount,currency,reference,createdAt",
+      "invoice,agency,plan,status,amount,currency,reference,createdAt",
       ...payments.map((p) =>
         [
           p.invoiceNumber,
           p.subscription.agency.name,
           p.subscription.plan.name,
-          p.provider,
           p.status,
           p.amount,
           p.currency,
-          p.referenceCode ?? p.bankReference ?? p.providerRef,
+          p.referenceCode ?? p.bankReference,
           p.createdAt.toISOString(),
         ]
           .map(q)
@@ -192,16 +188,12 @@ export async function POST(request: Request) {
     receivedAmount: payment.receivedAmount
       ? Number(payment.receivedAmount)
       : null,
-    provider: payment.provider,
     referenceCode: payment.referenceCode,
     bankReference: payment.bankReference,
   };
   const ipAddress = requestIp(request);
   if (parsed.data.action === "mark_paid" || parsed.data.action === "partial") {
-    if (
-      payment.provider !== "MANUAL" ||
-      !["PENDING_BANK_TRANSFER", "PARTIAL"].includes(payment.status)
-    )
+    if (!["PENDING_BANK_TRANSFER", "PARTIAL"].includes(payment.status))
       return NextResponse.json(
         { error: "Only pending manual bank transfers can be reconciled." },
         { status: 409 },
@@ -308,15 +300,67 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({ status: "PARTIAL" });
     }
-    const result = await processPaymentWebhook(
-      {
-        eventId: `manual-${payment.id}-${parsed.data.bankReference}`,
-        type: "manual.payment.paid",
-        paymentReference: payment.id,
-        status: "paid",
+    const paidAt = new Date();
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "PAID",
+        receivedAmount: parsed.data.receivedAmount,
+        bankReference: parsed.data.bankReference,
+        receivedAt: parsed.data.receivedAt,
+        reconciledById: access.user.id,
+        reconciliationNote: parsed.data.note,
+        paidAt,
       },
-      "MANUAL",
-    );
+    });
+    const endDate = payment.prorated && payment.subscription.endDate
+      ? payment.subscription.endDate
+      : new Date(paidAt);
+    if (!(payment.prorated && payment.subscription.endDate)) {
+      if (payment.billingPeriod === "YEARLY")
+        endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
+      else endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+    }
+    await prisma.subscription.updateMany({
+      where: {
+        agencyId: payment.subscription.agencyId,
+        status: { in: ["ACTIVE", "PAST_DUE"] },
+        id: { not: payment.subscriptionId },
+      },
+      data: { status: "EXPIRED" },
+    });
+    await prisma.subscription.update({
+      where: { id: payment.subscription.id },
+      data: {
+        status: "ACTIVE",
+        startDate: paidAt,
+        endDate,
+        graceEndsAt: null,
+      },
+    });
+    await prisma.adPlacement.updateMany({
+      where: { agencyId: payment.subscription.agencyId, status: "ACTIVE" },
+      data: { status: "COMPLETED" },
+    });
+    const placements = payment.subscription.plan.name
+      .toLowerCase()
+      .includes("platinum")
+      ? [AdPlacementType.FEATURED, AdPlacementType.HOMEPAGE, AdPlacementType.CATEGORY_TOP]
+      : Array.from(
+          { length: payment.subscription.plan.featuredSlots },
+          () => AdPlacementType.FEATURED,
+        );
+    for (const type of placements) {
+      await prisma.adPlacement.create({
+        data: {
+          agencyId: payment.subscription.agencyId,
+          type,
+          startDate: paidAt,
+          endDate,
+          status: "ACTIVE",
+        },
+      });
+    }
     await prisma.auditLog.create({
       data: {
         userId: access.user.id,
@@ -334,15 +378,12 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json({
-      status: result.paid ? "PAID" : "DUPLICATE",
-      duplicate: result.duplicate,
+      status: "PAID",
+      duplicate: false,
     });
   }
   if (parsed.data.action === "reject" || parsed.data.action === "expire") {
-    if (
-      payment.provider !== "MANUAL" ||
-      !["PENDING_BANK_TRANSFER", "PARTIAL"].includes(payment.status)
-    )
+    if (!["PENDING_BANK_TRANSFER", "PARTIAL"].includes(payment.status))
       return NextResponse.json(
         { error: "Only pending manual transfers may be rejected or expired." },
         { status: 409 },
@@ -394,20 +435,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid refund." },
       { status: 400 },
-    );
-  }
-  if (payment.provider === "PAYMONGO") {
-    if (!payment.providerRef || payment.providerRef === payment.checkoutRef)
-      return NextResponse.json(
-        {
-          error:
-            "Verified PayMongo payment transaction ID is not available; do not issue an automatic refund yet.",
-        },
-        { status: 409 },
-      );
-    await new PayMongoProvider().refund(
-      payment.providerRef,
-      parsed.data.amount,
     );
   }
   const refundStatus = refund.fullyRefunded ? "REFUNDED" : "PAID";
@@ -467,9 +494,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid payment ID." }, { status: 400 });
   const payment = await prisma.payment.findUnique({
     where: { id: parsed.data.paymentId },
-    select: { id: true, proofUrl: true, provider: true, status: true },
+    select: { id: true, proofUrl: true, status: true },
   });
-  if (!payment || payment.provider !== "MANUAL" || !payment.proofUrl)
+  if (!payment || !payment.proofUrl)
     return NextResponse.json({ error: "Proof not found." }, { status: 404 });
   try {
     const data = await readPrivateObject(payment.proofUrl);

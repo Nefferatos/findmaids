@@ -1,8 +1,8 @@
 const patterns = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
   /\b(?:\+?63|0)\s?9\d{2}[\s-]?\d{3}[\s-]?\d{4}\b/g,
-  /\b(?:\+?\d[\d\s().-]{7,}\d)\b/g,
-  /\b(?:passport|national id|government id|sss|tin|philhealth|pag-ibig)\s*(?:no\.?|number|#)?\s*[:#-]?\s*[A-Z0-9-]{6,20}\b/gi,
+  /(?<!\w)\+?\d[\d\s().-]{7,}\d(?!\w)/g,
+  /\b(?:passport|national id|government id|nric|fin|sss|tin|philhealth|pag-ibig)\s*(?:no\.?|number|#)?\s*[:#-]?\s*[A-Z0-9-]{6,20}\b/gi,
   /\b(?:card|account)\s*(?:no\.?|number|#)?\s*[:#-]?\s*\d[\d -]{11,18}\b/gi,
 ];
 

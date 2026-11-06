@@ -6,8 +6,6 @@ import {
   transitionSubscription,
 } from "@/lib/payments/domain";
 import { agencyScopedWhere } from "@/lib/tenant";
-import { MockProvider } from "@/lib/payments/provider";
-import { processWebhookIdempotently } from "@/lib/payments/service";
 
 describe("payment domain", () => {
   it("allows valid subscription transitions and rejects invalid ones", () => {
@@ -50,45 +48,5 @@ describe("payment domain", () => {
         agencyId: "agency-b",
       }),
     ).toEqual({ agencyId: "agency-a", id: "lead-from-b" });
-  });
-
-  it("mock checkout and signed event contract are deterministic for tests", async () => {
-    const provider = new MockProvider();
-    await expect(
-      provider.createCheckout({
-        paymentId: "payment-1",
-        amountPhp: 999,
-        description: "Gold",
-        customerEmail: "agency@example.test",
-        successUrl: "https://local.test/success",
-        cancelUrl: "https://local.test/cancel",
-      }),
-    ).resolves.toMatchObject({
-      checkoutId: "mock-payment-1",
-      checkoutUrl: expect.stringContaining("mockPayment=payment-1"),
-    });
-    process.env.PAYMENT_WEBHOOK_SECRET = "mock-secret";
-    const event = {
-      eventId: "event-1",
-      type: "payment.paid",
-      paymentReference: "payment-1",
-      status: "paid" as const,
-    };
-    expect(
-      provider.verifyWebhook(JSON.stringify(event), "mock-secret"),
-    ).toEqual(event);
-    expect(() =>
-      provider.verifyWebhook(JSON.stringify(event), "bad-secret"),
-    ).toThrow("Invalid mock webhook signature");
-  });
-
-  it("does not process a webhook event ID twice", () => {
-    const ids = new Set<string>();
-    let count = 0;
-    expect(processWebhookIdempotently(ids, "event-a", () => ++count)).toBe(1);
-    expect(
-      processWebhookIdempotently(ids, "event-a", () => ++count),
-    ).toBeNull();
-    expect(count).toBe(1);
   });
 });

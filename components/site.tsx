@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, MapPin, Star } from "lucide-react";
 import { PlacementImpression, TrackedLink } from "@/components/profile-actions";
+import { ContactAgencyTab } from "@/components/contact-agency-tab";
+import { SiteHeader, TabNav } from "@/components/site-navigation";
 
 export function Container({
   children,
@@ -43,47 +45,9 @@ export function SectionHeading({
   );
 }
 
-export function Header() {
+export function SiteFooter() {
   return (
-    <header className="bg-background/95 border-b">
-      <Container className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-2">
-        <Link
-          href="/"
-          aria-label="FindMaids home"
-          className="font-display text-primary text-2xl font-bold"
-        >
-          Find<span className="text-foreground">Maids</span>
-        </Link>
-        <nav
-          aria-label="Main navigation"
-          className="order-3 flex w-full items-center justify-center gap-6 border-t py-2 text-sm font-semibold md:order-none md:w-auto md:border-0 md:py-0"
-        >
-          <Link href="/agencies">Find an agency</Link>
-          <Link href="/guides">Guides</Link>
-          <Link href="/about">About</Link>
-        </nav>
-        <div className="flex items-center gap-1">
-          <Link
-            href="/login"
-            className="hover:bg-muted min-h-10 rounded-md px-3 py-2 text-sm font-semibold"
-          >
-            Login
-          </Link>
-          <Link
-            href="/advertise"
-            className="bg-primary text-primary-foreground min-h-10 rounded-md px-3 py-2 text-sm font-semibold hover:brightness-90"
-          >
-            Advertise With Us
-          </Link>
-        </div>
-      </Container>
-    </header>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer className="mt-16 border-t bg-[#eef1e8] py-10">
+    <footer className="site-footer border-t py-10">
       <Container>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -95,7 +59,7 @@ export function Footer() {
             </Link>
             <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-6">
               A directory connecting families with independent domestic staffing
-              agencies in the Philippines.
+              agencies based in Singapore and serving local or overseas needs.
             </p>
           </div>
           <div>
@@ -159,11 +123,13 @@ export function Footer() {
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <Header />
+    <div className="public-site">
+      <SiteHeader />
+      <TabNav />
       <main className="min-h-[65vh]">{children}</main>
-      <Footer />
-    </>
+      <SiteFooter />
+      <ContactAgencyTab />
+    </div>
   );
 }
 
@@ -175,13 +141,13 @@ export function Badge({
   tone?: "green" | "yellow" | "neutral";
 }) {
   const styles = {
-    green: "bg-[#dceee4] text-[#15583d]",
-    yellow: "bg-[#fff1bf] text-[#674d00]",
+    green: "site-badge-green",
+    yellow: "site-badge-yellow",
     neutral: "bg-muted text-foreground",
   };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-bold ${styles[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${styles[tone]}`}
     >
       {children}
     </span>
@@ -222,17 +188,16 @@ export type AgencyCardData = {
   logoUrl?: string | null;
   verifiedBadge: boolean;
   sponsored?: boolean;
-  homepageFeatured?: boolean;
   rating?: number;
   reviewCount?: number;
 };
 
 export function AgencyCard({ agency }: { agency: AgencyCardData }) {
   return (
-    <article className="flex h-full flex-col rounded-md border bg-white p-5 shadow-sm">
+    <article className="site-agency-card flex h-full flex-col rounded-xl border bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md sm:p-6">
       {agency.sponsored && <PlacementImpression agencyIds={[agency.id]} />}
       <div className="mb-4 flex flex-wrap gap-2">
-        {agency.sponsored && <Badge tone="yellow">Featured / Sponsored</Badge>}
+        {agency.sponsored && <Badge tone="yellow">Featured listing</Badge>}
         {agency.verifiedBadge && (
           <Badge>
             <Check aria-hidden="true" className="size-3.5" />
@@ -241,7 +206,7 @@ export function AgencyCard({ agency }: { agency: AgencyCardData }) {
         )}
       </div>
       <div className="flex items-start gap-3">
-        <div className="bg-muted text-primary relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-md text-lg font-bold">
+        <div className="bg-muted text-primary relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl text-lg font-bold">
           {agency.logoUrl ? (
             <Image
               src={agency.logoUrl}
@@ -256,7 +221,7 @@ export function AgencyCard({ agency }: { agency: AgencyCardData }) {
           )}
         </div>
         <div>
-          <h3 className="font-display text-xl font-bold">
+          <h3 className="font-display text-xl leading-tight font-bold">
             {agency.sponsored ? (
               <TrackedLink
                 agencyId={agency.id}
@@ -285,10 +250,11 @@ export function AgencyCard({ agency }: { agency: AgencyCardData }) {
         {agency.description}
       </p>
       <div className="mt-4 flex items-center justify-between border-t pt-4">
-        <RatingStars
-          rating={agency.rating ?? 0}
-          count={agency.reviewCount ?? 0}
-        />
+        {agency.reviewCount ? (
+          <RatingStars rating={agency.rating ?? 0} count={agency.reviewCount} />
+        ) : (
+          <span className="text-muted-foreground text-xs">No reviews yet</span>
+        )}
         <Link
           href={`/agencies/${agency.slug}`}
           className="text-primary text-sm font-bold underline-offset-4 hover:underline"

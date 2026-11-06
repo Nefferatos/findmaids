@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "findmaids",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "4fcf33197c9940d7a8d06df522252e37"
+    }
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "findmaids"
+    }
+  ],
+  // Non-secret runtime configuration (mirrors .env). Secrets are uploaded with
+  // `wrangler secret put` — see SETUP notes in .env.example.
+  "vars": {
+    "APP_ENV": "production",
+    "NODE_ENV": "production",
+    "DATABASE_SCHEMA": "findmaids",
+    "SUPABASE_URL": "https://etdbexgrsenjznxbbnbd.supabase.co",
+    "SUPABASE_MEDIA_BUCKET": "findmaids-media",
+    "SUPABASE_PRIVATE_BUCKET": "findmaids-private",
+    "AUTH_TRUST_HOST": "true",
+    "NEXT_PUBLIC_GOOGLE_AUTH_ENABLED": "false",
+    "BUSINESS_COUNTRY": "SG",
+    "MANUAL_BANK_TRANSFER_ENABLED": "false",
+    "LEAD_CAP_MODE": "DELIVER_ALL",
+    "DATA_RETENTION_DAYS": "365",
+    "FOUNDING_PERIOD_EMAILS_ENABLED": "false",
+    "AI_PROVIDER": "mock",
+    "AI_MODEL": "mock",
+    "PAYMENT_PROVIDER": "mock",
+    "EMAIL_DELIVERY_DISABLED": "true",
+    "LOG_LEVEL": "info"
+  }
+}

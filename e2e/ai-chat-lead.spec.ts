@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./prisma";
 import { createHash } from "node:crypto";
 
-const prisma = new PrismaClient();
 const slug = process.env.E2E_AGENCY_SLUG;
 const agencyEmail = process.env.E2E_AGENCY_EMAIL;
 const agencyPassword = process.env.E2E_AGENCY_PASSWORD;
@@ -91,15 +90,15 @@ test("visitor chat to consented enquiry to agency-approved reply", async ({
     });
     if (await allowAnalytics.isVisible()) await allowAnalytics.click();
     await page.getByRole("button", { name: /assistant/i }).click();
-    await page.getByLabel(/message/i).fill(`I need a nanny in ${agency.city}`);
+    await page.getByRole("textbox", { name: "Message" }).fill(`I need a nanny in ${agency.city}`);
     await page.getByRole("button", { name: /send/i }).click();
-    await page.getByRole("button", { name: /enquire/i }).click();
-    await page.getByLabel(/agency/i).selectOption(agency.id);
-    await page.getByLabel(/name/i).fill("E2E Visitor");
-    await page.getByLabel(/email/i).fill(email);
+    await page.getByRole("button", { name: /share contact details/i }).click();
+    await page.getByLabel("Agency", { exact: true }).selectOption(agency.id);
+    await page.getByLabel("Your name", { exact: true }).fill("E2E Visitor");
+    await page.getByLabel("Your email", { exact: true }).fill(email);
     await page
       .getByLabel(/enquiry message/i)
-      .fill("Please contact me about nanny services and budget PHP 12000.");
+      .fill("Please contact me about nanny services and budget SGD 1200.");
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: /send enquiry/i }).click();
     await expect(

@@ -23,6 +23,6 @@ Chat stores only masked message content and a hashed IP. Continuation uses an Ht
 
 ## Reviewing logs and controls
 
-Use Admin > AI Control to disable AI globally immediately, inspect provider status, call cost/tokens, and review pre-sorted moderation candidates. Call logs should not contain raw prompts or outputs. The `AiCallLog.errorMessage` field is truncated and should contain provider errors only, never request bodies. Keep `AI_MONTHLY_BUDGET_PHP`, agency plan caps, and rate limits configured. Verify alerting for cap exhaustion and repeated provider failures.
+Use Admin > AI Control to disable AI globally immediately, inspect provider status, call cost/tokens, and review pre-sorted moderation candidates. Call logs should not contain raw prompts or outputs. The `AiCallLog.errorMessage` field is truncated and should contain provider errors only, never request bodies. Keep `AI_MONTHLY_BUDGET_SGD`, agency plan caps, and rate limits configured. Verify alerting for cap exhaustion and repeated provider failures.
 
 Before enabling any agency-generated outbound automation, obtain explicit product and policy approval. This release keeps outbound sending disabled.

@@ -15,7 +15,7 @@ const content: Record<
     eyebrow: "About",
     title: "A directory built for clearer comparisons",
     intro:
-      "FindMaids helps families discover independent domestic staffing agencies in the Philippines.",
+      "FindMaids helps families discover independent domestic staffing agencies based in Singapore, including agencies that describe overseas service locations.",
     sections: [
       {
         title: "What FindMaids does",
@@ -47,7 +47,7 @@ const content: Record<
     eyebrow: "Policies",
     title: "Terms of use",
     intro:
-      "Draft terms for the FindMaids directory and advertising platform. Have these terms reviewed by qualified Philippine counsel before launch.",
+      "General draft terms for the FindMaids directory and advertising platform. These are not legal advice and must be reviewed by qualified Singapore counsel before launch.",
     sections: [
       {
         title: "Directory role",
@@ -67,7 +67,7 @@ const content: Record<
     eyebrow: "Policies",
     title: "Privacy notice",
     intro:
-      "Draft privacy notice. Confirm the lawful basis, retention periods, data-subject process, and contact details with a Philippine privacy professional before launch.",
+      "General draft privacy notice. Confirm applicable requirements, lawful basis, retention periods, data-subject processes, and contact details with qualified Singapore privacy counsel before launch.",
     sections: [
       {
         title: "Information collected",
@@ -87,7 +87,7 @@ const content: Record<
       },
       {
         title: "Privacy contact and regulatory details",
-        body: "Data Protection Officer: [OWNER TO COMPLETE]. DPO email and mailing address: [OWNER TO COMPLETE]. NPC registration status/reference: [OWNER TO COMPLETE after confirming applicability]. This draft is not legal advice and must be reviewed and approved by qualified Philippine counsel before publication.",
+        body: "Privacy contact and any required officer details: [OWNER TO COMPLETE]. Applicable Singapore privacy obligations and regulator-facing details must be confirmed by qualified Singapore counsel before publication. This draft is not legal advice.",
       },
     ],
   },

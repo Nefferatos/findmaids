@@ -104,7 +104,7 @@ async function main() {
         update: { startDate: inDays(-87), endDate: inDays(3), status: "ACTIVE", foundingGrant: true },
       });
     if (spec.key === "c") {
-      const pay = { subscriptionId: subId, amount: 999, currency: "SGD", status: "PAID" as const, provider: "MOCK", providerRef: "mock-staging-c", paidAt: inDays(-5), billingPeriod: "MONTHLY" as const };
+      const pay = { subscriptionId: subId, amount: 999, currency: "SGD", status: "PAID" as const, paidAt: inDays(-5), billingPeriod: "MONTHLY" as const };
       await prisma.payment.upsert({ where: { invoiceNumber: "TEST-INV-0001" }, create: { invoiceNumber: "TEST-INV-0001", ...pay }, update: pay });
     }
     const prospects = [

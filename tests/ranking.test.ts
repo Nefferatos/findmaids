@@ -44,14 +44,30 @@ describe("directory ranking and filters", () => {
     });
     expect(buildAgencyWhere(filters)).toMatchObject({
       status: "APPROVED",
-      city: { contains: "Cebu", mode: "insensitive" },
+      OR: [
+        { city: { contains: "Cebu", mode: "insensitive" } },
+        { province: { contains: "Cebu", mode: "insensitive" } },
+        { serviceLocations: { has: "Cebu" } },
+      ],
       services: { hasEvery: ["Full-time", "Placement"] },
       verifiedBadge: true,
     });
+
     expect(filters.page).toBe(2);
     expect(parseDirectoryFilters({ page: "-9", rating: "7" })).toMatchObject({
       page: 1,
       rating: undefined,
+    });
+  });
+
+  it("supports searching agencies by their explicitly listed service locations", () => {
+    const filters = parseDirectoryFilters({ city: "Malaysia" });
+    expect(buildAgencyWhere(filters)).toMatchObject({
+      OR: [
+        { city: { contains: "Malaysia", mode: "insensitive" } },
+        { province: { contains: "Malaysia", mode: "insensitive" } },
+        { serviceLocations: { has: "Malaysia" } },
+      ],
     });
   });
 
@@ -80,6 +96,36 @@ describe("directory ranking and filters", () => {
         email: "bad",
         message: "Hello",
         website: "bot",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("allows explicit enquiries to all approved agencies only", () => {
+    const enquiry = {
+      name: "Jamie Cruz",
+      email: "jamie@example.com",
+      message: "Please contact me.",
+      consentGiven: true,
+      budget: "",
+      website: "",
+    };
+    expect(
+      enquirySubmissionSchema.safeParse({
+        ...enquiry,
+        allAgencies: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      enquirySubmissionSchema.safeParse({
+        ...enquiry,
+        agencyId: "agency-1",
+        allAgencies: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      enquirySubmissionSchema.safeParse({
+        ...enquiry,
+        allAgencies: false,
       }).success,
     ).toBe(false);
   });

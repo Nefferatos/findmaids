@@ -23,6 +23,7 @@ export function AgencyProfileEditor({
     facebook: string | null;
     yearEstablished: number | null;
     services: string[];
+    serviceLocations: string[];
     nationalitiesServed: string[];
     languages: string[];
     logoUrl: string | null;
@@ -42,6 +43,7 @@ export function AgencyProfileEditor({
   const [data, setData] = useState({
     ...agency,
     services: agency.services.join(", "),
+    serviceLocations: agency.serviceLocations.join(", "),
     nationalitiesServed: agency.nationalitiesServed.join(", "),
     languages: agency.languages.join(", "),
   });
@@ -74,6 +76,10 @@ export function AgencyProfileEditor({
       body: JSON.stringify({
         ...data,
         services: data.services
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean),
+        serviceLocations: data.serviceLocations
           .split(",")
           .map((value) => value.trim())
           .filter(Boolean),
@@ -140,6 +146,7 @@ export function AgencyProfileEditor({
           "logoUrl",
           "bannerUrl",
           "services",
+          "serviceLocations",
           "nationalitiesServed",
           "languages",
         ] as const
@@ -274,35 +281,10 @@ export function CheckoutForm({
 }) {
   const [planId, setPlanId] = useState(initialPlanId ?? plans[0]?.id ?? "");
   const [period, setPeriod] = useState("MONTHLY");
-  const [method, setMethod] = useState<"PROVIDER" | "BANK">("PROVIDER");
   const [message, setMessage] = useState("");
-  const [bankPayment, setBankPayment] = useState<{
-    paymentId: string;
-    referenceCode: string;
-    amountPhp: number;
-    expiresAt: string;
-    bankDetails: unknown;
-  } | null>(null);
   const selected = plans.find((plan) => plan.id === planId);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (method === "BANK") {
-      const response = await fetch("/api/agency/bank-transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingPeriod: period }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        setMessage(result.error);
-        return;
-      }
-      setBankPayment(result);
-      setMessage(
-        "Bank transfer created. Send the exact amount and include the reference code.",
-      );
-      return;
-    }
     const response = await fetch("/api/agency/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -317,7 +299,11 @@ export function CheckoutForm({
       setMessage(result.message);
       return;
     }
-    window.location.assign(result.checkoutUrl);
+    if (result.checkoutUrl) {
+      window.location.assign(result.checkoutUrl);
+      return;
+    }
+    setMessage(result.message ?? "Payment pending manual bank transfer.");
   }
   const amount = selected
     ? period === "YEARLY"
@@ -366,33 +352,13 @@ export function CheckoutForm({
           </label>
         </div>
       </fieldset>
-      <fieldset>
-        <legend className="text-sm font-semibold">Payment method</legend>
-        <div className="mt-2 flex flex-wrap gap-4">
-          <label className="flex min-h-10 items-center gap-2">
-            <input
-              type="radio"
-              checked={method === "PROVIDER"}
-              onChange={() => setMethod("PROVIDER")}
-            />
-            Card or wallet
-          </label>
-          <label className="flex min-h-10 items-center gap-2">
-            <input
-              type="radio"
-              checked={method === "BANK"}
-              onChange={() => setMethod("BANK")}
-            />
-            Bank transfer
-          </label>
-        </div>
-      </fieldset>
+      <p className="text-sm font-semibold">Manual plan checkout</p>
       <p className="rounded bg-[#f7f7f0] p-3 text-sm">
         Summary:{" "}
         <strong>
-          ₱{amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+          S${amount.toLocaleString("en-SG", { minimumFractionDigits: 2 })}
         </strong>{" "}
-        PHP {period.toLowerCase()}
+        S$ {period.toLowerCase()}
         {selected && (
           <span className="text-muted-foreground mt-1 block text-xs">
             {Array.isArray(selected.features)
@@ -412,73 +378,12 @@ export function CheckoutForm({
         type="submit"
         className="bg-primary min-h-11 rounded-md px-5 font-bold text-white"
       >
-        {method === "BANK"
-          ? "Create bank transfer"
-          : "Continue to secure checkout"}
+        Confirm plan
       </button>
       <p className="text-muted-foreground text-xs">
-        Card and wallet details are handled by the payment provider. FindMaids
-        does not store card numbers.
+        Plans are held pending manual bank transfer; no card details are
+        collected.
       </p>
-      {bankPayment && (
-        <section
-          className="space-y-3 rounded-md border border-[#d7ddc5] bg-[#f7f7f0] p-4"
-          aria-live="polite"
-        >
-          <h2 className="font-display text-lg font-bold">
-            Transfer instructions
-          </h2>
-          <p>
-            Reference code:{" "}
-            <strong className="select-all">{bankPayment.referenceCode}</strong>
-          </p>
-          <p>
-            Exact amount:{" "}
-            <strong>
-              PHP{" "}
-              {bankPayment.amountPhp.toLocaleString("en-PH", {
-                minimumFractionDigits: 2,
-              })}
-            </strong>
-          </p>
-          <p className="text-sm">
-            Expires {new Date(bankPayment.expiresAt).toLocaleString("en-PH")}
-          </p>
-          <pre className="overflow-x-auto text-sm whitespace-pre-wrap">
-            {JSON.stringify(
-              bankPayment.bankDetails ??
-                "Bank account details are not configured yet. Contact support before transferring.",
-              null,
-              2,
-            )}
-          </pre>
-          <label className="block text-sm font-semibold">
-            Upload transfer proof (JPG, PNG, WebP, PDF; max 8 MB)
-            <input
-              className="mt-2 block w-full text-sm"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                const form = new FormData();
-                form.set("paymentId", bankPayment.paymentId);
-                form.set("file", file);
-                const response = await fetch(
-                  "/api/agency/bank-transfer/proof",
-                  { method: "POST", body: form },
-                );
-                const result = await response.json();
-                setMessage(
-                  response.ok
-                    ? "Transfer proof uploaded securely."
-                    : result.error,
-                );
-              }}
-            />
-          </label>
-        </section>
-      )}
     </form>
   );
 }

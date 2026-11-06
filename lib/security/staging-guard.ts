@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
 type Env = Record<string, string | undefined>;
-export type GuardResult = { ok: true } | { ok: false; reason: string };
+export type GuardResult = { ok: boolean; reason?: string };
 
 const allowedEnvs = new Set(["staging", "test"]);
 const forbiddenRefs = new Set(["postgres", "localhost", "supabase", "findmaids"]);
@@ -44,7 +44,8 @@ export function checkStagingWriteGuard(env: Env = process.env): GuardResult {
 
 export function assertStagingWriteAllowed(env: Env = process.env) {
   const result = checkStagingWriteGuard(env);
-  if (!result.ok) throw new StagingGuardError(result.reason);
+  if (!result.ok)
+    throw new StagingGuardError(result.reason ?? "unknown reason");
 }
 
 // Values from the file replace inherited ones so a shell pointing at another database cannot leak in.

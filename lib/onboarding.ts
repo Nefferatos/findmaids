@@ -24,6 +24,10 @@ export const onboardingDraftSchema = z.object({
   website: z.string().trim().max(255).optional(),
   facebook: z.string().trim().max(255).optional(),
   services: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  serviceLocations: z
+    .array(z.string().trim().min(1).max(80))
+    .max(20)
+    .optional(),
   nationalitiesServed: z
     .array(z.string().trim().min(1).max(80))
     .max(20)

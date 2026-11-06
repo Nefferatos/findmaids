@@ -3,11 +3,9 @@ import {
   EnquirySource,
   EnquiryStatus,
   FeatureFlagScope,
-  PrismaClient,
   ReviewStatus,
 } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma-script";
 
 if (
   process.env.NODE_ENV === "production" ||
@@ -59,59 +57,47 @@ const plans = [
 
 const agencies = [
   [
-    "Harborlight Home Partners",
-    "harborlight-home-partners",
-    "Makati",
-    "Metro Manila",
+    "Harbourlight Home Support",
+    "harbourlight-home-support",
+    "Singapore",
+    "Central Region",
+  ],
+  ["Eastside Family Care", "eastside-family-care", "Singapore", "East Region"],
+  [
+    "Westhaven Home Services",
+    "westhaven-home-services",
+    "Singapore",
+    "West Region",
   ],
   [
-    "Bayanihan Care Network",
-    "bayanihan-care-network",
-    "Quezon City",
-    "Metro Manila",
+    "Northpoint Family Support",
+    "northpoint-family-support",
+    "Singapore",
+    "North Region",
   ],
   [
-    "Greenfield Household Services",
-    "greenfield-household-services",
-    "Pasig",
-    "Metro Manila",
+    "Northeast Home Partners",
+    "northeast-home-partners",
+    "Singapore",
+    "North-East Region",
   ],
   [
-    "Northstar Domestic Staffing",
-    "northstar-domestic-staffing",
-    "Manila",
-    "Metro Manila",
-  ],
-  ["Cebu Kindred Home Agency", "cebu-kindred-home-agency", "Cebu City", "Cebu"],
-  [
-    "Island Welcome Household Care",
-    "island-welcome-household-care",
-    "Mandaue",
-    "Cebu",
+    "Central Harbour Care",
+    "central-harbour-care",
+    "Singapore",
+    "Central Region",
   ],
   [
-    "Sugbo Family Support Services",
-    "sugbo-family-support-services",
-    "Lapu-Lapu",
-    "Cebu",
+    "Southern Cross Home Support",
+    "southern-cross-home-support",
+    "Singapore",
+    "South Region",
   ],
   [
-    "Davao Hearthside Placement",
-    "davao-hearthside-placement",
-    "Davao City",
-    "Davao del Sur",
-  ],
-  [
-    "Durian City Care Partners",
-    "durian-city-care-partners",
-    "Davao City",
-    "Davao del Sur",
-  ],
-  [
-    "Southern Cross Home Staffing",
-    "southern-cross-home-staffing",
-    "Tagum",
-    "Davao del Norte",
+    "Overseas Family Care Network",
+    "overseas-family-care-network",
+    "Singapore",
+    "Overseas service locations",
   ],
 ] as const;
 
@@ -134,18 +120,22 @@ async function main() {
         create: {
           name,
           slug,
-          description: `${name} is a sample household staffing agency profile for local development.`,
+          description: `${name} is a fictional sample profile for staging and local development only. Contact details and services are illustrative.`,
           address: `${100 + index} Sample Street`,
           city,
           province,
-          phone: `+63 917 555 ${String(1000 + index).slice(-4)}`,
-          whatsapp: `+63 917 555 ${String(1000 + index).slice(-4)}`,
+          phone: "+65 0000 0000",
+          whatsapp: "+65 0000 0000",
           email: `contact${index + 1}@example.test`,
           services: ["Full-time placement", "Part-time placement"],
-          nationalitiesServed: ["Filipino"],
-          languages: ["English", "Filipino"],
+          serviceLocations: [
+            "Singapore",
+            ...(index === agencies.length - 1 ? ["Malaysia"] : []),
+          ],
+          nationalitiesServed: ["Filipino", "Indonesian", "Myanmar"],
+          languages: ["English", "Mandarin", "Malay"],
           status: AgencyStatus.APPROVED,
-          verifiedBadge: index < 3,
+          verifiedBadge: false,
         },
       }),
     ),

@@ -73,7 +73,14 @@ export function LoginForm() {
       </label>
       <label className="block text-sm font-semibold">
         Authenticator code (ADMIN accounts with 2FA)
-        <input className={inputClass} name="totp" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} />
+        <input
+          className={inputClass}
+          name="totp"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+        />
       </label>
       <Status state={state} />
       <button className="bg-primary min-h-11 w-full rounded-md px-4 font-bold text-white hover:brightness-90">
@@ -307,7 +314,7 @@ export function EnquiryForm({
         <input className={inputClass} name="preferredStartDate" type="date" />
       </label>
       <label className="block text-sm font-semibold">
-        Monthly budget (PHP)
+        Monthly budget (SGD)
         <input
           className={inputClass}
           name="budget"
@@ -342,8 +349,8 @@ export function EnquiryForm({
           respond to this enquiry. I understand I can contact FindMaids to
           request access or correction.{" "}
           <strong>
-            Draft consent text; review for Data Privacy Act compliance before
-            launch.
+            Draft consent text; have it reviewed for applicable Singapore
+            privacy requirements before launch.
           </strong>
         </span>
       </label>
@@ -393,10 +400,16 @@ export function ReviewForm({ agencyId }: { agencyId: string }) {
           maxLength={100}
         />
       </label>
-        <label className="block text-sm font-semibold">
-          Email (optional)
-          <input className={inputClass} name="reviewerEmail" type="email" maxLength={254} autoComplete="email" />
-        </label>
+      <label className="block text-sm font-semibold">
+        Email (optional)
+        <input
+          className={inputClass}
+          name="reviewerEmail"
+          type="email"
+          maxLength={254}
+          autoComplete="email"
+        />
+      </label>
       <label className="block text-sm font-semibold">
         Rating
         <select className={inputClass} name="rating" required defaultValue="5">

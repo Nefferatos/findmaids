@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -39,4 +40,377 @@ body {
   font-family: var(--font-sans);
 }
 
-:focus-visible { outline: 3px solid #bb9212; outline-offset: 3px; }
+:focus-visible {
+  outline: 3px solid #bb9212;
+  outline-offset: 3px;
+}
+
+.public-site {
+  --background: #fffdf7;
+  --foreground: #17383b;
+  --primary: #087c78;
+  --primary-foreground: #ffffff;
+  --accent: #f2c64b;
+  --muted: #edf3f1;
+  --muted-foreground: #52676a;
+  --border: #d7e3df;
+  --surface: #ffffff;
+  --radius: 0.65rem;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: light;
+  font-family: "Public Sans", Arial, Helvetica, sans-serif;
+}
+
+.public-site .font-display {
+  font-family: "Bricolage Grotesque", Georgia, "Times New Roman", serif;
+}
+
+.public-site .bg-white {
+  background-color: var(--surface);
+}
+
+.public-site .site-header {
+  background: var(--surface);
+}
+
+.public-site .site-brand {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.public-site .site-brand-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: "Bricolage Grotesque", Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.public-site .site-requirements-link,
+.public-site .site-login-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.public-site .site-requirements-link {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.public-site .site-login-link {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.public-site .site-tab-nav {
+  background: var(--accent);
+  color: #233335;
+}
+
+.public-site .site-tab-link {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  border-radius: 0.4rem;
+  padding: 0 0.85rem;
+  color: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.public-site .site-tab-link:hover,
+.public-site .site-tab-link.is-active,
+.public-site .site-tab-link.is-emphasized {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.public-site .site-footer {
+  background: var(--muted);
+}
+
+.public-site .site-contact-trigger {
+  writing-mode: vertical-rl;
+  border: 1px solid var(--primary);
+  border-right: 0;
+  border-radius: 0.75rem 0 0 0.75rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 1rem 0.7rem;
+  box-shadow: 0 8px 24px rgb(18 47 48 / 18%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.public-site .site-contact-panel {
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.public-site .demo-notice {
+  border-color: #e7c86d;
+  background: #fff8df;
+  color: #473b16;
+}
+
+.public-site .demo-notice-text {
+  color: #765a0b;
+}
+
+.public-site .site-agency-card {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.public-site .site-badge-green {
+  background: #dceee4;
+  color: #15583d;
+}
+
+.public-site .site-badge-yellow {
+  background: #fff1bf;
+  color: #674d00;
+}
+
+.public-site .home-hero {
+  background:
+    radial-gradient(ellipse at 2% 5%, rgb(8 124 120 / 12%), transparent 32rem),
+    linear-gradient(
+      120deg,
+      var(--muted) 0%,
+      var(--background) 58%,
+      #fff8df 100%
+    );
+}
+
+.public-site .home-hero-orb {
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(1px);
+}
+
+.public-site .home-hero-orb-one {
+  top: -8rem;
+  right: 12%;
+  width: 20rem;
+  height: 20rem;
+  border: 1px solid rgb(8 124 120 / 12%);
+}
+
+.public-site .home-hero-orb-two {
+  right: 4%;
+  bottom: -13rem;
+  width: 27rem;
+  height: 27rem;
+  background: rgb(242 198 75 / 14%);
+}
+
+.public-site .home-hero-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgb(8 124 120 / 12%);
+}
+
+.public-site .home-hero-visual {
+  border-color: rgb(8 124 120 / 15%);
+  background:
+    radial-gradient(ellipse at 90% 10%, rgb(242 198 75 / 38%), transparent 40%),
+    linear-gradient(145deg, rgb(8 124 120 / 12%), var(--muted) 68%);
+}
+
+.public-site .home-hero-dots {
+  opacity: 0.32;
+  background-image: radial-gradient(var(--primary) 1px, transparent 1px);
+}
+
+.public-site .home-hero-card {
+  border-color: rgb(255 255 255 / 55%);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.public-site .home-quick-link {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  padding: 0.35rem 0.7rem;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.public-site .home-quick-link:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.public-site .home-guide-card,
+.public-site .home-service-card,
+.public-site .home-step-card,
+.public-site .home-agency-callout {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.public-site .home-step-card {
+  box-shadow: 0 8px 24px rgb(18 47 48 / 4%);
+}
+
+.public-site .home-step-number {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.public-site .bg-primary.text-white {
+  color: var(--primary-foreground);
+}
+
+.public-site :focus-visible {
+  outline-color: #087c78;
+}
+
+@media (prefers-color-scheme: dark) {
+  .public-site {
+    --background: #101b1c;
+    --foreground: #e8f0ed;
+    --primary: #4bc4b2;
+    --primary-foreground: #082724;
+    --accent: #e4b943;
+    --muted: #1c2a2a;
+    --muted-foreground: #b2c2bd;
+    --border: #344542;
+    --surface: #172424;
+    color-scheme: dark;
+  }
+
+  .public-site .site-tab-nav {
+    color: #1e2d2e;
+  }
+
+  .public-site .site-tab-link:hover,
+  .public-site .site-tab-link.is-active,
+  .public-site .site-tab-link.is-emphasized {
+    color: #082724;
+  }
+
+  .public-site .site-badge-green {
+    background: #204637;
+    color: #b7efd1;
+  }
+
+  .public-site .site-badge-yellow {
+    background: #514417;
+    color: #ffecad;
+  }
+
+  .public-site .demo-notice {
+    border-color: #665624;
+    background: #282416;
+    color: #f2e7c0;
+  }
+
+  .public-site .demo-notice-text {
+    color: #f0d47a;
+  }
+
+  .public-site .home-hero {
+    background:
+      radial-gradient(
+        ellipse at 2% 5%,
+        rgb(75 196 178 / 12%),
+        transparent 32rem
+      ),
+      linear-gradient(
+        120deg,
+        var(--muted) 0%,
+        var(--background) 58%,
+        #272519 100%
+      );
+  }
+
+  .public-site .home-hero-orb-one {
+    border-color: rgb(75 196 178 / 14%);
+  }
+
+  .public-site .home-hero-orb-two {
+    background: rgb(228 185 67 / 8%);
+  }
+
+  .public-site .home-hero-status-dot {
+    box-shadow: 0 0 0 3px rgb(75 196 178 / 16%);
+  }
+
+  .public-site .home-hero-visual {
+    border-color: rgb(75 196 178 / 18%);
+    background:
+      radial-gradient(
+        ellipse at 90% 10%,
+        rgb(228 185 67 / 18%),
+        transparent 40%
+      ),
+      linear-gradient(145deg, rgb(75 196 178 / 10%), var(--muted) 68%);
+  }
+
+  .public-site .home-hero-card {
+    border-color: rgb(255 255 255 / 10%);
+  }
+
+  .public-site .home-quick-link {
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+  }
+
+  .public-site .bg-primary.text-white {
+    color: var(--primary-foreground);
+  }
+}
+
+@media (max-width: 640px) {
+  .public-site .site-requirements-link {
+    padding-inline: 0.65rem;
+  }
+
+  .public-site .site-requirements-link span {
+    max-width: 6rem;
+    line-height: 1.1;
+  }
+
+  .public-site .site-contact-trigger {
+    padding: 0.8rem 0.55rem;
+    font-size: 0.72rem;
+  }
+}

@@ -10,10 +10,10 @@ import { isFeatureEnabled } from "@/lib/ai/flags";
 describe("AI foundation", () => {
   beforeEach(() => findFirst.mockReset());
 
-  it("masks email addresses and Philippine mobile numbers", () => {
-    expect(maskPii("Contact ana@example.com or 09171234567")).toBe(
-      "Contact [REDACTED] or [REDACTED]",
-    );
+  it("masks email addresses, phone numbers, and Singapore identity numbers", () => {
+    expect(
+      maskPii("Contact ana@example.com or +65 8123 4567; NRIC S1234567D"),
+    ).toBe("Contact [REDACTED] or [REDACTED]; [REDACTED]");
   });
 
   it("recognizes common prompt injection attempts", () => {

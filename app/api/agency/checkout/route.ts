@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { calculateProration } from "@/lib/payments/domain";
 import { reserveInvoiceNumber } from "@/lib/payments/invoices";
-import { getPaymentProvider } from "@/lib/payments/provider";
-import { logger } from "@/lib/logger";
 
 const schema = z.object({
   planId: z.string().min(1),
@@ -168,7 +166,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
 
-  const paymentProvider = getPaymentProvider();
   const pending = await prisma.$transaction(async (tx) => {
     const invoice = await reserveInvoiceNumber(tx);
     const subscription = await tx.subscription.create({
@@ -186,9 +183,8 @@ export async function POST(request: Request) {
       data: {
         subscriptionId: subscription.id,
         amount,
-        currency: "PHP",
+        currency: "SGD",
         status: "PENDING",
-        provider: paymentProvider.name,
         invoiceNumber: invoice,
         billingPeriod: parsed.data.billingPeriod,
         prorated,
@@ -196,67 +192,9 @@ export async function POST(request: Request) {
     });
     return { subscription, payment };
   });
-  let checkout;
-  try {
-    checkout = await paymentProvider.createCheckout({
-      paymentId: pending.payment.id,
-      amountPhp: amount,
-      description: `FindMaids ${targetPlan.name} ${parsed.data.billingPeriod.toLowerCase()} listing`,
-      customerEmail: session.user.email ?? agency.email,
-      successUrl: new URL(
-        `/agency/dashboard?view=billing&checkout=${pending.payment.id}`,
-        process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-      ).toString(),
-      cancelUrl: new URL(
-        "/agency/dashboard?view=billing&checkout=cancelled",
-        process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-      ).toString(),
-    });
-  } catch (error) {
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: pending.payment.id },
-        data: { status: "FAILED" },
-      }),
-      prisma.subscription.update({
-        where: { id: pending.subscription.id },
-        data: { status: "CANCELLED" },
-      }),
-      prisma.auditLog.create({
-        data: {
-          agencyId: agency.id,
-          action: "CHECKOUT_CREATION_FAILED",
-          entity: "Payment",
-          entityId: pending.payment.id,
-        },
-      }),
-    ]);
-    logger.error({ paymentId: pending.payment.id, errorType: error instanceof Error ? error.name : "unknown" }, "Checkout provider failed");
-    return NextResponse.json(
-      {
-        error:
-          "Secure checkout is temporarily unavailable. No payment was taken.",
-      },
-      { status: 502 },
-    );
-  }
-  await prisma.payment.update({
-    where: { id: pending.payment.id },
-    data: {
-      checkoutRef: checkout.checkoutId,
-      providerRef: checkout.checkoutId,
-    },
+  return NextResponse.json({
+    amountSgd: amount,
+    invoiceNumber: pending.payment.invoiceNumber,
+    message: "Your payment is pending manual bank transfer. Complete it in the admin panel.",
   });
-    const vatRate = 0.12;
-    const vatIncluded = Math.round((amount * vatRate / (1 + vatRate)) * 100) / 100;
-    const netAmount = Math.round((amount - vatIncluded) * 100) / 100;
-    return NextResponse.json({
-      checkoutUrl: checkout.checkoutUrl,
-      amountPhp: amount,
-      netPhp: netAmount,
-      vatPhp: vatIncluded,
-      vatRate,
-      invoiceNumber: pending.payment.invoiceNumber,
-      prorated,
-    });
 }

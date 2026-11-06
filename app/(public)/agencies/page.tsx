@@ -7,17 +7,17 @@ import {
   SectionHeading,
 } from "@/components/site";
 import { getDirectoryPage, parseDirectoryFilters } from "@/lib/directory";
- import { logger } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 
 export const revalidate = 300;
 export const metadata = {
-  title: "Maid agencies in the Philippines | FindMaids",
+  title: "Maid agencies in Singapore | FindMaids",
   description:
     "Browse approved agency profiles by location, services, languages, and more.",
   openGraph: {
     title: "Browse agencies | FindMaids",
     description:
-      "Compare approved domestic staffing agencies across the Philippines.",
+      "Compare approved domestic staffing agencies based in Singapore.",
   },
 };
 
@@ -38,7 +38,10 @@ export default async function AgenciesPage({
   try {
     result = await getDirectoryPage(filters);
   } catch (error) {
-      logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load directory results");
+    logger.error(
+      { errorType: error instanceof Error ? error.name : "unknown" },
+      "Unable to load directory results",
+    );
   }
   const query = new URLSearchParams();
   if (filters.city) query.set("city", filters.city);
@@ -72,7 +75,7 @@ export default async function AgenciesPage({
           >
             <h2 className="font-display text-xl font-bold">Filters</h2>
             <label className="block text-sm font-semibold">
-              City
+              City, region, or service location
               <input
                 className="mt-1 min-h-10 w-full rounded border px-3"
                 name="city"
@@ -80,7 +83,7 @@ export default async function AgenciesPage({
               />
             </label>
             <label className="block text-sm font-semibold">
-              Province
+              Region or area
               <input
                 className="mt-1 min-h-10 w-full rounded border px-3"
                 name="province"
@@ -116,22 +119,24 @@ export default async function AgenciesPage({
                 Nationalities served
               </legend>
               <div className="mt-2 space-y-2">
-                {["Filipino", "Indonesian", "Sri Lankan"].map((nationality) => (
-                  <label
-                    key={nationality}
-                    className="flex min-h-9 items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      name="nationality"
-                      value={nationality}
-                      defaultChecked={filters.nationalities.includes(
-                        nationality,
-                      )}
-                    />
-                    {nationality}
-                  </label>
-                ))}
+                {["Filipino", "Indonesian", "Myanmar", "Sri Lankan"].map(
+                  (nationality) => (
+                    <label
+                      key={nationality}
+                      className="flex min-h-9 items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        name="nationality"
+                        value={nationality}
+                        defaultChecked={filters.nationalities.includes(
+                          nationality,
+                        )}
+                      />
+                      {nationality}
+                    </label>
+                  ),
+                )}
               </div>
             </fieldset>
             <label className="block text-sm font-semibold">
@@ -140,7 +145,7 @@ export default async function AgenciesPage({
                 className="mt-1 min-h-10 w-full rounded border px-3"
                 name="language"
                 defaultValue={filters.language}
-                placeholder="e.g. Filipino"
+                placeholder="e.g. English, Mandarin, Malay"
               />
             </label>
             <label className="block text-sm font-semibold">

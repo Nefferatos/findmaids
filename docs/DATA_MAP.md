@@ -1,6 +1,6 @@
 # Data Map
 
-Inventory prepared 2026-10-23. Retention values are operational defaults, not a legal determination. Confirm purposes, lawful basis, notices, processors, cross-border transfers, and retention with Philippine counsel/DPO before production.
+Inventory prepared 2026-10-23. Retention values are operational defaults, not a legal determination. Confirm purposes, lawful basis, notices, processors, cross-border transfers, and retention with qualified Singapore counsel/privacy professionals before production.
 
 | Data                                                                                         | Source / purpose                                                   | Storage                                                                                                    | Access                                                                                           | Retention / deletion                                                                                                                                                       |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,8 +20,8 @@ Inventory prepared 2026-10-23. Retention values are operational defaults, not a 
 - Database/storage: Supabase project and region: `[OWNER TO FILL]`.
 - Hosting/CDN: `[CHOOSE HOST; do not deploy until chosen]`.
 - Email: Resend account/region and verified sender: `[OWNER TO FILL]`.
-- Payments: PayMongo account/mode and webhook data: `[OWNER TO FILL]`.
+- Payments: Singapore-supported provider/mode and webhook data: `[OWNER TO FILL]`.
 - AI/automation: Make.com scenario, Claude if enabled, data region/contract and retention: `[OWNER TO FILL]`.
 - Redis/queue provider and region: `[OWNER TO FILL]`.
 
-DPO name/contact and NPC registration applicability/reference: `[OWNER TO FILL after legal review]`. This document is an engineering inventory, not a legal determination.
+Responsible privacy contact and applicable registration/reference: `[OWNER TO FILL after legal review]`. This document is an engineering inventory, not a legal determination.

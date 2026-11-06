@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatSgd } from "@/lib/market";
 
 type ControlData = {
   killSwitch: boolean;
@@ -196,7 +197,9 @@ export function AdminAiControl() {
             <article key={item.feature} className="border p-4">
               <p className="text-sm">{item.feature}</p>
               <strong className="mt-2 block">
-                PHP {Number(item._sum.costEstimate ?? 0).toFixed(4)}
+                {formatSgd(Number(item._sum.costEstimate ?? 0), {
+                  minimumFractionDigits: 4,
+                })}
               </strong>
               <p className="text-muted-foreground text-xs">
                 {item._count.id} calls
@@ -276,7 +279,7 @@ export function AdminAiControl() {
                   "Feature",
                   "Model / prompt",
                   "Tokens",
-                  "Cost PHP",
+                  "Cost SGD",
                   "Status / error",
                 ].map((title) => (
                   <th className="p-2" key={title}>

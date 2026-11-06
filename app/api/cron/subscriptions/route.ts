@@ -22,7 +22,6 @@ export async function GET(request: Request) {
   let expired = 0;
   const bankTransfers = await prisma.payment.findMany({
     where: {
-      provider: "MANUAL",
       status: { in: ["PENDING_BANK_TRANSFER", "PARTIAL"] },
       expiresAt: { lte: now },
     },
@@ -82,7 +81,7 @@ export async function GET(request: Request) {
         await sendEmail(
           subscription.agency.owner.email,
           `FindMaids plan expires in ${days} day${days === 1 ? "" : "s"}`,
-          `${subscription.plan.name} expires ${subscription.endDate?.toLocaleDateString("en-PH")}. Visit your agency dashboard to renew or change plans.`,
+          `${subscription.plan.name} expires ${subscription.endDate?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. Visit your agency dashboard to renew or change plans.`,
         );
       reminders += 1;
     }
@@ -120,7 +119,7 @@ export async function GET(request: Request) {
           await sendEmail(
             subscription.agency.owner.email,
             `Your FindMaids founding period ends in ${days} days`,
-            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-PH")}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
           );
         foundingReminders += 1;
       }

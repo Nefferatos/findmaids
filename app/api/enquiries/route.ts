@@ -66,87 +66,137 @@ export async function POST(request: Request) {
       { status: 403 },
     );
 
-  const agency = await prisma.agency.findFirst({
-    where: { id: parsed.data.agencyId, status: "APPROVED" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
-  if (!agency)
+  const agencies = parsed.data.allAgencies
+    ? await prisma.agency.findMany({
+        where: { status: "APPROVED" },
+        orderBy: { id: "asc" },
+        select: { id: true, name: true, email: true },
+      })
+    : await prisma.agency.findMany({
+        where: { id: parsed.data.agencyId, status: "APPROVED" },
+        select: { id: true, name: true, email: true },
+      });
+  if (agencies.length === 0)
     return NextResponse.json(
-      { error: "This agency is not currently available." },
+      {
+        error: parsed.data.allAgencies
+          ? "No approved agencies are currently available."
+          : "This agency is not currently available.",
+      },
       { status: 404 },
     );
   const startOfMonth = new Date();
   startOfMonth.setUTCDate(1);
   startOfMonth.setUTCHours(0, 0, 0, 0);
-  const [activeSubscription, leadsThisMonth, basicPlan] = await Promise.all([
-    prisma.subscription.findFirst({
-      where: { agencyId: agency.id, status: "ACTIVE", OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
-      include: { plan: true },
-      orderBy: { createdAt: "desc" },
+  const basicPlan = await prisma.plan.findUnique({
+    where: { name: "Basic Free" },
+  });
+  const agencyStats = await Promise.all(
+    agencies.map(async (agency) => {
+      const [activeSubscription, leadsThisMonth] = await Promise.all([
+        prisma.subscription.findFirst({
+          where: {
+            agencyId: agency.id,
+            status: "ACTIVE",
+            OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+          },
+          include: { plan: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.enquiry.count({
+          where: { agencyId: agency.id, createdAt: { gte: startOfMonth } },
+        }),
+      ]);
+      const leadLimit = activeSubscription
+        ? activeSubscription.plan.leadLimit
+        : (basicPlan?.leadLimit ?? null);
+      return {
+        agency,
+        waitingCount:
+          leadLimit === null ? 0 : Math.max(0, leadsThisMonth + 1 - leadLimit),
+      };
     }),
-    prisma.enquiry.count({
-      where: { agencyId: agency.id, createdAt: { gte: startOfMonth } },
-    }),
-    prisma.plan.findUnique({ where: { name: "Basic Free" } }),
-  ]);
-  const leadLimit = activeSubscription ? activeSubscription.plan.leadLimit : (basicPlan?.leadLimit ?? null);
+  );
   const acquisitionSource = await getConsentedAcquisitionSource(
     parsed.data.acquisitionSource,
   );
-  const enquiry = await prisma.enquiry.create({
-    data: {
-      agencyId: agency.id,
-      name: parsed.data.name,
-      email: parsed.data.email,
-      phone: parsed.data.phone || null,
-      message: parsed.data.message,
-      consentGiven: true,
-      consentAt: new Date(),
-      consentPolicyVersion: "enquiry-consent-v1-draft",
-      acquisitionSource: acquisitionSource ?? undefined,
-      sourceIpHash: hashBlockValue(clientIp),
-      source: "WEB",
-      preferredStartDate: parsed.data.preferredStartDate,
-      budget: parsed.data.budget,
-    },
-  });
-  await sendOutboundLeadEvent("lead.created", {
-    enquiryId: enquiry.id,
-    agencyId: agency.id,
-    source: "WEB",
-  }).catch(() => false);
-  const summaryQueued = await enqueueJob({ type: "lead.summary", enquiryId: enquiry.id }).catch(() => false);
-  if (!summaryQueued) await summarizeLead(enquiry.id).catch(() => null);
-  const waitingCount = leadLimit === null ? 0 : Math.max(0, leadsThisMonth + 1 - leadLimit);
+  const enquiries = await prisma.$transaction(
+    agencyStats.map(({ agency }) =>
+      prisma.enquiry.create({
+        data: {
+          agencyId: agency.id,
+          name: parsed.data.name,
+          email: parsed.data.email,
+          phone: parsed.data.phone || null,
+          message: parsed.data.message,
+          consentGiven: true,
+          consentAt: new Date(),
+          consentPolicyVersion: parsed.data.allAgencies
+            ? "enquiry-consent-all-agencies-v1-draft"
+            : "enquiry-consent-v1-draft",
+          acquisitionSource: acquisitionSource ?? undefined,
+          sourceIpHash: hashBlockValue(clientIp),
+          source: "WEB",
+          preferredStartDate: parsed.data.preferredStartDate,
+          budget: parsed.data.budget,
+        },
+      }),
+    ),
+  );
   const emailTasks = [
-    sendEmail(
-      enquiry.email,
-      "We received your FindMaids enquiry",
-      `Your enquiry to ${agency.name} was received. The agency may contact you using the details you provided.`,
-    ),
+    {
+      enquiryId: enquiries[0]?.id,
+      task: sendEmail(
+        parsed.data.email,
+        "We received your FindMaids enquiry",
+        agencyStats.length === 1
+          ? `Your enquiry to ${agencyStats[0].agency.name} was received. The agency may contact you using the details you provided.`
+          : `Your enquiry was sent to ${agencyStats.length} approved agencies. They may contact you using the details you provided.`,
+      ),
+    },
   ];
-  emailTasks.push(
-    sendEmail(
-      agency.email,
-      waitingCount > 0
-        ? `New enquiry waiting for ${agency.name}`
-        : `New enquiry for ${agency.name}`,
-      waitingCount > 0
-        ? `A new enquiry was saved and delivered to your inbox. Reference: ${enquiry.id}. ${waitingCount} lead${waitingCount === 1 ? " is" : "s are"} currently above your plan allowance. ${getLeadCapMode() === "LOCK_DETAILS" ? "Contact details are locked until you upgrade." : "Contact details remain available under the current delivery setting."} Sign in to review leads and plan options.`
-        : `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
-    ),
+  for (const [index, stats] of agencyStats.entries()) {
+    const enquiry = enquiries[index];
+    await sendOutboundLeadEvent("lead.created", {
+      enquiryId: enquiry.id,
+      agencyId: stats.agency.id,
+      source: "WEB",
+    }).catch(() => false);
+    const summaryQueued = await enqueueJob({
+      type: "lead.summary",
+      enquiryId: enquiry.id,
+    }).catch(() => false);
+    if (!summaryQueued) await summarizeLead(enquiry.id).catch(() => null);
+    const waitingCount = stats.waitingCount;
+    emailTasks.push({
+      enquiryId: enquiry.id,
+      task: sendEmail(
+        stats.agency.email,
+        waitingCount > 0
+          ? `New enquiry waiting for ${stats.agency.name}`
+          : `New enquiry for ${stats.agency.name}`,
+        waitingCount > 0
+          ? `A new enquiry was saved and delivered to your inbox. Reference: ${enquiry.id}. ${waitingCount} lead${waitingCount === 1 ? " is" : "s are"} currently above your plan allowance. ${getLeadCapMode() === "LOCK_DETAILS" ? "Contact details are locked until you upgrade." : "Contact details remain available under the current delivery setting."} Sign in to review leads and plan options.`
+          : `A new enquiry was received. Reference: ${enquiry.id}. Please sign in to review it.`,
+      ),
+    });
+    await enqueueJob({ type: "lead.reply-draft", enquiryId: enquiry.id }).catch(
+      () => false,
+    );
+  }
+  const emailResults = await Promise.allSettled(
+    emailTasks.map(({ task }) => task),
   );
-  await enqueueJob({ type: "lead.reply-draft", enquiryId: enquiry.id }).catch(
-    () => false,
-  );
-  const emailResults = await Promise.allSettled(emailTasks);
-  for (const result of emailResults) {
+  for (const [index, result] of emailResults.entries()) {
     if (result.status === "rejected")
-      logger.error({ enquiryId: enquiry.id, errorType: result.reason instanceof Error ? result.reason.name : "unknown" }, "Unable to send enquiry email");
+      logger.error(
+        {
+          enquiryId: emailTasks[index].enquiryId,
+          errorType:
+            result.reason instanceof Error ? result.reason.name : "unknown",
+        },
+        "Unable to send enquiry email",
+      );
   }
   return NextResponse.json(
     { message: "Your enquiry has been sent." },

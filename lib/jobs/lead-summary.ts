@@ -20,7 +20,9 @@ export async function summarizeLead(enquiryId: string) {
     .split(/(?<=[.!?])\s+/)
     .filter(Boolean)
     .slice(0, 2);
-  const budget = enquiry.message.match(/(?:php|₱)\s?[\d,]+(?:\.\d{1,2})?/i);
+  const budget = enquiry.message.match(
+    /(?:sgd|s\$|\$)\s?[\d,]+(?:\.\d{1,2})?/i,
+  );
   const start = enquiry.message.match(
     /\b(?:start|begin|from)\s+(?:on\s+)?([A-Z][a-z]+\s+\d{1,2}|\d{4}-\d{2}-\d{2})/,
   );

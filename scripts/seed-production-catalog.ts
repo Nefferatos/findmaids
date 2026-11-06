@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma-script";
 
-const prisma = new PrismaClient();
 const confirmation = "SEED_REVIEWED_CATALOG_ONLY";
 
 async function main() {
@@ -22,7 +21,7 @@ async function main() {
       featuredSlots: 0,
       maxPhotos: 3,
       leadLimit: 10,
-      aiMonthlyBudgetPhp: 0,
+      aiMonthlyBudgetSgd: 0,
       features: ["Agency profile", "Up to 3 photos", "10 enquiries per month"],
     },
     {
@@ -33,7 +32,7 @@ async function main() {
       featuredSlots: 1,
       maxPhotos: 10,
       leadLimit: 100,
-      aiMonthlyBudgetPhp: 50,
+      aiMonthlyBudgetSgd: 50,
       features: ["Enhanced profile", "Up to 10 photos", "Priority listing"],
     },
     {
@@ -44,7 +43,7 @@ async function main() {
       featuredSlots: 1,
       maxPhotos: 25,
       leadLimit: null,
-      aiMonthlyBudgetPhp: 150,
+      aiMonthlyBudgetSgd: 150,
       features: [
         "Premium profile",
         "Up to 25 photos",

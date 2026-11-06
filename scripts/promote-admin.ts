@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma-script";
 
 async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();

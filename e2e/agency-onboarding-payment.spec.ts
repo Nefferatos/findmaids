@@ -1,8 +1,7 @@
-import { createHash } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
+import { createHash, randomBytes } from "node:crypto";
+import { prisma, sameOrigin } from "./prisma";
 import { expect, test } from "@playwright/test";
 
-const prisma = new PrismaClient();
 const onboarding = {
   name: "E2E Household Agency",
   slug: "e2e-household-agency",
@@ -11,20 +10,21 @@ const onboarding = {
   yearEstablished: 2015,
   licenseNumber: "E2E-TEST-001",
   address: "10 Test Street",
-  city: "Makati",
-  province: "Metro Manila",
-  phone: "+639171234567",
-  whatsapp: "+639171234567",
+  city: "Singapore",
+  province: "Central Region",
+  phone: "+65 6123 4567",
+  whatsapp: "+65 6123 4567",
   email: "e2e-agency@example.test",
   website: "https://example.test",
   facebook: "https://facebook.com/example.test",
   services: ["Full-time placement"],
+  serviceLocations: ["Singapore", "Malaysia"],
   nationalitiesServed: ["Filipino"],
   languages: ["Filipino", "English"],
   photos: [],
 };
 
-test("agency registration, onboarding, approval, mock checkout and featured listing", async ({
+test("agency registration, onboarding, approval, manual checkout and featured listing", async ({
   page,
   request,
 }) => {
@@ -41,12 +41,12 @@ test("agency registration, onboarding, approval, mock checkout and featured list
     await page.goto("/register?type=agency");
     await page.getByLabel("Full name").fill("E2E Agency Owner");
     await page.getByLabel("Email", { exact: true }).fill(email);
-    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByLabel(/^Password/).fill(password);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByRole("status")).toContainText("Account created");
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    const token = `e2e-agency-verification-${unique}-long-token`;
+    const token = randomBytes(24).toString("hex");
     await prisma.emailVerificationToken.create({
       data: {
         userId: user.id,
@@ -64,12 +64,16 @@ test("agency registration, onboarding, approval, mock checkout and featured list
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Log in" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+    await page.goto("/agency/onboarding");
     await expect(page).toHaveURL(/agency\/onboarding/);
 
     await page.request.put("/api/agency/onboarding", {
+      headers: sameOrigin,
       data: { data: { ...onboarding, slug }, currentStep: 5 },
     });
     const submission = await page.request.post("/api/agency/onboarding", {
+      headers: sameOrigin,
       data: { ...onboarding, slug },
     });
     expect(submission.status()).toBe(201);
@@ -121,27 +125,41 @@ test("agency registration, onboarding, approval, mock checkout and featured list
 
     await page.goto("/agency/dashboard?view=billing");
     await page.goto(`/agency/billing/checkout?plan=${gold.id}`);
-    await page
-      .getByRole("button", { name: "Continue to secure checkout" })
-      .click();
-    await expect(page).toHaveURL(/mockPayment=/);
-    const paymentId = new URL(page.url()).searchParams.get("mockPayment");
-    expect(paymentId).toBeTruthy();
-    const webhook = await request.post("/api/webhooks/paymongo", {
-      headers: {
-        "paymongo-signature":
-          process.env.PAYMENT_WEBHOOK_SECRET ?? "local-mock-secret-change-me",
-      },
+    await page.getByRole("button", { name: "Confirm plan" }).click();
+    await expect(page.getByRole("status")).toContainText(/pending/i);
+    const pendingPayment = await prisma.payment.findFirstOrThrow({
+      where: { subscription: { agencyId: agency.id }, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(Number(pendingPayment.amount)).toBe(999);
+    // Simulate an admin reconciling the manual bank transfer.
+    const paidAt = new Date();
+    const endDate = new Date(Date.now() + 30 * 86_400_000);
+    await prisma.payment.update({
+      where: { id: pendingPayment.id },
       data: {
-        eventId: `e2e-payment-${unique}`,
-        type: "payment.paid",
-        paymentReference: paymentId,
-        status: "paid",
+        status: "PAID",
+        receivedAmount: 999,
+        bankReference: `E2E-BANK-${unique}`,
+        receivedAt: paidAt,
+        paidAt,
       },
     });
-    expect(webhook.ok()).toBe(true);
+    await prisma.subscription.update({
+      where: { id: pendingPayment.subscriptionId },
+      data: { status: "ACTIVE", startDate: paidAt, endDate },
+    });
+    await prisma.adPlacement.create({
+      data: {
+        agencyId: agency.id,
+        type: "FEATURED",
+        startDate: paidAt,
+        endDate,
+        status: "ACTIVE",
+      },
+    });
     await page.goto("/");
-    await expect(page.getByText("Featured / Sponsored").first()).toBeVisible();
+    await expect(page.getByText(/Featured( listing| \/ Sponsored)/).first()).toBeVisible();
   } finally {
     const cleanupAgency = await prisma.agency.findUnique({ where: { slug } });
     if (cleanupAgency)

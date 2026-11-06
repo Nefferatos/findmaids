@@ -1,6 +1,6 @@
 # FindMaids
 
-FindMaids is a directory and advertising platform for independent domestic staffing agencies in the Philippines. It includes public pages, agency onboarding and dashboard, admin moderation and payments, reports, and opt-in deterministic AI demo workflows. Automated card-on-file renewal and external AI provider calls are not enabled.
+FindMaids is a Singapore-focused directory and advertising platform for independent domestic staffing agencies based in Singapore. Agencies can describe overseas service locations, which are displayed on their profiles and can be searched by exact service-location text. The app includes public pages, agency onboarding and dashboard, admin moderation and test-only payment flows, reports, and opt-in deterministic AI demo workflows. Automated card-on-file renewal and external AI provider calls are not enabled.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ npm run build
 npm run test:e2e
 ```
 
-Run `npx prisma migrate deploy` in production after setting trusted pooled/direct Supabase database URLs. The `.env.example` defaults to `PAYMENT_PROVIDER=mock`; use `PAYMENT_PROVIDER=paymongo` only with PayMongo test credentials and the configured webhook signing secret. Read [docs/PAYMENTS.md](docs/PAYMENTS.md) for webhook and cron setup.
+The `.env.example` defaults to `PAYMENT_PROVIDER=mock`, uses provisional SGD amounts, and keeps manual bank transfer disabled. No real payment provider is approved or configured for the Singapore site. Do not collect real payments until a suitable provider, legal/tax wording, and reconciliation process have been reviewed. Read [docs/PAYMENTS.md](docs/PAYMENTS.md) for payment setup and safeguards.
 
 The Playwright enquiry test requires an approved agency row and `E2E_AGENCY_SLUG` set to its slug. The account lifecycle test uses the database and requires migrations.
 
@@ -40,14 +40,11 @@ The Playwright enquiry test requires an approved agency row and `E2E_AGENCY_SLUG
 
 `.env` and secret-bearing env files are git-ignored; `.env.example` contains placeholders only. Set matching strong random values for `AUTH_SECRET` and `NEXTAUTH_SECRET`. Google sign-in requires `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`. Resend delivery requires `RESEND_API_KEY` and a verified `EMAIL_FROM`; without a key, emails are logged to the server console for development only. Optional Cloudflare Turnstile requires both `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
 
-Payment configuration uses `PAYMENT_PROVIDER`, `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET`, and `PAYMENT_WEBHOOK_SECRET` (mock mode only). Configure `CRON_SECRET` for the subscription lifecycle job and `DATA_REQUEST_EMAIL` for privacy request notifications. Supabase Postgres uses `DATABASE_URL` (pooled URL for runtime) and `DIRECT_URL` (direct connection for Prisma migrations). Supabase Storage uses `SUPABASE_URL`, server-only `SUPABASE_SERVICE_ROLE_KEY`, and public/private buckets named by `SUPABASE_MEDIA_BUCKET` and `SUPABASE_PRIVATE_BUCKET`. Create the media bucket as public and the private bucket as private; private objects are served only through authenticated app routes.
-Payment configuration uses `PAYMENT_PROVIDER`, `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET`, and `PAYMENT_WEBHOOK_SECRET` (mock mode only). Configure `CRON_SECRET` for the subscription lifecycle job and `DATA_REQUEST_EMAIL` for privacy request notifications. Supabase Postgres uses `DATABASE_URL` (pooled URL for runtime) and `DIRECT_URL` (direct connection for Prisma migrations). Supabase Storage uses `SUPABASE_URL`, server-only `SUPABASE_SERVICE_ROLE_KEY`, and public/private buckets named by `SUPABASE_MEDIA_BUCKET` and `SUPABASE_PRIVATE_BUCKET`. Create the media bucket as public and the private bucket as private; private objects are served only through authenticated app routes. Storage requires Supabase configuration in development and production.
+Payment configuration uses `PAYMENT_PROVIDER=mock` for non-production tests and `PAYMENT_WEBHOOK_SECRET`; the PayMongo adapter is not available for the Singapore business configuration. Configure `CRON_SECRET` for the subscription lifecycle job and `DATA_REQUEST_EMAIL` for privacy request notifications. Supabase Postgres uses `DATABASE_URL` (pooled URL for runtime) and `DIRECT_URL` (direct connection for Prisma migrations). Supabase Storage uses `SUPABASE_URL`, server-only `SUPABASE_SERVICE_ROLE_KEY`, and public/private buckets named by `SUPABASE_MEDIA_BUCKET` and `SUPABASE_PRIVATE_BUCKET`. Create the media bucket as public and the private bucket as private; private objects are served only through authenticated app routes. Storage requires Supabase configuration in development and production.
 
-The consent, Terms, and Privacy copy is draft text and requires review by qualified Philippine counsel/privacy professionals before launch. Enquiry details are sent only to the selected agency and the employer confirmation goes to the submitting email. Agency listings and reviews do not constitute a guarantee or endorsement.
+The consent, Terms, Privacy, and Cookie copy is draft text and requires review by qualified Singapore counsel/privacy professionals before launch. Enquiry details are sent only to the selected agency and the employer confirmation goes to the submitting email. Agency listings and reviews do not constitute a guarantee or endorsement. Review retention and cross-border data handling with qualified advisers.
 
-Gold and Platinum plan amounts are development placeholders (PHP 999/₱9,990 and PHP 1,999/₱19,990); Basic Free is PHP 0. Review them before launch. Upgrades use remaining-period proration; downgrades apply at renewal. PayMongo checkout is single-payment hosted checkout: automatic card-on-file charging is not implemented. The employer assistant and agency draft helpers are disabled by default, make no external model calls, and are managed via Admin > Settings > `featureFlags`.
-
-The consent, Terms, and Privacy copy is draft text and requires review by qualified Philippine counsel/privacy professionals before launch. Enquiry details are sent only to the selected agency and employer confirmation. The configured 12-month enquiry anonymization interval must also be approved against applicable record-retention requirements before production.
+Gold and Platinum plan amounts are provisional SGD test values (999/9,990 and 1,999/19,990); Basic Free is SGD 0. They are not approved launch prices. Upgrades use remaining-period proration; downgrades apply at renewal. Real payment collection is not enabled. The employer assistant and agency draft helpers are disabled by default, make no external AI calls in mock mode, and are managed via Admin > Settings > `featureFlags`.
 
 ## Project structure
 

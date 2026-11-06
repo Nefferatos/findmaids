@@ -32,7 +32,7 @@ export function classifyLeadText(message: string): LeadSignals {
     /urgent|asap|tomorrow|immediately|emergency|kailangan na|ngayon na/.test(
       lower,
     );
-  const hasBudget = /\b\d{3,}\b|budget|php|₱/.test(lower);
+  const hasBudget = /\b\d{3,}\b|budget|sgd|s\$|\$/.test(lower);
   const helper = /helper|nanny|caregiver|kasambahay|yaya/.test(lower);
   const spam = /https?:\/\/|free money|crypto|viagra/i.test(message);
   const complaint = /complaint|scam|fraud|not safe|unsafe|reklamo/i.test(lower);

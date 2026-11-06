@@ -42,6 +42,7 @@ export function calculateProfileCompleteness(profile: {
   email?: string | null;
   website?: string | null;
   services?: string[];
+  serviceLocations?: string[];
   nationalitiesServed?: string[];
   languages?: string[];
   logoUrl?: string | null;
@@ -61,6 +62,7 @@ export function calculateProfileCompleteness(profile: {
     profile.email,
     profile.website,
     profile.services?.length,
+    profile.serviceLocations?.length,
     profile.nationalitiesServed?.length,
     profile.languages?.length,
     profile.logoUrl,

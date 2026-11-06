@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatSgd } from "@/lib/market";
 
 type Settings = {
   autoReplyEnabled: boolean;
@@ -23,9 +24,9 @@ export function AgencyAiSettings() {
   });
   const [usage, setUsage] = useState({
     calls: 0,
-    spendPhp: 0,
-    monthlyCapPhp: 50,
-    remainingPhp: 50,
+    spendSgd: 0,
+    monthlyCapSgd: 50,
+    remainingSgd: 50,
   });
   const [conversations, setConversations] = useState<
     {
@@ -85,10 +86,10 @@ export function AgencyAiSettings() {
     <div className="max-w-3xl space-y-5">
       <section className="flex gap-6 border-y py-4 text-sm">
         <p>{usage.calls} model calls this month</p>
-        <p>Estimated cost: PHP {usage.spendPhp.toFixed(2)}</p>
+        <p>Estimated cost: {formatSgd(usage.spendSgd)}</p>
         <p>
-          Remaining this month: PHP {usage.remainingPhp.toFixed(2)} /{" "}
-          {usage.monthlyCapPhp.toFixed(2)}
+          Remaining this month: {formatSgd(usage.remainingSgd)} /{" "}
+          {formatSgd(usage.monthlyCapSgd)}
         </p>
       </section>
       <section className="space-y-3">
@@ -186,28 +187,30 @@ export function AgencyAiSettings() {
           <fieldset>
             <legend className="text-sm font-semibold">Languages</legend>
             <div className="mt-2 flex flex-wrap gap-3">
-              {["English", "Filipino", "Taglish"].map((language) => (
-                <label
-                  key={language}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={settings.languages.includes(language)}
-                    onChange={(event) =>
-                      setSettings({
-                        ...settings,
-                        languages: event.target.checked
-                          ? [...settings.languages, language]
-                          : settings.languages.filter(
-                              (item) => item !== language,
-                            ),
-                      })
-                    }
-                  />
-                  {language}
-                </label>
-              ))}
+              {["English", "Mandarin", "Malay", "Tamil", "Filipino"].map(
+                (language) => (
+                  <label
+                    key={language}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={settings.languages.includes(language)}
+                      onChange={(event) =>
+                        setSettings({
+                          ...settings,
+                          languages: event.target.checked
+                            ? [...settings.languages, language]
+                            : settings.languages.filter(
+                                (item) => item !== language,
+                              ),
+                        })
+                      }
+                    />
+                    {language}
+                  </label>
+                ),
+              )}
             </div>
           </fieldset>
           <label className="text-sm font-semibold">

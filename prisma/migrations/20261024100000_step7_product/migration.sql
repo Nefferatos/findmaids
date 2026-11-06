@@ -18,7 +18,8 @@ ALTER TABLE "AdPlacement" ADD COLUMN "foundingGrant" BOOLEAN NOT NULL DEFAULT fa
 
 CREATE INDEX "Enquiry_agencyId_firstRespondedAt_idx" ON "Enquiry"("agencyId", "firstRespondedAt");
 CREATE INDEX "Enquiry_firstRespondedAt_createdAt_idx" ON "Enquiry"("firstRespondedAt", "createdAt");
-CREATE INDEX "AnalyticsEvent_type_createdAt_idx" ON "AnalyticsEvent"("type", "createdAt");
+-- Already created by the init migration; keep this idempotent.
+CREATE INDEX IF NOT EXISTS "AnalyticsEvent_type_createdAt_idx" ON "AnalyticsEvent"("type", "createdAt");
 
 CREATE TABLE "Prospect" (
   "id" TEXT NOT NULL,

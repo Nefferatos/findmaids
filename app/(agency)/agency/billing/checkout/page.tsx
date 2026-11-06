@@ -46,8 +46,8 @@ export default async function AgencyCheckoutPage({
         }))}
       />
       <p className="text-muted-foreground mt-4 text-xs leading-5">
-        Checkout is hosted by the payment provider. Card and wallet credentials
-        are never stored in FindMaids.
+        Checkout creates a manual (bank transfer) payment; FindMaids never stores
+        card details.
       </p>
     </Container>
   );

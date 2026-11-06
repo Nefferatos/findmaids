@@ -4,19 +4,18 @@ Do not launch until all blocking items are signed off. Draft legal text and unve
 
 ## Legal
 
-- [ ] Philippine counsel reviews and approves Privacy Policy, Terms, Cookie Policy, enquiry consent, retention, refunds, and agency disclaimers.
-- [ ] Confirm NPC registration applicability/status and complete public registration details.
-- [ ] Name the DPO; publish monitored DPO email/address.
-- [ ] Approve data inventory, lawful basis, retention schedule, processor agreements, and cross-border transfer notices.
+- [ ] Qualified Singapore counsel/privacy professionals review and approve Privacy Policy, Terms, Cookie Policy, enquiry consent, retention, refunds, and agency disclaimers.
+- [ ] Confirm applicable privacy registration and public business disclosure requirements with counsel.
+- [ ] Name the responsible privacy contact; publish a monitored email/address after ownership is verified.
+- [ ] Approve data inventory, lawful basis, retention schedule, processor agreements, and cross-border transfer notices with counsel.
 
 ## Payments
 
-- [ ] Verify PayMongo business account and live-mode eligibility.
-- [ ] Verify live keys in secret manager; test-mode keys only in staging.
-- [ ] Configure webhook URL and secret; replay and duplicate delivery tests pass.
-- [ ] Verify invoice sequence, tax wording with accountant, bank account details, refund procedure, and reconciliation permissions.
-- [ ] Perform an approved small real payment and refund test.
-- [ ] Owner performs PayMongo live activation, an approved small real charge/refund, invoice review, and bank detail confirmation.
+- [ ] Select and approve a payment provider suitable for the Singapore business and its supported payment methods.
+- [ ] Verify test/live credentials in a secret manager; keep real payment collection disabled until readiness sign-off.
+- [ ] Configure webhook URL and secret; replay and duplicate-delivery tests pass.
+- [ ] Verify invoice sequence, tax wording with an accountant, bank details, refund procedure, and reconciliation permissions.
+- [ ] Perform an approved payment/refund test only after provider, legal, tax, and operational review.
 
 ## Email
 
@@ -76,4 +75,4 @@ Do not launch until all blocking items are signed off. Draft legal text and unve
 - [ ] Train staff on agency approval, dispute handling, privacy requests, payments, refunds, and incident runbook.
 - [ ] Confirm WhatsApp Business account, vendor webhook/signature contract, approved templates and opt-in. Keep feature flag OFF until completed.
 - [ ] Set status page/maintenance communications and on-call owners.
-- [ ] Verify `security@findmaids.ph` exists, is monitored, and update `.well-known/security.txt` if the final reporting address differs.
+- [ ] Verify the security-reporting mailbox is owned and monitored, then update `.well-known/security.txt` with the approved contact.
