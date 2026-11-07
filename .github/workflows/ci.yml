@@ -37,6 +37,10 @@ jobs:
     env:
       APP_ENV: test
       STAGING_PROJECT_REF: findmaids_ci_test
+      # Migrations create the app tables in `public`; lib/prisma-script resolves
+      # DATABASE_SCHEMA (default "findmaids") into the connection string, so the
+      # seed would target a schema that does not exist without this.
+      DATABASE_SCHEMA: public
       DATABASE_URL: postgresql://findmaids:ci-only-password@localhost:5432/findmaids_ci_test
       DIRECT_URL: postgresql://findmaids:ci-only-password@localhost:5432/findmaids_ci_test
       AUTH_SECRET: ci-only-auth-secret-at-least-32-characters-long
@@ -62,6 +66,9 @@ jobs:
       - run: npm run db:deploy
       - run: npm run seed
       - run: npm run lint
+      # next-env.d.ts references .next/types/*, which only exist after type
+      # generation; without this, tsc fails in a clean checkout.
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run evals

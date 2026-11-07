@@ -18,7 +18,7 @@ jobs:
       # Database (single .env equivalent; values live in repo secrets)
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DIRECT_URL: ${{ secrets.DIRECT_URL }}
-      DATABASE_SCHEMA: findmaids
+      DATABASE_SCHEMA: public
       # Auth / platform secrets
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
@@ -55,6 +55,11 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Generate Next.js types
+        # next-env.d.ts references .next/types/*, which only exist after type
+        # generation; without this, tsc fails in a clean checkout.
+        run: npx next typegen
 
       - name: Typecheck
         run: npx tsc --noEmit
