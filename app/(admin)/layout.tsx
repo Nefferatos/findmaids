@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { requireAdminPermission } from "@/lib/admin-auth";
+import { ProfileMenu } from "@/components/profile-menu";
 import type { AdminPermission } from "@/lib/permissions";
 
 const navigation: {
@@ -88,7 +89,12 @@ export default async function AdminLayout({
           )}
         </nav>
       </aside>
-      <main className="min-w-0">{children}</main>
+      <main className="min-w-0">
+        <div className="flex items-center justify-end border-b bg-white px-4 py-2">
+          <ProfileMenu user={{ name: user.name, email: user.email, role: user.role }} />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

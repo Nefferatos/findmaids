@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, LogIn } from "lucide-react";
+import { ProfileMenu, type ProfileUser } from "@/components/profile-menu";
 
 const navigation = [
   { label: "Home", href: "/" },
@@ -14,7 +15,7 @@ const navigation = [
   { label: "Join Us!", href: "/advertise", emphasized: true },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ user }: { user?: ProfileUser | null }) {
   return (
     <header className="site-header border-b">
       <div className="mx-auto flex min-h-20 max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
@@ -35,10 +36,14 @@ export function SiteHeader() {
             <span>Submit your requirements</span>
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
-          <Link className="site-login-link" href="/login">
-            <LogIn aria-hidden="true" className="size-4" />
-            <span>Employer login</span>
-          </Link>
+          {user ? (
+            <ProfileMenu user={user} />
+          ) : (
+            <Link className="site-login-link" href="/login">
+              <LogIn aria-hidden="true" className="size-4" />
+              <span>Employer login</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>
