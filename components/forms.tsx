@@ -27,7 +27,8 @@ export function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const [state, setState] = useState<FormState>({ message: "", error: false });
-  const callbackUrl = search.get("callbackUrl") ?? "/";
+  const requestedCallback = search.get("callbackUrl");
+  const callbackUrl = requestedCallback ?? "/";
 
   async function submit(formData: FormData) {
     setState({ message: "", error: false });
@@ -38,13 +39,30 @@ export function LoginForm() {
       redirect: false,
       redirectTo: callbackUrl,
     });
-    if (result?.error)
+    if (result?.error) {
       setState({
         message:
           "Email or password is incorrect, or your email is not verified.",
         error: true,
       });
-    else router.push(callbackUrl);
+      return;
+    }
+    // Without an explicit callbackUrl each role continues to its own area
+    // (ADMIN/STAFF → /admin, AGENCY → /agency/dashboard) instead of the homepage.
+    let target = callbackUrl;
+    if (!requestedCallback) {
+      try {
+        const response = await fetch("/api/auth/landing", { cache: "no-store" });
+        if (response.ok) {
+          const landing = (await response.json()) as { path?: string };
+          if (landing.path) target = landing.path;
+        }
+      } catch {
+        // Keep the homepage fallback if the lookup fails.
+      }
+    }
+    router.push(target);
+    router.refresh();
   }
 
   return (

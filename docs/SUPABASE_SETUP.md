@@ -32,9 +32,9 @@ Staging only; production uses its own project. Supabase databases are always nam
 
 1. Create an empty project (Singapore) and enable `vector`.
 2. Paste `supabase/staging-setup.sql` into the SQL Editor and run it once. It is one transaction, creates the schema, the HNSW index, RLS and both buckets, and refuses to run twice.
-3. Fill `.env.staging` (ignored by Git) with the pooler URLs, `STAGING_PROJECT_REF`, `SUPABASE_URL` and the service-role key.
-4. Record the baseline: `npm run staging:run -- npx --no-install prisma migrate resolve --applied <name>` for each folder in `prisma/migrations` that the SQL already contains, then `npm run staging:migrate` for the rest.
-5. Verify: `npm run staging:run -- npx --no-install tsx scripts/verify-staging-db.ts` (tables, vector index, RLS) and `scripts/verify-staging-storage.ts` (buckets, limits, signed URLs; deletes its own test files).
+3. Fill **profile B** of the single Git-ignored `.env` (there is no `.env.staging`) with the pooler URLs, `STAGING_PROJECT_REF`, `APP_ENV=staging`, `SUPABASE_URL` and the service-role key.
+4. Record the baseline: `npx --no-install prisma migrate resolve --applied <name>` for each folder in `prisma/migrations` that the SQL already contains, then `npm run db:deploy` for the rest.
+5. Verify: `npx --no-install tsx scripts/verify-staging-db.ts` (tables, vector index, RLS) and `scripts/verify-staging-storage.ts` (buckets, limits, signed URLs; deletes its own test files). These are guarded, so `APP_ENV` and `STAGING_PROJECT_REF` must be present in `.env`.
 
 ## Storage Buckets
 

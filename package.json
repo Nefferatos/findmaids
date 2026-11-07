@@ -9,6 +9,7 @@
     "start": "next start",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare build && npx wrangler deploy --name findmaids",
+    "deploy:cf:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-cloudflare-windows.ps1",
     "upload:cf": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "eslint",

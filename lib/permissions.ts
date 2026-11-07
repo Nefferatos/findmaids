@@ -27,3 +27,14 @@ export function canAccess(role: UserRole | string | undefined, permission: Admin
 export function adminLanding(role: UserRole | string | undefined) {
   return role === "STAFF" ? "/admin/approvals" : "/admin";
 }
+
+/**
+ * Where a signed-in user lands after login when no explicit `callbackUrl` was
+ * requested. Employer accounts (VISITOR) have no dashboard, so they stay on the
+ * public site.
+ */
+export function landingForRole(role: UserRole | string | undefined) {
+  if (role === "ADMIN" || role === "STAFF") return adminLanding(role);
+  if (role === "AGENCY") return "/agency/dashboard";
+  return "/";
+}

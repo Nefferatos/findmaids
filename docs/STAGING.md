@@ -4,8 +4,8 @@ Isolated dry-run environment on its own Supabase project (ref `tajpujqabclbxoggk
 
 ## Safety rules
 
-- All configuration lives in the Git-ignored `.env.staging`. Never commit it; never paste its values into chat or logs.
-- Every write script goes through `npm run staging:run`, which loads `.env.staging` and runs `lib/security/staging-guard.ts`. The guard refuses unless `APP_ENV` is `staging` or `test`, `STAGING_PROJECT_REF` is set, and that ref appears in both `DATABASE_URL` and `DIRECT_URL`. The staging seed and Playwright config run the same guard.
+- All configuration lives in the single Git-ignored `.env` — use **profile B** in that file. There is no `.env.staging`/`.env.test`. Never commit `.env`; never paste its values into chat or logs.
+- Write scripts are guarded by `lib/security/staging-guard.ts` (`assertStagingWriteAllowed()`), which refuses unless `APP_ENV` is `staging` or `test`, `STAGING_PROJECT_REF` is set, and that ref appears in both `DATABASE_URL` and `DIRECT_URL`. All four settings sit together in `.env` profile B. There is no wrapper script — the staging seed and `playwright.config.ts` call the same guard directly.
 - Email is not delivered (`EMAIL_DELIVERY_DISABLED=true`; no `RESEND_API_KEY`). Payments use the mock provider. WhatsApp is off. AI is `mock`.
 
 ## Environment variables
@@ -41,7 +41,6 @@ Isolated dry-run environment on its own Supabase project (ref `tajpujqabclbxoggk
 | `DATA_RETENTION_DAYS` | `365` |
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Empty; trace sample rates `0` |
 | `LOG_LEVEL` | `info` |
-| `E2E_STAGING` | `1`: Playwright loads `.env.staging` and starts its own server |
 | `E2E_TEST_PASSWORD` | Shared password of the fake test accounts (random, local) |
 | `E2E_ADMIN_TOTP_SECRET` | TOTP secret of `admin@example.test` (admin login requires 2FA) |
 
@@ -59,15 +58,19 @@ Each agency has two fake prospects (`CONTACTED` and `DO_NOT_CONTACT`). Licence n
 
 ## Commands
 
-All from `C:\B2B - Web\findmaids` in PowerShell.
+All from the repository root in PowerShell. `.env` must be on **profile B** first (see the comments in that file):
 
 ```powershell
-npm run staging:migrate                                                   # guarded prisma migrate deploy
-npm run seed:staging                                                      # guarded staging seed (idempotent)
-npm run staging:run -- npx --no-install tsx scripts/verify-staging-db.ts       # tables, vector index, RLS
-npm run staging:run -- npx --no-install tsx scripts/verify-staging-storage.ts  # buckets, limits, signed URLs
-npm run staging:run -- npm run dev                                        # app against staging on :3000
-$env:E2E_STAGING='1'; npx --no-install playwright test                    # E2E (loads .env.staging, own server)
+# Guarded scripts read the guard values from .env, so no wrapper is needed:
+$env:APP_ENV = 'staging'; $env:STAGING_PROJECT_REF = 'tajpujqabclbxoggkxse'   # only if not already in .env
+$env:E2E_TEST_PASSWORD = '<local password>'; $env:E2E_ADMIN_TOTP_SECRET = '<base32 secret>'  # seed only
+
+npm run db:deploy                                          # prisma migrate deploy (baseline first if tables exist)
+npx --no-install tsx prisma/seed-staging.ts                 # guarded staging seed (idempotent)
+npx --no-install tsx scripts/verify-staging-db.ts           # tables, vector index, RLS
+npx --no-install tsx scripts/verify-staging-storage.ts      # buckets, limits, signed URLs
+npm run dev                                                 # app against staging on :3000
+npx --no-install playwright test                            # E2E (loads .env, starts its own server)
 ```
 
 Stop any other dev server on port 3000 first so the app is not connected to another database. Results are saved in `staging-results/`.

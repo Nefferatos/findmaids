@@ -11,12 +11,18 @@
   "observability": {
     "enabled": true
   },
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "4fcf33197c9940d7a8d06df522252e37"
-    }
-  ],
+  // Disabled: this Hyperdrive config does not exist in the current Cloudflare
+  // account (the listed id belongs to a different account), and a missing
+  // binding fails the deploy. With no HYPERDRIVE binding, `lib/prisma.ts` falls
+  // back to the DATABASE_URL secret, then to the in-memory mock when that is
+  // unset. Create a Hyperdrive config for this account and restore the block
+  // (with the new id) to use pooled connections.
+  // "hyperdrive": [
+  //   {
+  //     "binding": "HYPERDRIVE",
+  //     "id": "4fcf33197c9940d7a8d06df522252e37"
+  //   }
+  // ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
@@ -28,8 +34,12 @@
   "vars": {
     "APP_ENV": "production",
     "NODE_ENV": "production",
-    "DATABASE_SCHEMA": "findmaids",
-    "SUPABASE_URL": "https://etdbexgrsenjznxbbnbd.supabase.co",
+    "DATABASE_SCHEMA": "public",
+    // Public origin of this Worker (workers.dev host for the current account).
+    // Change both to the custom domain once one is attached.
+    "NEXT_PUBLIC_SITE_URL": "https://findmaids.findmaids.workers.dev",
+    "NEXTAUTH_URL": "https://findmaids.findmaids.workers.dev",
+    "SUPABASE_URL": "https://tajpujqabclbxoggkxse.supabase.co",
     "SUPABASE_MEDIA_BUCKET": "findmaids-media",
     "SUPABASE_PRIVATE_BUCKET": "findmaids-private",
     "AUTH_TRUST_HOST": "true",

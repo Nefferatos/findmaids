@@ -4,6 +4,13 @@ import type { NextConfig } from "next";
 const devEval = process.env.NODE_ENV === "production" ? "" : "'unsafe-eval' ";
 
 const nextConfig: NextConfig = {
+  // Prisma's generated client ships workerd-specific code and loads its query
+  // compiler from query_compiler_bg.wasm. Bundling it for Node makes the worker
+  // resolve that file through fs at runtime and fail with
+  // `no such file or directory, readAll '/bundle/node_modules/.prisma/client/query_compiler_bg.wasm'`.
+  // Keeping both packages external lets the Cloudflare build pick the workerd
+  // entrypoints. See OpenNext's "Database & ORM" and "workerd specific packages" how-tos.
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
   // Lets a staging E2E server run beside another dev server (set only by playwright.config.ts).
   distDir: process.env.NEXT_DIST_DIR || ".next",
   allowedDevOrigins: ["127.0.0.1"],

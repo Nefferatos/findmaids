@@ -62,3 +62,4 @@ yarn-error.log*
 /schema.diff
 /schema.diff2
 /.tsupgrader/
+.env.deploybak
