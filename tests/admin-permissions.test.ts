@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminLanding, canAccess } from "@/lib/permissions";
+import { adminLanding, canAccess, landingForRole } from "@/lib/permissions";
 
 describe("admin permission map", () => {
   it("grants ADMIN access to each configured admin capability", () => {
@@ -50,5 +50,15 @@ describe("admin permission map", () => {
   it("denies AGENCY and VISITOR roles", () => {
     expect(canAccess("AGENCY", "approvals")).toBe(false);
     expect(canAccess("VISITOR", "dashboard")).toBe(false);
+  });
+});
+
+describe("post-login landing", () => {
+  it("sends each role to its own portal", () => {
+    expect(landingForRole("ADMIN")).toBe("/admin");
+    expect(landingForRole("STAFF")).toBe("/admin/approvals");
+    expect(landingForRole("AGENCY")).toBe("/agency/dashboard");
+    expect(landingForRole("VISITOR")).toBe("/account");
+    expect(landingForRole(undefined)).toBe("/account");
   });
 });

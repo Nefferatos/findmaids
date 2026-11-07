@@ -30,11 +30,11 @@ export function adminLanding(role: UserRole | string | undefined) {
 
 /**
  * Where a signed-in user lands after login when no explicit `callbackUrl` was
- * requested. Employer accounts (VISITOR) have no dashboard, so they stay on the
- * public site.
+ * requested. Employers (VISITOR) have their own portal at /account; agency
+ * owners go to the agency dashboard and admins/staff to the admin area.
  */
 export function landingForRole(role: UserRole | string | undefined) {
   if (role === "ADMIN" || role === "STAFF") return adminLanding(role);
   if (role === "AGENCY") return "/agency/dashboard";
-  return "/";
+  return "/account";
 }
