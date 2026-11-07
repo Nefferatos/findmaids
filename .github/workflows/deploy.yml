@@ -51,7 +51,10 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # NODE_ENV=production is set for the build, but npm skips devDependencies
+        # in that mode; typescript, prisma, vitest and @opennextjs/cloudflare are
+        # all devDependencies, so ask for them explicitly.
+        run: npm ci --include=dev
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -62,7 +65,7 @@ jobs:
         run: npx next typegen
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npx --no-install tsc --noEmit
 
       - name: Unit tests
         run: npx vitest run
