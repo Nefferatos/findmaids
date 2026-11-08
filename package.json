@@ -76,7 +76,7 @@
     "tailwindcss": "4.3.4",
     "tsx": "^4.20.6",
     "typescript": "^5",
-    "vitest": "^4.1.12",
+    "vitest": "^5.1.0",
     "wrangler": "^4.148.0"
   },
   "engines": {
