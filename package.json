@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.3",
-    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "6.19.0",
     "@sentry/nextjs": "^10.38.20",
     "bcryptjs": "^3.0.3",
