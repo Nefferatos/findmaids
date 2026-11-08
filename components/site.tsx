@@ -32,13 +32,19 @@ export function SectionHeading({
   description?: string;
 }) {
   return (
-    <div className="mb-7 max-w-2xl">
+    <div className="mb-8 max-w-2xl">
       {eyebrow && (
-        <p className="text-primary mb-2 text-sm font-bold tracking-wider uppercase">
+        <p className="text-primary mb-3 inline-flex items-center gap-2 text-xs font-extrabold tracking-[0.14em] uppercase">
+          <span
+            aria-hidden="true"
+            className="from-primary to-accent h-[3px] w-6 rounded-full bg-gradient-to-r"
+          />
           {eyebrow}
         </p>
       )}
-      <h2 className="font-display text-3xl font-bold sm:text-4xl">{title}</h2>
+      <h2 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+        {title}
+      </h2>
       {description && (
         <p className="text-muted-foreground mt-3 leading-7">{description}</p>
       )}
@@ -109,14 +115,16 @@ export function SiteFooter() {
             </ul>
           </div>
         </div>
-        <p className="text-muted-foreground mt-8 border-t pt-5 text-xs leading-5">
-          FindMaids is a directory and advertising platform. It does not recruit
-          workers, employ domestic workers, or guarantee an agency’s services or
-          outcomes. Please verify agency details independently.
-        </p>
-        <p className="text-muted-foreground mt-3 text-xs">
-          © {new Date().getFullYear()} FindMaids
-        </p>
+        <div className="mt-8 border-t pt-5">
+          <p className="text-muted-foreground max-w-4xl text-xs leading-5">
+            FindMaids is a directory and advertising platform. It does not
+            recruit workers, employ domestic workers, or guarantee an agency’s
+            services or outcomes. Please verify agency details independently.
+          </p>
+          <p className="text-muted-foreground mt-3 text-xs font-medium tabular-nums">
+            © {new Date().getFullYear()} FindMaids
+          </p>
+        </div>
       </Container>
     </footer>
   );
@@ -278,8 +286,8 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-dashed bg-white px-6 py-12 text-center">
-      <h2 className="font-display text-xl font-bold">{title}</h2>
+    <div className="rounded-xl border border-dashed bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgb(15_43_41_/_4%)]">
+      <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
       <p className="text-muted-foreground mx-auto mt-2 max-w-lg text-sm leading-6">
         {description}
       </p>
@@ -299,13 +307,17 @@ export function Pagination({
 }) {
   if (pages < 2) return null;
   return (
-    <nav aria-label="Pagination" className="mt-8 flex justify-center gap-2">
+    <nav aria-label="Pagination" className="mt-8 flex flex-wrap justify-center gap-2">
       {Array.from({ length: pages }, (_, i) => i + 1).map((number) => (
         <Link
           key={number}
           href={makeHref(number)}
           aria-current={number === page ? "page" : undefined}
-          className={`rounded border px-3 py-2 text-sm font-semibold ${number === page ? "bg-primary text-white" : "hover:bg-muted bg-white"}`}
+          className={`inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm font-bold transition ${
+            number === page
+              ? "bg-primary border-transparent text-white shadow-sm"
+              : "hover:bg-muted bg-white hover:border-[var(--border-strong)]"
+          }`}
         >
           {number}
         </Link>
@@ -318,7 +330,7 @@ export function SkeletonCard() {
   return (
     <div
       aria-hidden="true"
-      className="animate-pulse rounded-md border bg-white p-5"
+      className="animate-pulse rounded-xl border bg-white p-5 shadow-[0_1px_2px_rgb(15_43_41_/_4%)]"
     >
       <div className="bg-muted h-5 w-1/2 rounded" />
       <div className="bg-muted mt-4 h-4 w-1/3 rounded" />

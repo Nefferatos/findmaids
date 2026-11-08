@@ -25,6 +25,7 @@
     "admin:promote": "tsx scripts/promote-admin.ts",
     "seed": "tsx prisma/seed.ts",
     "accounts:test": "tsx scripts/create-test-accounts.ts",
+    "seed:sample-workspace": "tsx scripts/seed-sample-workspace.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy"

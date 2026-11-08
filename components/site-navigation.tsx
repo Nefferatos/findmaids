@@ -7,18 +7,18 @@ import { ProfileMenu, type ProfileUser } from "@/components/profile-menu";
 
 const navigation = [
   { label: "Home", href: "/" },
-  { label: "Agencies", href: "/agencies" },
+  { label: "Search Maid", href: "/#maid-search" },
+  { label: "Maid Agency", href: "/agencies" },
   { label: "Enquiry", href: "/contact" },
   { label: "FAQ", href: "/faq" },
-  { label: "Guides", href: "/guides" },
-  { label: "About", href: "/about" },
-  { label: "Join Us!", href: "/advertise", emphasized: true },
+  { label: "News", href: "/guides" },
+  { label: "Join as Maid Agency", href: "/advertise", emphasized: true },
 ];
 
 export function SiteHeader({ user }: { user?: ProfileUser | null }) {
   return (
     <header className="site-header border-b">
-      <div className="mx-auto flex min-h-20 max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-3 py-2 sm:px-6 lg:px-8">
         <Link
           href="/"
           aria-label="FindMaids home"

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
  import { logger } from "@/lib/logger";
+import { sampleAgencyVisibilityWhere } from "@/lib/sample-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -25,9 +26,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "weekly" as const,
     priority: path === "" ? 1 : 0.7,
   }));
+  const sampleVisibility = sampleAgencyVisibilityWhere();
   const agencies = await prisma.agency
     .findMany({
-      where: { status: "APPROVED" },
+      where: {
+        status: "APPROVED",
+        ...(sampleVisibility ? { AND: [sampleVisibility] } : {}),
+      },
       select: { slug: true, updatedAt: true },
     })
       .catch((error) => {

@@ -7,8 +7,16 @@ import { Badge, Container, RatingStars } from "@/components/site";
 import { EnquiryForm, ReviewForm } from "@/components/forms";
 import { ShareButton, TrackedLink } from "@/components/profile-actions";
 import { ProfileViewTracker } from "@/components/profile-view-tracker";
+import { agencyMaidInclude, maidStatusLabels } from "@/lib/maids";
+import { sampleAgencyVisibilityWhere, sampleDataEnabled } from "@/lib/sample-data";
 
 export const revalidate = 300;
+
+const maidStatusClass = {
+  AVAILABLE: "dir-status-available",
+  ON_HOLD: "dir-status-hold",
+  PLACED: "dir-status-placed",
+} as const;
 
 export async function generateMetadata({
   params,
@@ -44,11 +52,17 @@ export default async function AgencyProfilePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const sampleVisibility = sampleAgencyVisibilityWhere();
   const agency = await prisma.agency
     .findFirst({
-      where: { slug, status: "APPROVED" },
+      where: {
+        slug,
+        status: "APPROVED",
+        ...(sampleVisibility ? { AND: [sampleVisibility] } : {}),
+      },
       include: {
         photos: { orderBy: { sortOrder: "asc" } },
+        maids: agencyMaidInclude(),
         reviews: {
           where: { status: "PUBLISHED" },
           orderBy: { createdAt: "desc" },
@@ -242,6 +256,92 @@ export default async function AgencyProfilePage({
               <p className="text-muted-foreground mt-3 text-sm">
                 No photos provided.
               </p>
+            )}
+          </section>
+          <section className="mt-10">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-2xl font-bold">Maid profiles</h2>
+              <span className="text-muted-foreground text-sm">
+                {agency.maids.length} published
+              </span>
+            </div>
+            {agency.maids.length === 0 ? (
+              <p className="text-muted-foreground mt-3 text-sm">
+                This agency has not published maid profiles yet. Ask the agency
+                about current availability.
+              </p>
+            ) : (
+              <>
+                {sampleDataEnabled() &&
+                  agency.maids.some((maid) => maid.isSample) && (
+                    <p className="demo-notice mt-3 rounded border p-3 text-xs leading-5">
+                      Sample maid profiles for preview only. They are not
+                      available workers and are hidden on the live site.
+                    </p>
+                  )}
+                <ul className="dir-list mt-3">
+                  {agency.maids.map((maid) => (
+                    <li key={maid.id} className="dir-maid">
+                      <span className="dir-maid-avatar" aria-hidden="true">
+                        {maid.photoUrl ? (
+                          <Image
+                            src={maid.photoUrl}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="size-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          maid.reference.slice(-3)
+                        )}
+                      </span>
+                      <div className="dir-maid-main">
+                        <h3 className="dir-maid-title">
+                          Maid {maid.reference}
+                          <span
+                            className={`dir-status ${maidStatusClass[maid.status]}`}
+                          >
+                            {maidStatusLabels[maid.status]}
+                          </span>
+                        </h3>
+                        <p className="dir-maid-meta">
+                          {maid.nationality}
+                          {maid.age ? ` · Age ${maid.age}` : ""} ·{" "}
+                          {maid.placementType}
+                        </p>
+                        <p className="dir-maid-line">
+                          <span className="dir-card-label">Languages</span>
+                          {maid.languages.join(", ") || "Ask agency"}
+                        </p>
+                        <p className="dir-maid-line">
+                          <span className="dir-card-label">Duties</span>
+                          {maid.duties.join(", ") || "Ask agency"}
+                        </p>
+                        <p className="dir-maid-line">
+                          <span className="dir-card-label">Experience</span>
+                          {maid.experienceYears
+                            ? `${maid.experienceYears} years`
+                            : "Ask agency"}
+                          {maid.availableFrom
+                            ? ` · available ${maid.availableFrom.toLowerCase()}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="dir-maid-side">
+                        {maid.monthlySalary ? (
+                          <span className="dir-maid-rate">
+                            S${maid.monthlySalary}/mo
+                          </span>
+                        ) : null}
+                        <span className="dir-maid-hint">
+                          {maid.isSample ? "Sample" : "Profile"}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
           <section className="mt-10">

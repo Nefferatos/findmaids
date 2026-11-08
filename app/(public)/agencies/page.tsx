@@ -44,6 +44,7 @@ export default async function AgenciesPage({
     );
   }
   const query = new URLSearchParams();
+  if (filters.keyword) query.set("q", filters.keyword);
   if (filters.city) query.set("city", filters.city);
   if (filters.province) query.set("province", filters.province);
   filters.services.forEach((service) => query.append("service", service));
@@ -74,6 +75,16 @@ export default async function AgenciesPage({
             className="space-y-4 rounded-md border bg-white p-4"
           >
             <h2 className="font-display text-xl font-bold">Filters</h2>
+            <label className="block text-sm font-semibold">
+              Keyword
+              <input
+                className="mt-1 min-h-10 w-full rounded border px-3"
+                name="q"
+                type="search"
+                defaultValue={filters.keyword}
+                placeholder="Agency name, description or service"
+              />
+            </label>
             <label className="block text-sm font-semibold">
               City, region, or service location
               <input
@@ -119,7 +130,7 @@ export default async function AgenciesPage({
                 Nationalities served
               </legend>
               <div className="mt-2 space-y-2">
-                {["Filipino", "Indonesian", "Myanmar", "Sri Lankan"].map(
+                {["Filipino", "Indonesian", "Myanmar", "Indian", "Sri Lankan"].map(
                   (nationality) => (
                     <label
                       key={nationality}

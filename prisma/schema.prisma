@@ -89,6 +89,12 @@ enum ReviewStatus {
   REJECTED
 }
 
+enum MaidStatus {
+  AVAILABLE
+  ON_HOLD
+  PLACED
+}
+
 enum ConversationChannel {
   WEB
   WHATSAPP
@@ -206,6 +212,7 @@ model Agency {
   verifiedById           String?
   verifiedBy             User?               @relation("AgencyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   photos                 AgencyPhoto[]
+  maids                  Maid[]
   subscriptions          Subscription[]
   adPlacements           AdPlacement[]
   enquiries              Enquiry[]
@@ -248,6 +255,37 @@ model AgencyPhoto {
   updatedAt DateTime @updatedAt
 
   @@index([agencyId, sortOrder])
+}
+
+/**
+ * A maid profile published by one agency. `isSample` marks demonstration rows
+ * that are hidden from the public site outside local/preview environments (see
+ * lib/sample-data.ts) and can be deleted with supabase/009-remove-sample-data.sql.
+ */
+model Maid {
+  id              String     @id @default(cuid())
+  agencyId        String
+  agency          Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  reference       String
+  nationality     String
+  age             Int?
+  languages       String[]
+  placementType   String
+  experienceYears Int?
+  duties          String[]
+  monthlySalary   Int?
+  status          MaidStatus @default(AVAILABLE)
+  availableFrom   String?
+  photoUrl        String?
+  notes           String?    @db.Text
+  published       Boolean    @default(true)
+  isSample        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([agencyId, reference])
+  @@index([agencyId, published])
+  @@index([nationality, status])
 }
 
 model Plan {

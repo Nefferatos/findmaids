@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Container, SectionHeading } from "@/components/site";
 import { demoAgencies } from "@/lib/demo-listings";
+import { sampleDataEnabled } from "@/lib/sample-data";
 
 export const metadata = {
   title: "Illustrative agency profiles | FindMaids",
@@ -10,6 +12,8 @@ export const metadata = {
 };
 
 export default function SampleAgenciesPage() {
+  // Sample data is a local/preview tool: hide the page on any live deployment.
+  if (!sampleDataEnabled()) notFound();
   return (
     <Container className="py-10 sm:py-14">
       <div className="demo-notice mb-8 rounded-2xl border p-5 sm:p-6">
@@ -101,11 +105,17 @@ export default function SampleAgenciesPage() {
       </div>
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Link
-          href="/sample/maids"
+          href="/sample/agency-dashboard"
           className="bg-primary text-primary-foreground inline-flex min-h-11 items-center gap-2 rounded-lg px-4 font-bold"
         >
-          View sample maid profiles
+          View sample agency account
           <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
+        <Link
+          href="/sample/maids"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 font-bold"
+        >
+          View sample maid profiles
         </Link>
         <Link href="/agencies" className="text-primary font-bold underline">
           Browse real approved agency listings

@@ -2,14 +2,29 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Container, EmptyState, SectionHeading } from "@/components/site";
+import {
+  AgencyBannerList,
+  ContactAllAgenciesPanel,
+  DirectoryPanel,
+  DirectoryTrustNote,
+  FeaturedAgencyRail,
+  MaidCategoryList,
+  MaidNewsList,
+  MaidSearchPanel,
+  NationalitySections,
+  RecentListings,
+  RequirementsPanel,
+  type MaidNewsItem,
+} from "@/components/directory";
+import { DIRECTORY_NATIONALITIES, getDirectoryHomeData } from "@/lib/directory";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Your account | FindMaids",
+  title: "Employer centre | FindMaids",
   description:
-    "Review your FindMaids account details and the enquiries you have sent to agencies.",
+    "Search maid agencies, review your enquiries, and manage your FindMaids employer account.",
 };
 
 const statusLabels: Record<string, string> = {
@@ -24,6 +39,24 @@ const roleLabels: Record<string, string> = {
   STAFF: "FindMaids staff",
   ADMIN: "Administrator",
 };
+
+const newsItems: MaidNewsItem[] = [
+  {
+    title: "How to compare maid agency profiles before you call",
+    href: "/guides/choosing-an-agency",
+    summary: "A practical checklist for shortlisting agencies.",
+  },
+  {
+    title: "Preparing questions for an agency interview",
+    href: "/guides/preparing-for-a-conversation",
+    summary: "What to ask about duties, rest days and replacements.",
+  },
+  {
+    title: "Maid agency enquiries answered",
+    href: "/faq",
+    summary: "How listings, reviews and enquiries work on FindMaids.",
+  },
+];
 
 export default async function AccountPage() {
   const session = await auth();
@@ -44,113 +77,195 @@ export default async function AccountPage() {
     },
   });
 
+  let data: Awaited<ReturnType<typeof getDirectoryHomeData>> | null = null;
+  try {
+    data = await getDirectoryHomeData({ perSection: 5, bannerLimit: 4 });
+  } catch (error) {
+    logger.error(
+      { errorType: error instanceof Error ? error.name : "unknown" },
+      "Unable to load employer directory data",
+    );
+  }
+
+  const sections = data?.sections ?? [];
+  const agencies = data?.agencies ?? [];
+  const nationalities = data?.nationalities ?? [...DIRECTORY_NATIONALITIES];
+  const services = data?.services.map((entry) => entry.service) ?? [];
+  const banners = data?.banners ?? [];
+  const recent = data?.recent ?? [];
+  const featured = data?.featured.length
+    ? data.featured
+    : agencies.slice(0, 5);
+  const displayName = session.user.name?.trim() || email;
+
   return (
-    <Container className="py-10">
-      <SectionHeading
-        eyebrow="Your account"
-        title={`Welcome back, ${session.user.name ?? "there"}`}
-        description="Your details and every enquiry you have sent through FindMaids."
-      />
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <section className="rounded-md border bg-white p-5">
-          <h2 className="font-display text-xl font-bold">Your enquiries</h2>
-          {enquiries.length === 0 ? (
-            <div className="mt-4">
-              <EmptyState
-                title="No enquiries yet"
-                description="Browse the directory and contact an agency; your enquiries appear here."
-                action={
-                  <Link
-                    className="bg-primary inline-flex min-h-11 items-center rounded-md px-4 font-bold text-white"
-                    href="/agencies"
-                  >
-                    Browse agencies
-                  </Link>
-                }
-              />
-            </div>
-          ) : (
-            <ul className="mt-4 divide-y">
-              {enquiries.map((enquiry) => (
-                <li key={enquiry.id} className="py-4 first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <Link
-                      className="font-semibold underline"
-                      href={`/agencies/${enquiry.agency.slug}`}
-                    >
-                      {enquiry.agency.name}
-                    </Link>
-                    <span className="text-muted-foreground text-sm">
-                      {enquiry.createdAt.toLocaleDateString("en-SG", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
-                    {enquiry.message}
-                  </p>
-                  <p className="text-primary mt-1 text-sm font-semibold">
-                    {statusLabels[enquiry.status] ?? enquiry.status}
-                  </p>
-                </li>
-              ))}
-            </ul>
+    <div className="dir-shell">
+      <div className="dir-employer-bar">
+        <div className="dir-employer-welcome">
+          <p className="dir-employer-kicker">Employer centre</p>
+          <h1 className="dir-employer-title">Welcome back, {displayName}</h1>
+          <p className="dir-employer-note">
+            {roleLabels[role] ?? role} · {session.user.email}
+          </p>
+        </div>
+        <nav aria-label="Employer shortcuts" className="dir-employer-links">
+          <a href="#maid-search" className="dir-chip">
+            Search maid
+          </a>
+          <a href="#your-enquiries" className="dir-chip">
+            Your enquiries ({enquiries.length})
+          </a>
+          <Link href="/agencies" className="dir-chip">
+            All agencies
+          </Link>
+          {role === "AGENCY" && (
+            <Link href="/agency/dashboard" className="dir-chip">
+              Agency dashboard
+            </Link>
           )}
-        </section>
-
-        <aside className="space-y-4">
-          <section className="rounded-md border bg-white p-5">
-            <h2 className="font-display text-xl font-bold">Account</h2>
-            <dl className="mt-3 space-y-2 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Name</dt>
-                <dd className="font-semibold">{session.user.name ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Email</dt>
-                <dd className="font-semibold break-all">{session.user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Signed in as</dt>
-                <dd className="font-semibold">{roleLabels[role] ?? role}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className="rounded-md border bg-white p-5 text-sm">
-            <h2 className="font-display text-xl font-bold">More</h2>
-            <ul className="mt-3 space-y-2">
-              <li>
-                <Link className="underline" href="/agencies">
-                  Browse agencies
-                </Link>
-              </li>
-              {role === "AGENCY" && (
-                <li>
-                  <Link className="underline" href="/agency/dashboard">
-                    Agency dashboard
-                  </Link>
-                </li>
-              )}
-              {(role === "ADMIN" || role === "STAFF") && (
-                <li>
-                  <Link className="underline" href="/admin">
-                    Admin area
-                  </Link>
-                </li>
-              )}
-              <li>
-                <Link className="underline" href="/privacy">
-                  Privacy policy
-                </Link>
-              </li>
-            </ul>
-          </section>
-        </aside>
+          {(role === "ADMIN" || role === "STAFF") && (
+            <Link href="/admin" className="dir-chip">
+              Admin area
+            </Link>
+          )}
+        </nav>
       </div>
-    </Container>
+
+      <div className="dir-grid">
+        <div className="dir-main">
+          <div className="dir-col">
+            <MaidSearchPanel
+              nationalities={nationalities}
+              services={services}
+            />
+
+            <AgencyBannerList banners={banners} limit={3} />
+
+            <NationalitySections sections={sections} />
+
+            <DirectoryPanel
+              id="your-enquiries"
+              title="Your enquiries"
+              href="/agencies"
+              actionLabel="Contact more agencies"
+            >
+              {enquiries.length === 0 ? (
+                <p className="dir-empty">
+                  You have not contacted an agency yet. Use the search above or
+                  the contact form to send your requirements to approved
+                  agencies.
+                </p>
+              ) : (
+                <ul className="dir-enquiry-list">
+                  {enquiries.map((enquiry) => (
+                    <li key={enquiry.id}>
+                      <div className="dir-enquiry-head">
+                        <Link
+                          href={`/agencies/${enquiry.agency.slug}`}
+                          className="dir-enquiry-agency"
+                        >
+                          {enquiry.agency.name}
+                        </Link>
+                        <span className="dir-recent-meta">
+                          {enquiry.createdAt.toLocaleDateString("en-SG", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      <p className="dir-enquiry-message">{enquiry.message}</p>
+                      <p className="dir-enquiry-status">
+                        {statusLabels[enquiry.status] ?? enquiry.status}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DirectoryPanel>
+
+            <DirectoryPanel title="Your account">
+              <dl className="dir-account-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{session.user.name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd>{session.user.email}</dd>
+                </div>
+                <div>
+                  <dt>Signed in as</dt>
+                  <dd>{roleLabels[role] ?? role}</dd>
+                </div>
+              </dl>
+              <ul className="dir-link-list dir-link-list-inline">
+                <li>
+                  <Link href="/agencies">Browse agencies</Link>
+                </li>
+                <li>
+                  <Link href="/privacy">Privacy policy</Link>
+                </li>
+                <li>
+                  <Link href="/contact">Contact FindMaids</Link>
+                </li>
+                {role === "AGENCY" && (
+                  <li>
+                    <Link href="/agency/dashboard">Agency dashboard</Link>
+                  </li>
+                )}
+                {(role === "ADMIN" || role === "STAFF") && (
+                  <li>
+                    <Link href="/admin">Admin area</Link>
+                  </li>
+                )}
+              </ul>
+            </DirectoryPanel>
+
+            <DirectoryPanel
+              title="Maid news & guides"
+              href="/guides"
+              actionLabel="All guides"
+            >
+              <MaidNewsList items={newsItems} />
+            </DirectoryPanel>
+
+            <DirectoryTrustNote />
+          </div>
+          <div className="dir-rail">
+            <RequirementsPanel signedIn />
+            <DirectoryPanel
+              title="Maid categories"
+              href="/agencies"
+              actionLabel="All listings"
+            >
+              <MaidCategoryList
+                nationalities={nationalities}
+                services={services}
+              />
+            </DirectoryPanel>
+            <DirectoryPanel
+              title="Recent maid listings"
+              href="/agencies?sort=newest"
+              actionLabel="See all"
+            >
+              <RecentListings agencies={recent} />
+            </DirectoryPanel>
+          </div>
+        </div>
+        <aside className="dir-aside">
+          <ContactAllAgenciesPanel
+            defaultName={session.user.name ?? ""}
+            defaultEmail={session.user.email ?? ""}
+          />
+          <FeaturedAgencyRail agencies={featured} />
+          {banners.length > 3 && (
+            <AgencyBannerList banners={banners.slice(3)} limit={2} />
+          )}
+        </aside>
+
+      </div>
+    </div>
   );
 }
+

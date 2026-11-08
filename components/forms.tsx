@@ -394,6 +394,149 @@ export function EnquiryForm({
   );
 }
 
+/**
+ * "Contact all maid agencies" form used in the directory sidebar. It reuses the
+ * existing enquiry endpoint with `allAgencies: true`, which routes the message
+ * to every approved agency (see app/api/enquiries/route.ts).
+ */
+export function AllAgenciesEnquiryForm({
+  defaultName = "",
+  defaultEmail = "",
+  compact = false,
+}: {
+  defaultName?: string;
+  defaultEmail?: string;
+  compact?: boolean;
+}) {
+  const [state, setState] = useState<FormState>({ message: "", error: false });
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(formData: FormData) {
+    setSubmitting(true);
+    setState({ message: "", error: false });
+    try {
+      const response = await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...Object.fromEntries(formData),
+          allAgencies: true,
+          turnstileToken,
+          acquisitionSource: getFirstTouch(),
+        }),
+      });
+      const data = await response.json();
+      setState({ message: data.message ?? data.error, error: !response.ok });
+      if (response.ok)
+        (
+          document.getElementById(
+            "all-agencies-enquiry-form",
+          ) as HTMLFormElement | null
+        )?.reset();
+    } catch {
+      setState({
+        message: "Unable to send the enquiry right now. Please try again.",
+        error: true,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const fieldClass = compact
+    ? "mt-1 block min-h-9 w-full rounded border bg-white px-2 py-1.5 text-sm"
+    : inputClass;
+
+  return (
+    <form id="all-agencies-enquiry-form" action={submit} className="space-y-2.5">
+      <label className="block text-xs font-bold">
+        Name
+        <input
+          className={fieldClass}
+          name="name"
+          required
+          minLength={2}
+          maxLength={100}
+          defaultValue={defaultName}
+          autoComplete="name"
+        />
+      </label>
+      <label className="block text-xs font-bold">
+        Email
+        <input
+          className={fieldClass}
+          name="email"
+          type="email"
+          required
+          maxLength={254}
+          defaultValue={defaultEmail}
+          autoComplete="email"
+        />
+      </label>
+      <label className="block text-xs font-bold">
+        Phone
+        <input
+          className={fieldClass}
+          name="phone"
+          type="tel"
+          maxLength={40}
+          autoComplete="tel"
+        />
+      </label>
+      <label className="block text-xs font-bold">
+        Requirements
+        <textarea
+          className={`${fieldClass} min-h-24`}
+          name="message"
+          required
+          minLength={5}
+          maxLength={4000}
+          placeholder="Maid nationality, duties, start date, budget…"
+        />
+      </label>
+      <label className="hidden" aria-hidden="true">
+        Leave this field blank
+        <input tabIndex={-1} autoComplete="off" name="website" />
+      </label>
+      <label className="flex items-start gap-2 text-xs leading-5">
+        <input
+          className="mt-0.5 size-4"
+          type="checkbox"
+          name="consentGiven"
+          required
+        />
+        <span>
+          I consent to FindMaids sharing these details with approved maid
+          agencies so they can respond.
+        </span>
+      </label>
+      <Status state={state} />
+      <button
+        type="submit"
+        disabled={submitting}
+        className="bg-primary flex min-h-10 w-full items-center justify-center rounded px-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? "Sending…" : "Submit requirements"}
+      </button>
+      {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+        <Turnstile
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          onSuccess={setTurnstileToken}
+          onExpire={() => setTurnstileToken("")}
+        />
+      )}
+      <p className="text-muted-foreground text-[11px] leading-4">
+        Your enquiry is sent to every approved agency. See our{" "}
+        <a className="underline" href="/privacy">
+          Privacy Policy
+        </a>
+        .
+      </p>
+    </form>
+  );
+}
+
 export function ReviewForm({ agencyId }: { agencyId: string }) {
   const [state, setState] = useState<FormState>({ message: "", error: false });
   async function submit(formData: FormData) {
