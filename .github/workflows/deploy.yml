@@ -81,7 +81,27 @@ jobs:
         run: npx vitest run
 
       - name: Apply database migrations
-        run: npx prisma migrate deploy
+        run: |
+          set +e
+          # Supabase's pooled endpoint cannot run DDL. Migrations use the direct
+          # connection, and fall back to DATABASE_URL when that secret is empty.
+          if [ -z "${DIRECT_URL:-}" ]; then
+            echo "::warning::DIRECT_URL is empty; migrations will use DATABASE_URL."
+            export DIRECT_URL="$DATABASE_URL"
+          fi
+          npx prisma migrate deploy 2>&1 | tee migrate.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            tail -40 migrate.log | sed 's/^/::error::migrate /'
+          fi
+          exit "$status"
 
       - name: Build and deploy Worker
-        run: npm run deploy:cf
+        run: |
+          set +e
+          npm run deploy:cf 2>&1 | tee deploy.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            tail -40 deploy.log | sed 's/^/::error::deploy /'
+          fi
+          exit "$status"
