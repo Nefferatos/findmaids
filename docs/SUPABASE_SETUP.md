@@ -44,6 +44,9 @@ Create two buckets in Supabase Storage:
 
 - `findmaids-media`: public reads for agency listing images. App uploads require an authenticated agency and image validation.
 - `findmaids-private`: private bucket for bank-transfer proofs and invoice PDFs. Do not allow public access or anonymous reads.
+- `findmaids-backups`: private bucket written by `npm run db:backup` (`pg_dump`
+  archives + manifests). Created automatically when missing; see
+  [BACKUP_RESTORE.md](BACKUP_RESTORE.md).
 
 The server-only `SUPABASE_SERVICE_ROLE_KEY` is used by `lib/storage.ts`. Private object routes first verify agency ownership or ADMIN permission. Keep the key in a secret manager and rotate it if exposed.
 

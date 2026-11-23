@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { clientIp } from "@/lib/security/client-ip";
 
 export async function writeAdminAudit(input: {
   actorId: string;
@@ -25,5 +26,6 @@ export async function writeAdminAudit(input: {
 }
 
 export function requestIp(request: Request) {
-  return request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = clientIp(request);
+  return ip === "unknown" ? null : ip;
 }

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
 
 const schema = z.object({
@@ -14,8 +15,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(request);
   const rate = await checkRateLimit(`register:${ip}`, 5, 3600);
   if (!rate.allowed)
     return NextResponse.json(

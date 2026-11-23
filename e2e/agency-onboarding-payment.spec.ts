@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { SAMPLE_AGENCY_MARKER } from "../lib/sample-data";
 import { prisma, sameOrigin } from "./prisma";
 import { expect, test } from "@playwright/test";
 
@@ -96,7 +97,9 @@ test("agency registration, onboarding, approval, manual checkout and featured li
     });
     await prisma.agency.update({
       where: { id: agency.id },
-      data: { status: "APPROVED" },
+      // Tagged before approval so a failure below still leaves a row the live
+      // directory hides (and supabase/009 deletes).
+      data: { status: "APPROVED", adminNote: SAMPLE_AGENCY_MARKER },
     });
     await prisma.subscription.create({
       data: {
@@ -123,7 +126,7 @@ test("agency registration, onboarding, approval, manual checkout and featured li
       },
     });
 
-    await page.goto("/agency/dashboard?view=billing");
+    await page.goto("/agency/billing");
     await page.goto(`/agency/billing/checkout?plan=${gold.id}`);
     await page.getByRole("button", { name: "Confirm plan" }).click();
     await expect(page.getByRole("status")).toContainText(/pending/i);
@@ -159,7 +162,9 @@ test("agency registration, onboarding, approval, manual checkout and featured li
       },
     });
     await page.goto("/");
-    await expect(page.getByText(/Featured( listing| \/ Sponsored)/).first()).toBeVisible();
+    await expect(
+      page.getByText(/Featured( listing| \/ Sponsored)/).first(),
+    ).toBeVisible();
   } finally {
     const cleanupAgency = await prisma.agency.findUnique({ where: { slug } });
     if (cleanupAgency)

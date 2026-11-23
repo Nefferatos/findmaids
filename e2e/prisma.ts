@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // The CSRF guard in middleware.ts rejects cookie-authenticated mutations that lack a same-origin Origin header.

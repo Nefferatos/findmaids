@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 
 const schema = z.object({
   analytics: z.boolean(),
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       { error: "Invalid consent choice." },
       { status: 400 },
     );
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`cookie-consent:${ip}`, 10, 3600)).allowed)
     return NextResponse.json(
       { error: "Please try again later." },

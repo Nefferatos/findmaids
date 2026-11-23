@@ -42,6 +42,9 @@ yarn-error.log*
 # TypeScript build cache
 *.tsbuildinfo
 
+# Prisma Client (generated into the source tree for the workerd runtime)
+/lib/generated/
+
 # display-only E2E artefacts (in-memory Prisma mock store)
 /.next-display/
 /display-e2e.log
@@ -61,5 +64,9 @@ yarn-error.log*
 /cf-fix-*.err.log
 /schema.diff
 /schema.diff2
+# pg_dump archives from `npm run db:backup` (never commit database dumps)
+/backups/
+# resumable maid-migration state + reports (contain profile references)
+/migration/
 /.tsupgrader/
 .env.deploybak

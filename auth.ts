@@ -4,11 +4,18 @@ import Google from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { clientIp } from "@/lib/security/client-ip";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { decryptTotpSecret, verifyTotp } from "@/lib/totp";
 
+/** Accounts can sign in with their username, email, or legacy platform email. */
+const PLATFORM_EMAIL_DOMAIN = "findmaids.sg";
+const LEGACY_EMAIL_DOMAIN = "findmaids.ph";
+const emailSchema = z.string().email();
+
 const credentialsSchema = z.object({
-  email: z.string().email(),
+  // Accepts an email address or a username.
+  email: z.string().trim().min(1).max(254),
   password: z.string().min(1).max(128),
   totp: z
     .string()
@@ -16,6 +23,36 @@ const credentialsSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+/**
+ * Resolves the login handle to an account:
+ *   1. `username` column (e.g. attheagency)
+ *   2. `<handle>@findmaids.sg`
+ *   3. `<handle>@findmaids.ph` (legacy platform accounts)
+ * Anything containing "@" is treated as a full email address.
+ */
+async function findLoginUser(identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+  if (value.includes("@")) {
+    return emailSchema.safeParse(value).success
+      ? prisma.user.findUnique({ where: { email: value } })
+      : null;
+  }
+  const byUsername = await prisma.user.findUnique({
+    where: { username: value },
+  });
+  if (byUsername) return byUsername;
+  for (const email of [
+    `${value}@${PLATFORM_EMAIL_DOMAIN}`,
+    `${value}@${LEGACY_EMAIL_DOMAIN}`,
+  ]) {
+    if (!emailSchema.safeParse(email).success) continue;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) return user;
+  }
+  return null;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
@@ -26,22 +63,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(rawCredentials, request) {
         const parsed = credentialsSchema.safeParse(rawCredentials);
         if (!parsed.success) return null;
-        const ip =
-          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-          "unknown";
+        const identifier = parsed.data.email.trim().toLowerCase();
+        const ip = clientIp(request);
         if (
-          !(
-            await checkRateLimit(
-              `login:${ip}:${parsed.data.email.toLowerCase()}`,
-              10,
-              900,
-            )
-          ).allowed
+          !(await checkRateLimit(`login:${ip}:${identifier}`, 10, 900)).allowed
         )
           return null;
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
-        });
+        const user = await findLoginUser(identifier);
         if (!user?.passwordHash || !user.emailVerified) return null;
         if (!(await compare(parsed.data.password, user.passwordHash)))
           return null;

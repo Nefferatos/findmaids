@@ -119,7 +119,7 @@ export async function GET(request: Request) {
           await sendEmail(
             subscription.agency.owner.email,
             `Your FindMaids founding period ends in ${days} days`,
-            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
           );
         foundingReminders += 1;
       }
@@ -183,7 +183,7 @@ export async function GET(request: Request) {
       await sendEmail(
         subscription.agency.owner.email,
         "Your FindMaids founding period has ended",
-        `Your free founding Gold-entitlement period has ended. Your account is now on Basic Free. No payment was collected. Review available plans here: ${new URL("/agency/dashboard?view=billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+        `Your free founding Gold-entitlement period has ended. Your account is now on Basic Free. No payment was collected. Review available plans here: ${new URL("/agency/billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
       );
     foundingDowngrades += 1;
   }

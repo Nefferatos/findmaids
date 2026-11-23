@@ -1,6 +1,6 @@
 # FindMaids
 
-FindMaids is a Singapore-focused directory and advertising platform for independent domestic staffing agencies based in Singapore. Agencies can describe overseas service locations, which are displayed on their profiles and can be searched by exact service-location text. The app includes public pages, agency onboarding and dashboard, admin moderation and test-only payment flows, reports, and opt-in deterministic AI demo workflows. Automated card-on-file renewal and external AI provider calls are not enabled.
+FindMaids is a Singapore-focused directory and advertising platform for independent domestic staffing agencies based in Singapore. Agencies can describe overseas service locations, which are displayed on their profiles and can be searched by exact service-location text, and publish a maid roster on their public profile. The app includes public pages, agency onboarding and dashboard, admin moderation and test-only payment flows, reports, and opt-in deterministic AI demo workflows. Automated card-on-file renewal and external AI provider calls are not enabled.
 
 ## Requirements
 
@@ -61,6 +61,7 @@ Gold and Platinum plan amounts are provisional SGD test values (999/9,990 and 1,
 - `content/guides`: MDX articles
 - `docs/PAYMENTS.md`: provider and lifecycle setup
 - `docs/SUPABASE_SETUP.md`: Supabase Postgres and Storage setup
+- `docs/ADMIN_ACCOUNT_SETUP.md`: creating and bootstrapping an ADMIN account in Supabase
 - `tests`: Vitest unit tests; `e2e`: Playwright browser smoke tests
 
 `KnowledgeDocument.embedding` uses PostgreSQL `vector(1536)`. After schema changes, run `npx prisma generate` and create/apply a migration.

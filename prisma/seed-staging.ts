@@ -1,6 +1,7 @@
-import { PrismaClient, ProspectStage } from "@prisma/client";
+import { PrismaClient, ProspectStage } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "bcryptjs";
+import { SAMPLE_AGENCY_MARKER } from "../lib/sample-data";
 import { assertStagingWriteAllowed } from "../lib/security/staging-guard";
 import { encryptTotpSecret } from "../lib/totp";
 
@@ -75,6 +76,9 @@ async function main() {
       status: "APPROVED" as const,
       verifiedBadge: false,
       profileCompleteness: 90,
+      // Staging/fixture rows: hidden by the live deployment and deleted by
+      // supabase/009-remove-sample-data.sql.
+      adminNote: SAMPLE_AGENCY_MARKER,
       foundingAgency: founding,
       foundingPeriodStartsAt: founding ? inDays(-87) : null,
       foundingPeriodEndsAt: founding ? inDays(3) : null,

@@ -7,6 +7,10 @@ import {
   isApiBodyWithinLimit,
   isSameOriginMutation,
 } from "@/lib/security/request-guards";
+import {
+  isCookieMutationPath,
+  isProtectedPath as requiresSession,
+} from "@/lib/security/route-access";
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -17,34 +21,21 @@ export async function middleware(request: NextRequest) {
     response.headers.set("x-request-id", requestId);
     return response;
   };
-  const isProtectedPath =
-    path.startsWith("/admin") ||
-    path.startsWith("/agency") ||
-    path.startsWith("/api/admin/") ||
-    path.startsWith("/api/agency/") ||
-    path === "/api/data-deletion" ||
-    path === "/api/privacy/consent";
+  // Writable with a cookie. `/api/privacy/consent` is included because it must
+  // stay open to anonymous visitors (consent is captured before sign-in), but
+  // every mutation here still needs the same-origin check.
+  const cookieMutation = isCookieMutationPath(path);
   if (path.startsWith("/api/")) {
-    if (
-      !isApiBodyWithinLimit(path, request.headers.get("content-length"))
-    )
+    if (!isApiBodyWithinLimit(path, request.headers.get("content-length")))
       return attachRequestId(
-        NextResponse.json({ error: "Request body is too large." }, { status: 413 }),
+        NextResponse.json(
+          { error: "Request body is too large." },
+          { status: 413 },
+        ),
       );
   }
-  if (!isProtectedPath)
-    return attachRequestId(
-      NextResponse.next({ request: { headers: requestHeaders } }),
-    );
   const mutating = !["GET", "HEAD", "OPTIONS"].includes(request.method);
-  const cookieAuthenticatedMutation =
-    path.startsWith("/admin") ||
-    path.startsWith("/agency") ||
-    path.startsWith("/api/admin/") ||
-    path.startsWith("/api/agency/") ||
-    path === "/api/data-deletion" ||
-    path === "/api/privacy/consent";
-  if (mutating && cookieAuthenticatedMutation) {
+  if (mutating && cookieMutation) {
     if (
       !isSameOriginMutation({
         origin: request.headers.get("origin"),
@@ -60,6 +51,11 @@ export async function middleware(request: NextRequest) {
         ),
       );
   }
+  // Authentication is required for everything except the anonymous consent write.
+  if (!requiresSession(path))
+    return attachRequestId(
+      NextResponse.next({ request: { headers: requestHeaders } }),
+    );
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -113,17 +109,17 @@ export async function middleware(request: NextRequest) {
                               ? "prospects"
                               : adminSection === "founding"
                                 ? "plans"
-                            : adminSection === "content"
-                              ? "content"
-                              : adminSection === "users"
-                                ? "users"
-                                : adminSection === "audit"
-                                  ? "audit"
-                                  : adminSection === "settings"
-                                    ? "settings"
-                                    : adminSection === "ai-control"
-                                      ? "settings"
-                                      : "dashboard";
+                                : adminSection === "content"
+                                  ? "content"
+                                  : adminSection === "users"
+                                    ? "users"
+                                    : adminSection === "audit"
+                                      ? "audit"
+                                      : adminSection === "settings"
+                                        ? "settings"
+                                        : adminSection === "ai-control"
+                                          ? "settings"
+                                          : "dashboard";
   const isReadOnlyImpersonation = Boolean(
     token?.role === "ADMIN" &&
     impersonation?.adminId === token.sub &&

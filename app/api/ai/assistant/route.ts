@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import {
   checkInputLength,
   looksLikePromptInjection,
@@ -27,10 +28,7 @@ export async function POST(request: Request) {
       { error: "The assistant is not enabled." },
       { status: 404 },
     );
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`assistant:${ip}`, 20, 3600)).allowed)
     return NextResponse.json(
       { error: "Please try again later." },

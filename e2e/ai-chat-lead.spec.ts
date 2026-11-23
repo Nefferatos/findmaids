@@ -90,7 +90,9 @@ test("visitor chat to consented enquiry to agency-approved reply", async ({
     });
     if (await allowAnalytics.isVisible()) await allowAnalytics.click();
     await page.getByRole("button", { name: /assistant/i }).click();
-    await page.getByRole("textbox", { name: "Message" }).fill(`I need a nanny in ${agency.city}`);
+    await page
+      .getByRole("textbox", { name: "Message" })
+      .fill(`I need a nanny in ${agency.city}`);
     await page.getByRole("button", { name: /send/i }).click();
     await page.getByRole("button", { name: /share contact details/i }).click();
     await page.getByLabel("Agency", { exact: true }).selectOption(agency.id);
@@ -129,7 +131,7 @@ test("visitor chat to consented enquiry to agency-approved reply", async ({
     await page.getByLabel(/email/i).fill(agencyEmail!);
     await page.getByLabel(/password/i).fill(agencyPassword!);
     await page.getByRole("button", { name: /log in/i }).click();
-    await page.goto("/agency/dashboard?view=leads");
+    await page.goto("/agency/enquiries");
     await expect(page.getByText(email)).toBeVisible();
     await expect(
       page.getByText(/above your current plan allowance/i),
@@ -190,7 +192,7 @@ test("visitor chat to consented enquiry to agency-approved reply", async ({
         where: { key: "featureFlags" },
         data: {
           value:
-            flagSetting.value as import("@prisma/client").Prisma.InputJsonValue,
+            flagSetting.value as import("@/lib/generated/prisma/client").Prisma.InputJsonValue,
         },
       });
     else

@@ -1,4 +1,6 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/lib/generated/prisma/client";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { assertStagingWriteAllowed } from "../lib/security/staging-guard";
 
@@ -8,8 +10,17 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL, max: 1 }),
 });
 
+// The `prisma-client` generator does not expose `Prisma.dmmf`, so the expected
+// table list is read straight from the schema: model name, overridden by `@@map`.
+function expectedTables() {
+  const schema = readFileSync(join(process.cwd(), "prisma", "schema.prisma"), "utf8");
+  return [...schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)]
+    .map(([, name, body]) => /@@map\("([^"]+)"\)/.exec(body)?.[1] ?? name)
+    .sort();
+}
+
 async function main() {
-  const expected = Prisma.dmmf.datamodel.models.map((m) => m.dbName ?? m.name).sort();
+  const expected = expectedTables();
   const tables = await prisma.$queryRaw<{ name: string; rls: boolean }[]>`
     SELECT c.relname::text AS name, c.relrowsecurity AS rls
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace

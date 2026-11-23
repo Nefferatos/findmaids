@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
 import { cookies } from "next/headers";
 import {
@@ -18,8 +19,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const session = await auth();
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`deletion:${ip}`, 3, 86400)).allowed)
     return NextResponse.json(
       { error: "Request limit reached." },
@@ -69,8 +69,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await auth();
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`chat-data-delete:${ip}`, 3, 86400)).allowed)
     return NextResponse.json(
       { error: "Request limit reached." },

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type Lead = {
@@ -177,12 +178,12 @@ export function LeadManager({
               ? `${cap.upgradePlanName} is the next plan${cap.upgradePriceMonthly === null ? "" : ` at S$${cap.upgradePriceMonthly.toLocaleString("en-SG")}/month`}; it includes ${Array.isArray(cap.upgradePlanFeatures) ? cap.upgradePlanFeatures.join(", ") : "the listed plan entitlements"}.`
               : "Contact the FindMaids team to discuss available plans."}
           </p>
-          <a
+          <Link
             className="mt-2 inline-block font-bold underline"
-            href="/agency/dashboard?view=billing"
+            href="/agency/billing"
           >
             Review plans
-          </a>
+          </Link>
         </div>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">

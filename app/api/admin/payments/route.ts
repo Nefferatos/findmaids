@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeAdminApi } from "@/lib/admin-auth";
 import { requestIp, writeAdminAudit } from "@/lib/admin-audit";
-import { AdPlacementType } from "@prisma/client";
+import { AdPlacementType } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculateRefund, classifyBankPayment } from "@/lib/admin-workflows";
 import { readPrivateObject } from "@/lib/storage";

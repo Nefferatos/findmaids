@@ -10,6 +10,7 @@
  *   $env:CONFIRM_TEST_ACCOUNTS="yes"; npm run accounts:test -- --delete
  */
 import { hashSync } from "bcryptjs";
+import { SAMPLE_AGENCY_MARKER } from "../lib/sample-data";
 import { prisma } from "../lib/prisma-script";
 
 const password = "Test-pass-12345";
@@ -93,11 +94,17 @@ async function create() {
     onboardingStep: 5,
     submittedAt: new Date(),
     verifiedAt: new Date(),
+    // Test rows: hidden on any live deployment, visible on localhost.
+    adminNote: SAMPLE_AGENCY_MARKER,
   };
 
   await prisma.agency.upsert({
     where: { slug: "test-agency" },
-    update: { ownerId: owner.id, email: owner.email },
+    update: {
+      ownerId: owner.id,
+      email: owner.email,
+      adminNote: SAMPLE_AGENCY_MARKER,
+    },
     create: {
       ...agencyFields,
       ownerId: owner.id,
@@ -108,7 +115,7 @@ async function create() {
   });
   await prisma.agency.upsert({
     where: { slug: "test-agency-two" },
-    update: {},
+    update: { adminNote: SAMPLE_AGENCY_MARKER },
     create: {
       ...agencyFields,
       name: "Test Agency Two",

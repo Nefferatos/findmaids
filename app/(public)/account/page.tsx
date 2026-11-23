@@ -119,7 +119,7 @@ export default async function AccountPage() {
             All agencies
           </Link>
           {role === "AGENCY" && (
-            <Link href="/agency/dashboard" className="dir-chip">
+            <Link href="/agency" className="dir-chip">
               Agency dashboard
             </Link>
           )}
@@ -211,7 +211,7 @@ export default async function AccountPage() {
                 </li>
                 {role === "AGENCY" && (
                   <li>
-                    <Link href="/agency/dashboard">Agency dashboard</Link>
+                    <Link href="/agency">Agency dashboard</Link>
                   </li>
                 )}
                 {(role === "ADMIN" || role === "STAFF") && (

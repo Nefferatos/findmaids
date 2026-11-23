@@ -52,68 +52,109 @@ export function SectionHeading({
   );
 }
 
+const footerColumns = [
+  {
+    title: "By nationality",
+    links: [
+      { label: "Filipino maids", href: "/agencies?nationality=Filipino" },
+      { label: "Indonesian maids", href: "/agencies?nationality=Indonesian" },
+      { label: "Myanmar maids", href: "/agencies?nationality=Myanmar" },
+      { label: "Indian maids", href: "/agencies?nationality=Indian" },
+    ],
+  },
+  {
+    title: "By type",
+    links: [
+      { label: "Transfer maid", href: "/agencies?q=transfer" },
+      { label: "New maid", href: "/agencies?q=new" },
+      { label: "Ex-Singapore maid", href: "/agencies?q=ex-singapore" },
+      {
+        label: "Part-time placement",
+        href: "/agencies?service=Part-time+placement",
+      },
+    ],
+  },
+  {
+    title: "By skill & language",
+    links: [
+      { label: "Infant care", href: "/agencies?q=infant" },
+      { label: "Elderly care", href: "/agencies?q=elderly" },
+      { label: "Cooking", href: "/agencies?q=cooking" },
+      { label: "General housework", href: "/agencies?q=housework" },
+      { label: "English-speaking", href: "/agencies?language=English" },
+      { label: "Mandarin-speaking", href: "/agencies?language=Mandarin" },
+    ],
+  },
+  {
+    title: "Maid agencies",
+    links: [
+      { label: "Browse agencies", href: "/maid-agency" },
+      { label: "Agencies near me", href: "/maid-agency/map" },
+      { label: "Top-rated agencies", href: "/agencies?sort=top-rated" },
+      { label: "Advertise your agency", href: "/advertise" },
+      { label: "Agency login", href: "/login" },
+    ],
+  },
+  {
+    title: "FindMaids",
+    links: [
+      { label: "About FindMaids", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Guides", href: "/guides" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Terms", href: "/terms" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Cookies", href: "/cookies" },
+      { label: "Security reporting", href: "/security" },
+    ],
+  },
+];
+
 export function SiteFooter() {
   return (
     <footer className="site-footer border-t py-10">
       <Container>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
+        <div className="mb-8 grid gap-4 border-b border-[var(--border)] pb-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div className="flex flex-col gap-3">
             <Link
               href="/"
               className="font-display text-primary text-xl font-bold"
             >
               FindMaids
             </Link>
-            <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-6">
+            <p className="text-muted-foreground max-w-md text-sm leading-6">
               A directory connecting families with independent domestic staffing
               agencies based in Singapore and serving local or overseas needs.
             </p>
           </div>
-          <div>
-            <h2 className="font-semibold">Explore</h2>
-            <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
-              <li>
-                <Link href="/agencies">Agencies</Link>
-              </li>
-              <li>
-                <Link href="/guides">Guides</Link>
-              </li>
-              <li>
-                <Link href="/faq">FAQ</Link>
-              </li>
-            </ul>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-xs)]">
+            <p className="font-display text-sm font-bold">
+              Busy? Submit your requirements
+            </p>
+            <p className="text-muted-foreground mt-1 max-w-xs text-xs leading-5">
+              Tell us what you need once and approved maid agencies can reply.
+            </p>
+            <Link
+              href="/contact"
+              className="bg-primary mt-3 inline-flex min-h-9 items-center rounded-md px-3 text-xs font-bold text-white hover:opacity-90"
+            >
+              Submit requirements
+            </Link>
           </div>
-          <div>
-            <h2 className="font-semibold">FindMaids</h2>
-            <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
-              <li>
-                <Link href="/about">About</Link>
-              </li>
-              <li>
-                <Link href="/contact">Contact</Link>
-              </li>
-              <li>
-                <Link href="/advertise">Advertise</Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="font-semibold">Policies</h2>
-            <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
-              <li>
-                <Link href="/terms">Terms</Link>
-              </li>
-              <li>
-                <Link href="/privacy">Privacy</Link>
-              </li>
-              <li>
-                <Link href="/cookies">Cookies</Link>
-              </li>
-              <li>
-                <Link href="/security">Security reporting</Link>
-              </li>
-            </ul>
-          </div>
+        </div>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          {footerColumns.map((column) => (
+            <div key={column.title}>
+              <h2>{column.title}</h2>
+              <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href}>{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
         <div className="mt-8 border-t pt-5">
           <p className="text-muted-foreground max-w-4xl text-xs leading-5">
@@ -307,7 +348,10 @@ export function Pagination({
 }) {
   if (pages < 2) return null;
   return (
-    <nav aria-label="Pagination" className="mt-8 flex flex-wrap justify-center gap-2">
+    <nav
+      aria-label="Pagination"
+      className="mt-8 flex flex-wrap justify-center gap-2"
+    >
       {Array.from({ length: pages }, (_, i) => i + 1).map((number) => (
         <Link
           key={number}

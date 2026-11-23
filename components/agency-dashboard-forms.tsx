@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 const input =
@@ -28,6 +29,8 @@ export function AgencyProfileEditor({
     languages: string[];
     logoUrl: string | null;
     bannerUrl: string | null;
+    bannerLeftUrl: string | null;
+    bannerRightUrl: string | null;
   };
 }) {
   const router = useRouter();
@@ -51,7 +54,7 @@ export function AgencyProfileEditor({
     setData((current) => ({ ...current, [key]: value }));
   async function uploadProfileImage(
     file: File,
-    kind: "logo" | "banner" | "photo",
+    kind: "logo" | "banner" | "bannerLeft" | "bannerRight" | "photo",
   ) {
     setUploading(true);
     const body = new FormData();
@@ -66,6 +69,8 @@ export function AgencyProfileEditor({
     }
     if (kind === "logo") set("logoUrl", result.url);
     if (kind === "banner") set("bannerUrl", result.url);
+    if (kind === "bannerLeft") set("bannerLeftUrl", result.url);
+    if (kind === "bannerRight") set("bannerRightUrl", result.url);
     setMessage(`${kind} upload is ready. Save the profile to apply it.`);
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -203,17 +208,48 @@ export function AgencyProfileEditor({
           </p>
         </section>
       )}
-      <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">
-        {(["logo", "banner", "photo"] as const).map((kind) => (
+      <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 lg:grid-cols-3">
+        {(
+          [
+            {
+              kind: "logo",
+              label: "Logo",
+              hint: "Square-ish logo · JPG/PNG/WebP/GIF, max 5 MB",
+            },
+            {
+              kind: "banner",
+              label: "Horizontal banner",
+              hint: "700 x 90 px · max 500 KB",
+            },
+            {
+              kind: "bannerLeft",
+              label: "Left rail banner",
+              hint: "180 px wide, up to 320 px tall · max 500 KB",
+            },
+            {
+              kind: "bannerRight",
+              label: "Right rail banner",
+              hint: "140-148 px wide, up to 320 px tall · max 500 KB",
+            },
+            {
+              kind: "photo",
+              label: "Gallery photo",
+              hint: "Office or team photo · max 5 MB",
+            },
+          ] as const
+        ).map(({ kind, label, hint }) => (
           <label
             key={kind}
             className="block rounded-md border border-dashed p-3 text-sm font-semibold"
           >
-            Upload {kind} · JPG/PNG/WebP, max 5 MB
+            {label}
+            <span className="text-muted-foreground mt-0.5 block text-[11px] font-normal">
+              {hint}
+            </span>
             <input
               className="mt-2 block w-full text-xs"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               disabled={uploading}
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -222,6 +258,38 @@ export function AgencyProfileEditor({
             />
           </label>
         ))}
+      </div>
+      <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">
+        {(
+          [
+            { key: "bannerUrl", label: "Horizontal 700x90", width: 280 },
+            { key: "bannerLeftUrl", label: "Left rail 180px", width: 120 },
+            { key: "bannerRightUrl", label: "Right rail 148px", width: 100 },
+          ] as const
+        ).map(({ key, label, width }) => {
+          const url = data[key];
+          return (
+            <div key={key} className="rounded-md border p-2">
+              <p className="text-muted-foreground text-[11px] font-semibold">
+                {label} preview
+              </p>
+              {url ? (
+                <Image
+                  src={url}
+                  alt={`${label} banner preview`}
+                  width={width}
+                  height={90}
+                  unoptimized
+                  className="border-muted mt-1 h-auto w-full rounded border object-contain"
+                />
+              ) : (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  No banner uploaded.
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
       {message && (
         <p role="status" className="text-primary text-sm sm:col-span-2">

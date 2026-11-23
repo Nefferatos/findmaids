@@ -15,7 +15,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@/lib/generated/prisma/client";
 
 type Row = Record<string, unknown>;
 type Store = Record<string, Row[]>;
@@ -235,6 +235,18 @@ function matches(row: Row, where: Row | undefined): boolean {
     }
   }
   return true;
+}
+
+/**
+ * Evaluates a Prisma `where` object against a plain row with the same semantics
+ * as the in-memory store. Exported so unit tests can assert on query fragments
+ * (such as the sample-data visibility rule) without a database.
+ */
+export function matchesWhere(
+  row: Record<string, unknown>,
+  where: Record<string, unknown> | undefined,
+): boolean {
+  return matches(row, where);
 }
 
 function applyOrder(rows: Row[], orderBy: unknown): Row[] {

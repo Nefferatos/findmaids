@@ -1,4 +1,4 @@
-import type { AgencyStatus, PaymentStatus } from "@prisma/client";
+import type { AgencyStatus, PaymentStatus } from "@/lib/generated/prisma/client";
 
 const agencyTransitions: Record<AgencyStatus, AgencyStatus[]> = {
   PENDING: ["APPROVED", "NEEDS_CHANGES", "REJECTED", "SUSPENDED"],

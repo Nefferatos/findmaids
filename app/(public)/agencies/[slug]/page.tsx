@@ -5,12 +5,20 @@ import { Check, MapPin, Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Badge, Container, RatingStars } from "@/components/site";
 import { EnquiryForm, ReviewForm } from "@/components/forms";
+import { MaidPhoto } from "@/components/maid-photo";
 import { ShareButton, TrackedLink } from "@/components/profile-actions";
 import { ProfileViewTracker } from "@/components/profile-view-tracker";
+import { maidPhotoUrl } from "@/lib/maid-photo";
 import { agencyMaidInclude, maidStatusLabels } from "@/lib/maids";
-import { sampleAgencyVisibilityWhere, sampleDataEnabled } from "@/lib/sample-data";
+import { ageFromDateOfBirth } from "@/lib/maid-profile";
+import {
+  sampleAgencyVisibilityWhere,
+  sampleDataEnabled,
+} from "@/lib/sample-data";
 
-export const revalidate = 300;
+// Rendered per request so profile edits, approvals, suspensions, maids and
+// published reviews are visible immediately.
+export const dynamic = "force-dynamic";
 
 const maidStatusClass = {
   AVAILABLE: "dir-status-available",
@@ -35,9 +43,14 @@ export async function generateMetadata({
       title: "Agency not found | FindMaids",
       robots: { index: false, follow: false },
     };
+  const serving = [
+    ...new Set(
+      [agency.city, agency.province].map((part) => part.trim()).filter(Boolean),
+    ),
+  ].join(", ");
   return {
     title: `${agency.name} | FindMaids`,
-    description: `${agency.description.slice(0, 150)} Serving ${agency.city}, ${agency.province}.`,
+    description: `${agency.description.slice(0, 150)} Serving ${serving}.`,
     openGraph: {
       title: agency.name,
       description: agency.description.slice(0, 160),
@@ -85,7 +98,15 @@ export default async function AgencyProfilePage({
     ? agency.reviews.reduce((sum, review) => sum + review.rating, 0) /
       agency.reviews.length
     : 0;
-  const address = `${agency.address}, ${agency.city}, ${agency.province}, Singapore`;
+  const address = [
+    ...new Set(
+      [agency.address, agency.city, agency.province, "Singapore"]
+        .map((part) => part.trim())
+        .filter(Boolean),
+    ),
+  ].join(", ");
+  const coverImage =
+    agency.photos.find((photo) => photo.url)?.url ?? agency.bannerUrl;
   const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
   const safeWebsite = (() => {
     if (!agency.website) return undefined;
@@ -147,10 +168,10 @@ export default async function AgencyProfilePage({
         / {agency.name}
       </nav>
       <div className="relative mb-6 h-48 overflow-hidden rounded-md bg-[#dce8dc] sm:h-64">
-        {agency.bannerUrl && (
+        {coverImage && (
           <Image
-            src={agency.bannerUrl}
-            alt={`${agency.name} banner`}
+            src={coverImage}
+            alt={`${agency.name} cover photo`}
             fill
             sizes="100vw"
             className="object-cover"
@@ -282,23 +303,26 @@ export default async function AgencyProfilePage({
                 <ul className="dir-list mt-3">
                   {agency.maids.map((maid) => (
                     <li key={maid.id} className="dir-maid">
-                      <span className="dir-maid-avatar" aria-hidden="true">
-                        {maid.photoUrl ? (
-                          <Image
-                            src={maid.photoUrl}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="size-full object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          maid.reference.slice(-3)
-                        )}
+                      <span
+                        className="dir-maid-avatar relative"
+                        aria-hidden="true"
+                      >
+                        <MaidPhoto
+                          src={maidPhotoUrl(maid)}
+                          name={maid.fullName || `Maid ${maid.reference}`}
+                          sizes="40px"
+                          className="object-cover"
+                          placeholderClassName="grid size-full place-items-center text-[0.6rem] font-bold"
+                        />
                       </span>
                       <div className="dir-maid-main">
                         <h3 className="dir-maid-title">
-                          Maid {maid.reference}
+                          <Link
+                            href={`/maids/${maid.id}`}
+                            className="hover:underline"
+                          >
+                            {maid.fullName || `Maid ${maid.reference}`}
+                          </Link>
                           <span
                             className={`dir-status ${maidStatusClass[maid.status]}`}
                           >
@@ -307,12 +331,27 @@ export default async function AgencyProfilePage({
                         </h3>
                         <p className="dir-maid-meta">
                           {maid.nationality}
-                          {maid.age ? ` · Age ${maid.age}` : ""} ·{" "}
+                          {(maid.age ?? ageFromDateOfBirth(maid.dateOfBirth))
+                            ? ` · Age ${maid.age ?? ageFromDateOfBirth(maid.dateOfBirth)}`
+                            : ""}
+                          {" · "}
                           {maid.placementType}
+                          {maid.heightCm ? ` · ${maid.heightCm} cm` : ""}
+                          {maid.weightKg ? ` · ${maid.weightKg} kg` : ""}
                         </p>
                         <p className="dir-maid-line">
                           <span className="dir-card-label">Languages</span>
-                          {maid.languages.join(", ") || "Ask agency"}
+                          {maid.languages.join(", ") ||
+                            Object.entries(
+                              (maid.languageSkills ?? {}) as Record<
+                                string,
+                                string
+                              >,
+                            )
+                              .filter(([, level]) => level && level !== "Zero")
+                              .map(([language]) => language)
+                              .join(", ") ||
+                            "Ask agency"}
                         </p>
                         <p className="dir-maid-line">
                           <span className="dir-card-label">Duties</span>

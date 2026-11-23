@@ -11,6 +11,7 @@ FindMaids is a matching website for people who want to hire domestic helpers (na
 **Who pays:** the agencies pay monthly subscription plans. The site earns money from agency subscriptions. Employers use the site for free.
 
 **How the site earns money:**
+
 1. Monthly subscription plans for agencies (Basic Free is free; Gold and above cost money).
 2. Optional paid placements and featured listings (planned, not fully live).
 
@@ -32,6 +33,7 @@ flowchart TD
 ```
 
 **What the diagram shows:**
+
 1. Anyone can browse the public directory of agencies.
 2. When an employer wants to contact an agency, they send an enquiry.
 3. That enquiry becomes a lead in the agency's inbox.
@@ -46,7 +48,7 @@ flowchart TD
 ### a. Employer (family or person looking for help)
 
 1. **Visit the site.** Go to the home page. See a list of agencies.
-2. **Search and filter.** Use the search box for keywords, or filter by city, service type, language, or rating.
+2. **Search and filter.** Use the search box for keywords — agency name, description or service, or a maid's name/reference code (which finds the agency that published her) — or filter by city, service type, language, or rating.
 3. **Open an agency profile.** Click an agency name to see their full profile: photos, licence number, services, contact details, and reviews.
 4. **Send an enquiry.** Fill in name, email, message, and tick a checkbox to agree that the agency may receive contact details. The system records where you came from (Facebook, Google, direct link, etc.).
 5. **Use the AI chat assistant.** Click the chat button on the agency page or home page. Ask questions like "What do you offer?" or "What service locations do you list?" The AI gives public facts and points you to the agency.
@@ -62,17 +64,32 @@ flowchart TD
 3. **Onboarding wizard.** Fill in the agency details: website, licence number, Singapore business address, phone, WhatsApp, services, service locations (including overseas locations if applicable), languages, photos, and a description. Service locations are shown on agency profiles and can be searched by their listed text; they are not legal or licensing claims. The system checks your slug and saves a draft as you go.
 4. **Submit for approval.** Click "Submit". The agency status becomes **PENDING**. An admin sees it in the approvals queue.
 5. **Founding Agency free period.** Once approved, you get a **Basic Free** plan (free, no charge) for a set number of days (default 90). This gives you a basic profile and a small number of free leads.
-6. **Dashboard.** After login, go to `/agency/dashboard`:
-   - **Leads inbox** — new enquiries come in. Each has an AI summary, a draft reply, and buttons to view details, message, or reply.
-   - **Response time** — a simple view of how fast you answered enquiries.
-   - **Analytics** — weekly enquiries, top sources, city breakdown.
-   - **Reviews** — reviews on your public profile.
-   - **Billing** — your current plan, renewal date, upgrade or downgrade options, invoices, and receipts.
+6. **Agency portal.** After login you land on `/agency`. The portal is a classic account-management layout: a navy header with the section title and a Log out button, a grey navigation bar under it, a welcome line with live maid counts, and a two-column body. The left column lists the five management options with an icon and label; the right column previews the description of the hovered option (Agency Profile by default). Clicking a menu item or nav tab opens that section's own page:
+   - `/agency` — hub (Home): welcome line, live maid counts and the option menu with hover preview.
+   - `/agency/profile`, `/agency/maids/new`, `/agency/maids`, `/agency/change-password`, `/agency/forms` — the five primary sections.
+   - `/agency/enquiries` — the lead inbox, linked from the nav bar.
+   - `/agency/reviews`, `/agency/billing`, `/agency/advertising`, `/agency/analytics`, `/agency/ai-assistant`, `/agency/account-settings` — the "More" sections.
+   - Inner pages keep the same navy header and grey nav bar, plus a **← Back to Menu** link and the section content.
+   - Old `/agency/dashboard*` URLs redirect to the matching new pages (`/agency/dashboard/maids/add` → `/agency/maids/new`); unknown sections return 404.
+   - The last top-nav item, **More**, opens Reviews, Billing, Advertising, Analytics, AI assistant, Account settings; it is highlighted while one of those pages is open.
+   - On small screens the hover preview is hidden and the menu stacks under the welcome line.
+   - **Employment Contracts & Forms** prints an employment contract or a maid biodata summary from your maid records, with the agency name, licence and contact details filled in.
+   - **Agency Profile** — edit the public listing (name/licence changes go to review).
+   - **Add Maids** — full biodata form (identity, languages, preferences, work areas, employment history, medical, photos, agency contact), matching the agency CSV export.
+   - **Import Biodata (PDF or Word)** — on the Add Maids page, drag in a `.pdf` or `.docx` biodata file and click **Extract Biodata**. The document is parsed (PDF text/DOCX paragraphs and tables), matched to form fields, and the form is **filled automatically** for review; nothing is saved until you click **Add maid**. Scanned or image-only PDFs are rendered in your browser and read with Tesseract OCR (progress is shown as pages are recognised), and the portrait is detected/cropped from the page when possible. Embedded document photos are attached too. Missing or ambiguous values stay blank and are flagged. When `AI_PROVIDER` is configured the document is read by the AI first (strict no-invention prompt) and the built-in reader fills gaps; with `AI_PROVIDER=mock` only the built-in reader runs.
+   - **Edit / Delete Maids** — every maid you own: edit details, publish/hide, delete.
+   - **Bulk import from the CSV export:**
+     `npm run import:maids -- --file maids_rows.csv --agency agency2026@findmaids.test`
+     Optional flags: `--limit 5` (first N rows), `--references A,B` (specific reference codes), `--keep-photos` (import the old `/uploads/...` photo paths), `--photos-dir <folder>` (copy the old uploads folder and re-host every photo in Supabase Storage, storing public WebP URLs), `--dry-run`. Re-running is safe — rows are upserted on reference.
+   - **Change Password** — self-service password change; other sessions are signed out.
+   - **Enquiries** — the lead inbox with AI summary, draft reply and reply actions.
+   - **More** (below the main rail): Reviews, Billing & plan, Advertising, Analytics, AI assistant, Account settings. Old links such as `?view=overview`, `?view=maids` and `?view=leads` still resolve.
 7. **Plans and checkout.** Go to `/agency/billing/checkout` and pick a paid plan (Gold, Platinum, or higher). The system creates a pending payment and redirects to the checkout page.
 8. **Upgrade prompts when a lead cap is reached.** The dashboard shows a banner when you have used up your monthly lead limit. It shows the next plan and its price. Paid agencies may also get an email prompt.
 9. **AI settings.** Go to the agency dashboard or settings to turn on/off the AI assistant, set reply tone, language, and knowledge base. Replies are always **drafts only** — the agency must read and send them.
 
 ---
+
 ## 4. HOW MONEY MOVES
 
 1. **Plans.** Agencies start on **Basic Free** (no charge, included with approval). Paid plans (Gold, Platinum, etc.) are listed in the catalog with monthly and yearly prices.
@@ -141,6 +158,7 @@ flowchart TD
 ## 7. BEHIND THE SCENES
 
 **Database (PostgreSQL via Prisma + vector extension):**
+
 - **People and roles:** Users, Agencies, Admins, staff accounts, roles, audit trail, 2FA.
 - **Directories and profiles:** Agencies, Plans, AdPlacements, Agency media (photos, logos, banners).
 - **Leads and enquiries:** Enquiries (main lead table), Messages, Conversations, HandoffRequest (human handoff).
@@ -149,15 +167,18 @@ flowchart TD
 - **AI:** AiCallLog (every AI call), KnowledgeDocument, FeatureFlag, AdminSetting.
 
 **File storage (Supabase Storage):**
+
 - **`findmaids-media` bucket:** public. Used for approved agency listing images and profile photos.
 - **`findmaids-private` bucket:** private. Used for bank-transfer proofs and invoice PDFs. The service role key is used only server-side.
 
 **Scheduled jobs (cron + queue):**
+
 - **Daily:** `/api/cron/subscriptions` runs renewal reminders (7-day and 1-day), checks expiring founding periods, and confirms subscription states.
 - **Monthly:** `/api/cron/admin-monthly-summary` for monthly reporting.
 - **BullMQ jobs (only when Redis is set up):** `lead.summary`, `lead.reply-draft`, `agency.embed`, `knowledge.embed`. Without Redis, these jobs are not queued.
 
 **Outside services:**
+
 - **Supabase (database + storage):** connected. Requires Supabase URL and service role key.
 - **PayMongo (payments):** mock by default. Real PayMongo is not connected until `PAYMENT_PROVIDER=paymongo` with live keys.
 - **Email (Resend):** mock/logged in development only. Without a key, emails are sent to the server console. Requires `RESEND_API_KEY` and `EMAIL_FROM` in production.
@@ -182,8 +203,6 @@ flowchart TD
 ---
 
 ## 8. A STATUS TABLE
-
-
 
 |---|---|---|
 | Public agency directory + search/filter | Built and tested | `smoke.spec.ts` and `public-auth.spec.ts` pass |
@@ -238,4 +257,4 @@ flowchart TD
 
 ---
 
-*Notes on the code: this guide is based on the real files in `C:\B2B - Web\findmaids`. Where something is only in a test or only in an environment-config, I said so. I did not change any code and did not look at secrets.*
+_Notes on the code: this guide is based on the real files in `C:\B2B - Web\findmaids`. Where something is only in a test or only in an environment-config, I said so. I did not change any code and did not look at secrets._

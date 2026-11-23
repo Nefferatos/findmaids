@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SAMPLE_AGENCY_MARKER } from "../lib/sample-data";
 import { totpNow } from "./totp";
 import { prisma, sameOrigin } from "./prisma";
 
@@ -41,6 +42,9 @@ test("prospect links to a free listing, founding grant expires and downgrades wi
         nationalitiesServed: ["Filipino"],
         languages: ["English"],
         status: "APPROVED",
+        // Tagged so a spec that fails before its cleanup can never leave a
+        // fabricated agency on the live directory.
+        adminNote: SAMPLE_AGENCY_MARKER,
       },
       select: { id: true },
     });

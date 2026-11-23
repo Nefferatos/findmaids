@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import { checkAiBudget } from "@/lib/ai/budget";
 import { streamLoggedText } from "@/lib/ai/call";
 import { isFeatureEnabled } from "@/lib/ai/flags";
@@ -211,10 +212,7 @@ export async function POST(request: Request) {
       { error: "Chat is not enabled." },
       { status: 404 },
     );
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`chat-ip:${ip}`, 30, 3600)).allowed)
     return NextResponse.json(
       { error: "Message limit reached." },

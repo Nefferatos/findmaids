@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="260" viewBox="0 0 180 260" role="img" aria-label="SAMPLE 03 placeholder rail banner">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a4b16"/>
+      <stop offset="1" stop-color="#5f330e"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="260" fill="url(#g)"/>
+  <circle cx="90" cy="62.4" r="43.199999999999996" fill="#f4c74f" opacity="0.9"/>
+  <text x="50%" y="52%" fill="#ffffff" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">SAMPLE 03</text>
+  <text x="50%" y="62%" fill="#d8f3ee" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14">Sample listing</text>
+  <text x="50%" y="90%" fill="#f4c74f" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13">DEMO ARTWORK</text>
+</svg>

@@ -4,17 +4,17 @@ import type { NextConfig } from "next";
 const devEval = process.env.NODE_ENV === "production" ? "" : "'unsafe-eval' ";
 
 const nextConfig: NextConfig = {
-  // Prisma's generated client ships workerd-specific code and loads its query
-  // compiler from query_compiler_bg.wasm. Bundling it for Node makes the worker
-  // resolve that file through fs at runtime and fail with
-  // `no such file or directory, readAll '/bundle/node_modules/.prisma/client/query_compiler_bg.wasm'`.
-  // Keeping both packages external lets the Cloudflare build pick the workerd
-  // entrypoints. See OpenNext's "Database & ORM" and "workerd specific packages" how-tos.
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  // Prisma Client is now generated into `lib/generated/prisma` (see
+  // prisma/schema.prisma) with `runtime = "workerd"`, so it is compiled as part
+  // of the app and imports its engine as a `.wasm?module` module — that is what
+  // the Cloudflare build needs. `pdfjs-dist` stays external because it loads
+  // `pdf.worker.mjs` by relative path at runtime.
+  serverExternalPackages: ["pdfjs-dist"],
   // Lets a staging E2E server run beside another dev server (set only by playwright.config.ts).
   distDir: process.env.NEXT_DIST_DIR || ".next",
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
+
   async headers() {
     return [
       {
@@ -22,8 +22,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value:
-              `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' ${devEval}https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https://challenges.cloudflare.com https://www.google.com; upgrade-insecure-requests`,
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' ${devEval}https://challenges.cloudflare.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss:; frame-src https://challenges.cloudflare.com https://www.google.com; upgrade-insecure-requests`,
           },
           {
             key: "Strict-Transport-Security",

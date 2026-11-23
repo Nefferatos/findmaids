@@ -57,7 +57,7 @@ describe("post-login landing", () => {
   it("sends each role to its own portal", () => {
     expect(landingForRole("ADMIN")).toBe("/admin");
     expect(landingForRole("STAFF")).toBe("/admin/approvals");
-    expect(landingForRole("AGENCY")).toBe("/agency/dashboard");
+    expect(landingForRole("AGENCY")).toBe("/agency");
     expect(landingForRole("VISITOR")).toBe("/account");
     expect(landingForRole(undefined)).toBe("/account");
   });

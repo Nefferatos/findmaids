@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@/lib/generated/prisma/client";
 
 /**
  * CRUD coverage for the data layer the app actually uses.
@@ -367,11 +367,26 @@ describe("review CRUD (moderation)", () => {
 
 describe("directory read path", () => {
   it("hides sample agencies and maids on a live deployment", async () => {
-    const real = await createAgency({ name: "Real Agency", slug: "crud-real" });
+    // Production-looking row: real domain, MOM-style licence, no note. The
+    // shared fixtures use `.test` e-mail addresses, which a live deployment
+    // treats as test data, so this row is written explicitly.
+    const real = await createAgency({
+      name: "Real Agency",
+      slug: "crud-real",
+      email: "hello@realagency.sg",
+      licenseNumber: "25C3114",
+      adminNote: null,
+    });
     const sample = await createAgency({
       name: "Sample Agency",
       slug: "crud-sample",
       adminNote: "findmaids:sample-data",
+    });
+    // Untagged fixture row: only its name and `.test` e-mail give it away. The
+    // live filter is the safety net for rows seeds already wrote.
+    const demoNamed = await createAgency({
+      name: "Casa Care (Demo)",
+      slug: "crud-demo-named",
     });
     await createMaid(real.id, { reference: "REAL-1" });
 
@@ -394,6 +409,7 @@ describe("directory read path", () => {
       const visible = await prisma.agency.findMany({ where });
       expect(visible.map((agency) => agency.slug)).toEqual(["crud-real"]);
       expect(visible.some((agency) => agency.id === sample.id)).toBe(false);
+      expect(visible.some((agency) => agency.id === demoNamed.id)).toBe(false);
 
       // Maid reads exclude flagged sample rows as well.
       expect(maids.publishedMaidWhere()).toEqual({

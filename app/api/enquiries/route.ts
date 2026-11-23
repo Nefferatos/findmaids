@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp as resolveClientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
 import { enquirySubmissionSchema } from "@/lib/validation";
 import { hasBlockedPattern, hashBlockValue } from "@/lib/moderation";
@@ -29,10 +30,7 @@ async function verifyTurnstile(token: string | undefined, request: Request) {
 }
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const ip = resolveClientIp(request);
   if (!(await checkRateLimit(`enquiry:${ip}`, 5, 3600)).allowed)
     return NextResponse.json(
       { error: "Too many enquiries. Try again later." },
@@ -46,7 +44,7 @@ export async function POST(request: Request) {
       { error: "Please check the enquiry details and consent." },
       { status: 400 },
     );
-  const clientIp = request.headers.get("cf-connecting-ip") ?? ip;
+  const clientIp = ip;
   if (
     await hasBlockedPattern({
       email: parsed.data.email,

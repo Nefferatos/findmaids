@@ -138,7 +138,7 @@ export function AgencyOnboarding({
       setMessage(result.error ?? "Submission failed.");
       return;
     }
-    router.push("/agency/dashboard");
+    router.push("/agency");
     router.refresh();
   }
 

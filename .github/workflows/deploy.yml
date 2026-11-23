@@ -32,6 +32,9 @@ jobs:
       # Non-secret defaults (mirrored in wrangler.jsonc vars)
       APP_ENV: production
       NODE_ENV: production
+      # Test/demo agencies and maids are never rendered by the deployed site
+      # (see lib/sample-data.ts). Localhost keeps them.
+      SHOW_SAMPLE_DATA: "false"
       AI_PROVIDER: mock
       AI_MODEL: mock
       PAYMENT_PROVIDER: mock

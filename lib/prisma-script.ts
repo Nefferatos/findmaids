@@ -7,7 +7,7 @@
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { loadEnvFile } from "./security/staging-guard";
 

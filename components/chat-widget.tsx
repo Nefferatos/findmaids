@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
-import { captureFirstTouch, getFirstTouch, trackAnonymousEvent } from "@/lib/attribution-client";
+import {
+  captureFirstTouch,
+  getFirstTouch,
+  trackAnonymousEvent,
+} from "@/lib/attribution-client";
 
 type ChatLine = {
   id: string;
@@ -189,25 +193,27 @@ export function ChatWidget({ agencySlug }: { agencySlug?: string }) {
   }
   if (!enabled) return null;
   return (
-    <div className="fixed right-4 bottom-4 z-40">
+    <div className="fixed right-4 bottom-4 z-30">
       <button
         type="button"
         title="Open AI assistant"
         aria-label="Open AI assistant"
-        onClick={() => setOpen((value) => {
-          const next = !value;
-          if (next && !trackedOpen) {
-            const attribution = captureFirstTouch();
-            if (attribution) {
-              trackAnonymousEvent("CHAT_OPENED");
-              setTrackedOpen(true);
+        onClick={() =>
+          setOpen((value) => {
+            const next = !value;
+            if (next && !trackedOpen) {
+              const attribution = captureFirstTouch();
+              if (attribution) {
+                trackAnonymousEvent("CHAT_OPENED");
+                setTrackedOpen(true);
+              }
             }
-          }
-          return next;
-        })}
-        className="bg-primary grid size-14 place-items-center rounded-full text-white shadow-lg"
+            return next;
+          })
+        }
+        className="bg-primary grid size-12 place-items-center rounded-full text-white shadow-md"
       >
-        {open ? <X className="size-5" /> : <MessageCircle className="size-6" />}
+        {open ? <X className="size-4" /> : <MessageCircle className="size-5" />}
       </button>
       {open && (
         <section

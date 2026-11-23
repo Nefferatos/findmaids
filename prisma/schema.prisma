@@ -1,6 +1,15 @@
 generator client {
-  provider        = "prisma-client-js"
-  engineType      = "client"
+  // The `prisma-client` generator (not `prisma-client-js`) is the only one that
+  // can target the Workers runtime: with `runtime = "workerd"` it emits a client
+  // that imports its engine as `import("./query_engine_bg.wasm?module")` instead
+  // of reading it through `fs`. The `prisma-client-js` build used to fail on the
+  // deployed Worker with
+  // `no such file or directory, readAll '/bundle/node_modules/.prisma/client/query_compiler_bg.wasm'`
+  // because OpenNext's bundler always resolves its Node entrypoint.
+  // Regenerate with `npx prisma generate`; the output directory is git-ignored.
+  provider        = "prisma-client"
+  output          = "../lib/generated/prisma"
+  runtime         = "workerd"
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -142,6 +151,8 @@ model User {
   id                      String                   @id @default(cuid())
   name                    String?
   email                   String                   @unique
+  /** Optional login handle; lets an account sign in without its email. */
+  username                String?                  @unique
   passwordHash            String?
   emailVerified           DateTime?
   image                   String?
@@ -181,12 +192,24 @@ model Agency {
   slug                   String              @unique
   description            String              @db.Text
   logoUrl                String?
+  // Agency-uploaded advertising artwork. `bannerUrl` is the wide 700x90
+  // horizontal banner; the two rail columns use their own uploads so the
+  // narrow slots never stretch a wide banner.
   bannerUrl              String?
+  bannerLeftUrl          String?
+  bannerRightUrl         String?
   licenseNumber          String?
   yearEstablished        Int?
   address                String
   city                   String
   province               String
+  // Optional directory fields. Postal code and coordinates are used for the
+  // "sort by area" filter; contactPerson is shown on directory cards. All are
+  // nullable so existing rows keep working until an agency fills them in.
+  postalCode             String?
+  contactPerson          String?
+  latitude               Float?
+  longitude              Float?
   phone                  String
   whatsapp               String?
   email                  String
@@ -282,6 +305,39 @@ model Maid {
   isSample        Boolean    @default(false)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  // Full biodata (mirrors the agency CSV import columns). Every field is
+  // optional so older rows and quick-entry profiles keep working.
+  fullName            String?
+  dateOfBirth         DateTime? @db.Date
+  placeOfBirth        String?
+  heightCm            Int?
+  weightKg            Int?
+  religion            String?
+  maritalStatus       String?
+  childrenCount       Int?      @default(0)
+  siblingsCount       Int?      @default(0)
+  homeAddress         String?
+  airportRepatriation String?
+  educationLevel      String?
+  languageSkills      Json?
+  preferences         Json?
+  workAreas           Json?
+  employmentHistory   Json?
+  introduction        String?   @db.Text
+  medicalInfo         Json?
+  agencyContact       Json?
+  photoUrls           String[]  @default([])
+  photoThumbnailUrls  String[]  @default([])
+  photoPortraitUrls   String[]  @default([])
+  videoUrl            String?
+  availability        String?
+  contractEnds        String?
+  expectedSalary      Int?
+  presentSalary       Int?
+  offDaysPerMonth     Int?
+  foodHandlingPreferences String?
+  dietaryRestrictions String?
 
   @@unique([agencyId, reference])
   @@index([agencyId, published])

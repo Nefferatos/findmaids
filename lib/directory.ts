@@ -1,5 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { publishedMaidWhere } from "@/lib/maids";
 import { getRankingWeights, rotateFeatured, scoreAgency } from "@/lib/ranking";
 import { sampleAgencyVisibilityWhere } from "@/lib/sample-data";
 
@@ -20,9 +21,11 @@ export function buildAgencyWhere(
   filters: DirectoryFilters,
 ): Prisma.AgencyWhereInput {
   const and: Prisma.AgencyWhereInput[] = [];
-  // The keyword box on the directory search form matches agency names,
-  // descriptions and listed services. It lives in `AND` so it can be combined
-  // with the location `OR` group below.
+  // The keyword box on the directory search form (and the landing-page
+  // "Search maid" panel) matches agency names, descriptions, listed services
+  // and the maids those agencies publish, so a maid name or reference code
+  // leads to her agency. It lives in `AND` so it can be combined with the
+  // location `OR` group below.
   if (filters.keyword)
     and.push({
       OR: [
@@ -34,6 +37,27 @@ export function buildAgencyWhere(
           },
         },
         { services: { has: filters.keyword } },
+        {
+          maids: {
+            some: {
+              ...publishedMaidWhere(),
+              OR: [
+                {
+                  fullName: {
+                    contains: filters.keyword,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  reference: {
+                    contains: filters.keyword,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            },
+          },
+        },
       ],
     });
   // Demonstration rows are hidden everywhere except local/preview environments.
@@ -485,4 +509,3 @@ export async function getDirectoryHomeData(options?: {
     featured: agencies.filter((agency) => agency.sponsored).slice(0, 5),
   };
 }
-

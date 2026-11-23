@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
 
 const schema = z.object({ email: z.string().trim().email().max(254) });
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`forgot:${ip}`, 5, 3600)).allowed) {
     return NextResponse.json({
       message: "If an account matches, reset instructions will be sent.",

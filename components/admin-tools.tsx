@@ -210,7 +210,7 @@ export function AdminUserTable({
       setMessage(result.error);
       return;
     }
-    window.location.assign("/agency/dashboard");
+    window.location.assign("/agency");
   }
   return (
     <section className="rounded-md border bg-white">

@@ -1,4 +1,4 @@
-import { FeatureFlagScope } from "@prisma/client";
+import { FeatureFlagScope } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type AdminSettingReader = {

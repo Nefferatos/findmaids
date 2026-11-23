@@ -48,6 +48,9 @@ export function CookieConsent() {
       );
       if (analytics) captureFirstTouch();
       window.dispatchEvent(new Event(consentEvent));
+    } catch {
+      // Keep the banner open so the visitor can retry; a network blip must not
+      // surface as an unhandled rejection.
     } finally {
       setBusy(false);
     }

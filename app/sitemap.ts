@@ -1,13 +1,17 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
- import { logger } from "@/lib/logger";
+import { logger } from "@/lib/logger";
 import { sampleAgencyVisibilityWhere } from "@/lib/sample-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.NEXTAUTH_URL ??
+    "http://localhost:3000";
   const staticPaths = [
     "",
     "/agencies",
+    "/maids/search",
     "/advertise",
     "/about",
     "/contact",
@@ -35,8 +39,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
       select: { slug: true, updatedAt: true },
     })
-      .catch((error) => {
-        logger.error({ errorType: error instanceof Error ? error.name : "unknown" }, "Unable to load sitemap agency URLs");
+    .catch((error) => {
+      logger.error(
+        { errorType: error instanceof Error ? error.name : "unknown" },
+        "Unable to load sitemap agency URLs",
+      );
       return [];
     });
   return [

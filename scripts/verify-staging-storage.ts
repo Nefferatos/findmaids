@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { assertStagingWriteAllowed } from "../lib/security/staging-guard";
 

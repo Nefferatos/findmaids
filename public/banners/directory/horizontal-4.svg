@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="90" viewBox="0 0 700 90" role="img" aria-label="SAMPLE AGENCY 04 placeholder banner">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d5a2a"/>
+      <stop offset="1" stop-color="#22361a"/>
+    </linearGradient>
+  </defs>
+  <rect width="700" height="90" fill="url(#g)"/>
+  <circle cx="654" cy="45" r="35" fill="#f4c74f" opacity="0.9"/>
+  <text x="4%" y="52%" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">SAMPLE AGENCY 04</text>
+  <text x="4%" y="76%" fill="#d8f3ee" font-family="Arial, Helvetica, sans-serif" font-size="12">Placeholder banner · demo data</text>
+  <rect x="0" y="86" width="700" height="4" fill="#f4c74f"/>
+</svg>

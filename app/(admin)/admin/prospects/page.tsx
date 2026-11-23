@@ -1,7 +1,7 @@
 import { AdminProspects } from "@/components/admin-prospects";
 import { Container, SectionHeading } from "@/components/site";
 import { requireAdminPermission } from "@/lib/admin-auth";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Prospects | FindMaids Admin", robots: { index: false, follow: false } };

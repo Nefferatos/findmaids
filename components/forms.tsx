@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { safeInternalPath } from "@/lib/security/safe-redirect";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { getFirstTouch } from "@/lib/attribution-client";
@@ -27,8 +28,10 @@ export function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const [state, setState] = useState<FormState>({ message: "", error: false });
-  const requestedCallback = search.get("callbackUrl");
-  const callbackUrl = requestedCallback ?? "/";
+  // Only same-site paths are accepted, so `?callbackUrl=https://evil.example` cannot
+  // turn a successful login into an open redirect.
+  const requestedCallback = safeInternalPath(search.get("callbackUrl"), "");
+  const callbackUrl = requestedCallback || "/";
 
   async function submit(formData: FormData) {
     setState({ message: "", error: false });
@@ -48,11 +51,13 @@ export function LoginForm() {
       return;
     }
     // Without an explicit callbackUrl each role continues to its own area
-    // (ADMIN/STAFF → /admin, AGENCY → /agency/dashboard) instead of the homepage.
+    // (ADMIN/STAFF → /admin, AGENCY → /agency) instead of the homepage.
     let target = callbackUrl;
     if (!requestedCallback) {
       try {
-        const response = await fetch("/api/auth/landing", { cache: "no-store" });
+        const response = await fetch("/api/auth/landing", {
+          cache: "no-store",
+        });
         if (response.ok) {
           const landing = (await response.json()) as { path?: string };
           if (landing.path) target = landing.path;
@@ -68,12 +73,14 @@ export function LoginForm() {
   return (
     <form action={submit} className="space-y-4">
       <label className="block text-sm font-semibold">
-        Email
+        Email or username
         <input
           className={inputClass}
           name="email"
-          type="email"
-          autoComplete="email"
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
           required
           maxLength={254}
         />
@@ -449,7 +456,11 @@ export function AllAgenciesEnquiryForm({
     : inputClass;
 
   return (
-    <form id="all-agencies-enquiry-form" action={submit} className="space-y-2.5">
+    <form
+      id="all-agencies-enquiry-form"
+      action={submit}
+      className="space-y-2.5"
+    >
       <label className="block text-xs font-bold">
         Name
         <input

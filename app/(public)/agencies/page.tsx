@@ -9,7 +9,9 @@ import {
 import { getDirectoryPage, parseDirectoryFilters } from "@/lib/directory";
 import { logger } from "@/lib/logger";
 
-export const revalidate = 300;
+// Directory results are rendered per request so an approval or suspension is
+// visible immediately.
+export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Maid agencies in Singapore | FindMaids",
   description:
@@ -82,7 +84,7 @@ export default async function AgenciesPage({
                 name="q"
                 type="search"
                 defaultValue={filters.keyword}
-                placeholder="Agency name, description or service"
+                placeholder="Maid name, ref. code, agency or service"
               />
             </label>
             <label className="block text-sm font-semibold">
@@ -130,24 +132,28 @@ export default async function AgenciesPage({
                 Nationalities served
               </legend>
               <div className="mt-2 space-y-2">
-                {["Filipino", "Indonesian", "Myanmar", "Indian", "Sri Lankan"].map(
-                  (nationality) => (
-                    <label
-                      key={nationality}
-                      className="flex min-h-9 items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        name="nationality"
-                        value={nationality}
-                        defaultChecked={filters.nationalities.includes(
-                          nationality,
-                        )}
-                      />
-                      {nationality}
-                    </label>
-                  ),
-                )}
+                {[
+                  "Filipino",
+                  "Indonesian",
+                  "Myanmar",
+                  "Indian",
+                  "Sri Lankan",
+                ].map((nationality) => (
+                  <label
+                    key={nationality}
+                    className="flex min-h-9 items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name="nationality"
+                      value={nationality}
+                      defaultChecked={filters.nationalities.includes(
+                        nationality,
+                      )}
+                    />
+                    {nationality}
+                  </label>
+                ))}
               </div>
             </fieldset>
             <label className="block text-sm font-semibold">

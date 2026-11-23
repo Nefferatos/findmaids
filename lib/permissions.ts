@@ -1,4 +1,4 @@
-import type { UserRole } from "@prisma/client";
+import type { UserRole } from "@/lib/generated/prisma/client";
 
 export const adminPermissions = {
   dashboard: ["ADMIN", "STAFF"],
@@ -20,7 +20,10 @@ export const adminPermissions = {
 
 export type AdminPermission = keyof typeof adminPermissions;
 
-export function canAccess(role: UserRole | string | undefined, permission: AdminPermission) {
+export function canAccess(
+  role: UserRole | string | undefined,
+  permission: AdminPermission,
+) {
   return Boolean(role && adminPermissions[permission].includes(role as never));
 }
 
@@ -31,10 +34,10 @@ export function adminLanding(role: UserRole | string | undefined) {
 /**
  * Where a signed-in user lands after login when no explicit `callbackUrl` was
  * requested. Employers (VISITOR) have their own portal at /account; agency
- * owners go to the agency dashboard and admins/staff to the admin area.
+ * owners go to the agency portal at /agency and admins/staff to the admin area.
  */
 export function landingForRole(role: UserRole | string | undefined) {
   if (role === "ADMIN" || role === "STAFF") return adminLanding(role);
-  if (role === "AGENCY") return "/agency/dashboard";
+  if (role === "AGENCY") return "/agency";
   return "/account";
 }

@@ -3,7 +3,8 @@ import { Container, SectionHeading } from "@/components/site";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
-export const revalidate = 300;
+// Plan prices come from the database, so the page renders per request.
+export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Advertise your agency | FindMaids",
   description:

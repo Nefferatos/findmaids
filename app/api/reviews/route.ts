@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp as resolveClientIp } from "@/lib/security/client-ip";
 import { reviewSubmissionSchema } from "@/lib/validation";
-import { hasBlockedPattern, moderateText, hashBlockValue } from "@/lib/moderation";
+import {
+  hasBlockedPattern,
+  moderateText,
+  hashBlockValue,
+} from "@/lib/moderation";
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = resolveClientIp(request);
   if (!(await checkRateLimit(`review:${ip}`, 3, 3600)).allowed)
     return NextResponse.json(
       { error: "Review limit reached. Try again later." },
@@ -20,9 +24,12 @@ export async function POST(request: Request) {
       { error: "Please check the review fields." },
       { status: 400 },
     );
-  const clientIp = request.headers.get("cf-connecting-ip") ?? ip;
+  const clientIp = ip;
   if (await hasBlockedPattern({ ip: clientIp }))
-    return NextResponse.json({ error: "Review submission unavailable." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Review submission unavailable." },
+      { status: 403 },
+    );
   const agency = await prisma.agency.findFirst({
     where: { id: parsed.data.agencyId, status: "APPROVED" },
     select: { id: true },
@@ -39,7 +46,10 @@ export async function POST(request: Request) {
     },
   });
   return NextResponse.json(
-    { message: "Thank you. Your review will appear after moderation.", moderationFlags: flags.flags },
+    {
+      message: "Thank you. Your review will appear after moderation.",
+      moderationFlags: flags.flags,
+    },
     { status: 201 },
   );
 }

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import mockPrismaClient from "./prisma-mock";
@@ -51,7 +51,15 @@ function createPrismaClient() {
 
   return new PrismaClient({
     adapter: new PrismaPg(
-      { connectionString: withSchema(connectionString), max: 5 },
+      {
+        connectionString: withSchema(connectionString),
+        // Workers cannot hold a connection open across requests: Hyperdrive closes
+        // it when the request ends, so a pooled connection looks alive while it is
+        // already gone and the next query hangs until the runtime cancels it.
+        // `maxUses: 1` makes the adapter release the socket after each query.
+        max: 5,
+        maxUses: 1,
+      },
       // Driver adapters ignore the `schema` query parameter, so pass it here.
       { schema: DEFAULT_SCHEMA },
     ),

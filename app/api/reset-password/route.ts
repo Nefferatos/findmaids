@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 
 const schema = z.object({
   token: z.string().min(32).max(128),
@@ -11,8 +12,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`reset:${ip}`, 5, 3600)).allowed)
     return NextResponse.json({ error: "Too many attempts." }, { status: 429 });
   const parsed = schema.safeParse(await request.json().catch(() => null));

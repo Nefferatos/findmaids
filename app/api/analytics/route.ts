@@ -2,25 +2,35 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/security/client-ip";
 import { cookies } from "next/headers";
 import { createHash } from "node:crypto";
 
 const schema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.enum(["SITE_VISIT", "CHAT_OPENED", "CHAT_MESSAGE_SENT", "CHAT_ENQUIRY_CREATED"]),
-    anonymousVisitorId: z.string().uuid(),
-  }).strict(),
-  z.object({
-    agencyId: z.string().min(1),
-    type: z.enum([
-      "profile_view",
-      "phone_click",
-      "whatsapp_click",
-      "website_click",
-      "placement_impression",
-      "placement_click",
-    ]),
-  }).strict(),
+  z
+    .object({
+      type: z.enum([
+        "SITE_VISIT",
+        "CHAT_OPENED",
+        "CHAT_MESSAGE_SENT",
+        "CHAT_ENQUIRY_CREATED",
+      ]),
+      anonymousVisitorId: z.string().uuid(),
+    })
+    .strict(),
+  z
+    .object({
+      agencyId: z.string().min(1),
+      type: z.enum([
+        "profile_view",
+        "phone_click",
+        "whatsapp_click",
+        "website_click",
+        "placement_impression",
+        "placement_click",
+      ]),
+    })
+    .strict(),
 ]);
 
 export async function POST(request: Request) {
@@ -42,10 +52,7 @@ export async function POST(request: Request) {
       { error: "Analytics consent required." },
       { status: 403 },
     );
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const ip = clientIp(request);
   if (!(await checkRateLimit(`analytics:${ip}`, 60, 3600)).allowed)
     return NextResponse.json({ ok: false }, { status: 429 });
   const parsed = schema.safeParse(await request.json().catch(() => null));

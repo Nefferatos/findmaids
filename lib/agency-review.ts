@@ -1,4 +1,4 @@
-import type { AgencyStatus } from "@prisma/client";
+import type { AgencyStatus } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export function approvalQueueAgeHours(submittedAt: Date, now = new Date()) {

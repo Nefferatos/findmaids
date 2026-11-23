@@ -10,11 +10,23 @@ import { storeObject } from "@/lib/storage";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 const maxBytes = 5 * 1024 * 1024;
-const allowedFormats = new Set(["jpeg", "png", "webp"]);
-const kindSchema = z.enum(["logo", "banner", "photo"]);
+/** Directory banners are small artwork; keep the slots lightweight. */
+const bannerMaxBytes = 500 * 1024;
+const allowedFormats = new Set(["jpeg", "png", "webp", "gif"]);
+const kindSchema = z.enum([
+  "logo",
+  "banner",
+  "bannerLeft",
+  "bannerRight",
+  "photo",
+  "maid",
+]);
+const bannerKinds = new Set(["banner", "bannerLeft", "bannerRight"]);
 const sizeSchema = z.number().int().positive().max(maxBytes);
 
-async function prepareImage(input: Buffer, kind: "logo" | "banner" | "photo") {
+type UploadKind = z.infer<typeof kindSchema>;
+
+async function prepareImage(input: Buffer, kind: UploadKind) {
   try {
     const image = sharp(input, {
       limitInputPixels: 40_000_000,
@@ -25,13 +37,28 @@ async function prepareImage(input: Buffer, kind: "logo" | "banner" | "photo") {
       return {
         ok: false as const,
         status: 415,
-        error: "Use JPG, PNG, or WebP images.",
+        error: "Use JPG, PNG, WebP, or GIF images.",
       };
+    const railBanner = kind === "bannerLeft" || kind === "bannerRight";
     const output = await image
       .rotate()
       .resize({
-        width: kind === "logo" ? 1200 : 2400,
-        height: kind === "logo" ? 1200 : 1600,
+        width:
+          kind === "logo"
+            ? 1200
+            : kind === "maid"
+              ? 800
+              : railBanner
+                ? 900
+                : 2400,
+        height:
+          kind === "logo"
+            ? 1200
+            : kind === "maid"
+              ? 800
+              : railBanner
+                ? 1600
+                : 1600,
         fit: "inside",
         withoutEnlargement: true,
       })
@@ -70,13 +97,24 @@ export async function POST(request: Request) {
       { error: "Images must be 5 MB or smaller." },
       { status: 400 },
     );
+  if (bannerKinds.has(kind) && file.size > bannerMaxBytes)
+    return NextResponse.json(
+      {
+        error:
+          "Directory banners must be 500 KB or smaller. Compress the image and try again.",
+      },
+      { status: 400 },
+    );
   if (kind === "photo") {
     const agency = await prisma.agency.findUnique({
       where: { ownerId: session.user.id },
       include: {
         _count: { select: { photos: true } },
         subscriptions: {
-          where: { status: "ACTIVE", OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+          where: {
+            status: "ACTIVE",
+            OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+          },
           include: { plan: true },
           take: 1,
         },

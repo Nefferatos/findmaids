@@ -128,7 +128,7 @@ export function MaidSearchPanel({
           <input
             type="search"
             name="q"
-            placeholder="Agency, skill or area e.g. newborn care"
+            placeholder="Maid name, ref. code, agency or skill"
           />
         </label>
         <label className="dir-field">
@@ -180,7 +180,6 @@ export function MaidSearchPanel({
     </section>
   );
 }
-
 
 /** Horizontal agency advertisement banner with a clean fallback. */
 export function AgencyBanner({ banner }: { banner: DirectoryBanner }) {
@@ -264,7 +263,6 @@ export function AgencyBannerList({
     </div>
   );
 }
-
 
 /** One compact listing row used inside every nationality section. */
 export function DirectoryListingRow({
@@ -424,7 +422,6 @@ export function NationalitySections({
   );
 }
 
-
 /** Centre rail: nationality and placement-type category links. */
 export function MaidCategoryList({
   nationalities,
@@ -471,7 +468,9 @@ export function MaidCategoryList({
 /** Centre rail: newest approved agency listings. */
 export function RecentListings({ agencies }: { agencies: DirectoryAgency[] }) {
   if (agencies.length === 0) {
-    return <p className="dir-empty">New listings appear here as agencies join.</p>;
+    return (
+      <p className="dir-empty">New listings appear here as agencies join.</p>
+    );
   }
   return (
     <ul className="dir-recent-list">
@@ -492,7 +491,11 @@ export function RecentListings({ agencies }: { agencies: DirectoryAgency[] }) {
 }
 
 /** Centre rail: submit-your-requirements promo. */
-export function RequirementsPanel({ signedIn = false }: { signedIn?: boolean }) {
+export function RequirementsPanel({
+  signedIn = false,
+}: {
+  signedIn?: boolean;
+}) {
   return (
     <section className="dir-promo">
       <h2 className="dir-promo-title">Submit your requirements</h2>
@@ -545,7 +548,6 @@ export function ContactAllAgenciesPanel({
     </section>
   );
 }
-
 
 /** Right rail: featured agency placements. */
 export function FeaturedAgencyRail({
@@ -637,4 +639,3 @@ export function DirectoryTrustNote() {
     </p>
   );
 }
-

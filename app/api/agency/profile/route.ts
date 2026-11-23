@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { calculateProfileCompleteness } from "@/lib/agency";
 import { prisma } from "@/lib/prisma";
+import { isAllowedMediaUrl } from "@/lib/validation";
 import { sendEmail } from "@/lib/email";
 import { enqueueJob } from "@/lib/jobs/queue";
 import { isFeatureEnabled } from "@/lib/ai/flags";
@@ -35,23 +36,17 @@ const schema = z.object({
   languages: z.array(z.string().max(80)).max(20),
   logoUrl: z.string().refine(isAllowedMediaUrl).optional().or(z.literal("")),
   bannerUrl: z.string().refine(isAllowedMediaUrl).optional().or(z.literal("")),
+  bannerLeftUrl: z
+    .string()
+    .refine(isAllowedMediaUrl)
+    .optional()
+    .or(z.literal("")),
+  bannerRightUrl: z
+    .string()
+    .refine(isAllowedMediaUrl)
+    .optional()
+    .or(z.literal("")),
 });
-
-function isAllowedMediaUrl(value: string) {
-  if (value.startsWith("/uploads/") && !value.includes("..")) return true;
-  try {
-    const url = new URL(value);
-    const storageUrl = process.env.SUPABASE_URL;
-    return Boolean(
-      storageUrl &&
-      url.protocol === "https:" &&
-      url.origin === new URL(storageUrl).origin &&
-      url.pathname.includes("/storage/v1/object/public/"),
-    );
-  } catch {
-    return false;
-  }
-}
 
 export async function PATCH(request: Request) {
   const session = await auth();
@@ -87,6 +82,8 @@ export async function PATCH(request: Request) {
       facebook: parsed.data.facebook || null,
       logoUrl: parsed.data.logoUrl || null,
       bannerUrl: parsed.data.bannerUrl || null,
+      bannerLeftUrl: parsed.data.bannerLeftUrl || null,
+      bannerRightUrl: parsed.data.bannerRightUrl || null,
       profileCompleteness: completeness,
       status,
       ...(changedCritical ? { submittedAt: new Date(), adminNote: null } : {}),

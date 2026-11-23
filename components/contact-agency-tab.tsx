@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Mail, X } from "lucide-react";
 import { getFirstTouch } from "@/lib/attribution-client";
 
 type AgencyOption = { id: string; name: string };
@@ -63,6 +63,15 @@ export function ContactAgencyTab() {
   }, [open, agencies, agencyRequest]);
 
   useEffect(() => {
+    function openFromPage() {
+      setOpen(true);
+    }
+    window.addEventListener("findmaids:open-contact", openFromPage);
+    return () =>
+      window.removeEventListener("findmaids:open-contact", openFromPage);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     closeRef.current?.focus();
     function handleEscape(event: globalThis.KeyboardEvent) {
@@ -98,9 +107,10 @@ export function ContactAgencyTab() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setSubmitting(true);
     setFormState({ message: "", error: false });
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const allAgencies = formData.get("agencyId") === "all";
     try {
       const response = await fetch("/api/enquiries", {
@@ -123,7 +133,7 @@ export function ContactAgencyTab() {
         error: !response.ok,
       });
       if (response.ok) {
-        event.currentTarget.reset();
+        form.reset();
         setTurnstileToken("");
       }
     } catch {
@@ -148,12 +158,14 @@ export function ContactAgencyTab() {
       <button
         ref={triggerRef}
         type="button"
-        className="site-contact-trigger fixed top-1/2 right-0 z-40 -translate-y-1/2"
+        className="site-contact-trigger"
+        title="Contact an agency"
+        aria-label="Contact an agency"
         aria-expanded={open}
         aria-controls="contact-agency-panel"
         onClick={() => setOpen(true)}
       >
-        Contact an Agency
+        <Mail aria-hidden="true" className="size-5" />
       </button>
       {open && (
         <div className="fixed inset-0 z-50">

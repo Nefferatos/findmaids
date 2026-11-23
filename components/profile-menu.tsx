@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { ChevronDown, LayoutDashboard, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
 export type ProfileUser = {
   name?: string | null;
@@ -34,9 +40,11 @@ const itemClass =
 export function ProfileMenu({
   user,
   align = "right",
+  hideSignOut = false,
 }: {
   user: ProfileUser;
   align?: "left" | "right";
+  hideSignOut?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -45,7 +53,10 @@ export function ProfileMenu({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
-      if (container.current && !container.current.contains(event.target as Node))
+      if (
+        container.current &&
+        !container.current.contains(event.target as Node)
+      )
         setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -85,7 +96,9 @@ export function ProfileMenu({
         >
           {initialsFor(user)}
         </span>
-        <span className="hidden max-w-32 truncate sm:inline">{displayName}</span>
+        <span className="hidden max-w-32 truncate sm:inline">
+          {displayName}
+        </span>
         <ChevronDown aria-hidden="true" className="size-4" />
       </button>
 
@@ -97,48 +110,49 @@ export function ProfileMenu({
           align === "right" ? "right-0" : "left-0"
         }`}
       >
-          <div className="border-b px-4 py-3">
-            <p className="truncate text-sm font-bold">{displayName}</p>
-            <p className="text-muted-foreground truncate text-xs">{user.email}</p>
-            <p className="text-primary mt-1 text-xs font-bold uppercase">
-              {roleLabels[role] ?? role}
-            </p>
-          </div>
+        <div className="border-b px-4 py-3">
+          <p className="truncate text-sm font-bold">{displayName}</p>
+          <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+          <p className="text-primary mt-1 text-xs font-bold uppercase">
+            {roleLabels[role] ?? role}
+          </p>
+        </div>
 
+        <Link
+          role="menuitem"
+          href="/account"
+          onClick={() => setOpen(false)}
+          className={itemClass}
+        >
+          <UserRound aria-hidden="true" className="size-4" />
+          Profile
+        </Link>
+
+        {role === "AGENCY" ? (
           <Link
             role="menuitem"
-            href="/account"
+            href="/agency"
             onClick={() => setOpen(false)}
             className={itemClass}
           >
-            <UserRound aria-hidden="true" className="size-4" />
-            Profile
+            <LayoutDashboard aria-hidden="true" className="size-4" />
+            Agency dashboard
           </Link>
+        ) : null}
 
-          {role === "AGENCY" ? (
-            <Link
-              role="menuitem"
-              href="/agency/dashboard"
-              onClick={() => setOpen(false)}
-              className={itemClass}
-            >
-              <LayoutDashboard aria-hidden="true" className="size-4" />
-              Agency dashboard
-            </Link>
-          ) : null}
+        {role === "ADMIN" || role === "STAFF" ? (
+          <Link
+            role="menuitem"
+            href="/admin"
+            onClick={() => setOpen(false)}
+            className={itemClass}
+          >
+            <ShieldCheck aria-hidden="true" className="size-4" />
+            Admin area
+          </Link>
+        ) : null}
 
-          {role === "ADMIN" || role === "STAFF" ? (
-            <Link
-              role="menuitem"
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className={itemClass}
-            >
-              <ShieldCheck aria-hidden="true" className="size-4" />
-              Admin area
-            </Link>
-          ) : null}
-
+        {hideSignOut ? null : (
           <button
             role="menuitem"
             type="button"
@@ -149,6 +163,7 @@ export function ProfileMenu({
             <LogOut aria-hidden="true" className="size-4" />
             {signingOut ? "Signing out…" : "Log out"}
           </button>
+        )}
       </div>
     </div>
   );

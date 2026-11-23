@@ -88,7 +88,7 @@ export default async function SampleAgencyDashboardPage({
             Leads
           </a>
           <Link
-            href="/login?callbackUrl=/agency/dashboard"
+            href="/login?callbackUrl=/agency"
             className="dir-chip"
           >
             Open the real dashboard
@@ -308,7 +308,7 @@ export default async function SampleAgencyDashboardPage({
                 {demoAgencyOverview.leadAllowance} this month
               </p>
               <Link
-                href="/login?callbackUrl=/agency/dashboard"
+                href="/login?callbackUrl=/agency"
                 className="dir-btn-outline dir-btn-block"
               >
                 Manage billing (sign in)
@@ -318,22 +318,22 @@ export default async function SampleAgencyDashboardPage({
             <DirectoryPanel title="Quick actions">
               <ul className="dir-link-list">
                 <li>
-                  <Link href="/login?callbackUrl=/agency/dashboard">
+                  <Link href="/login?callbackUrl=/agency">
                     Edit profile
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login?callbackUrl=/agency/dashboard">
+                  <Link href="/login?callbackUrl=/agency">
                     Open leads
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login?callbackUrl=/agency/dashboard">
+                  <Link href="/login?callbackUrl=/agency">
                     Add or update maids
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login?callbackUrl=/agency/dashboard">
+                  <Link href="/login?callbackUrl=/agency">
                     Review analytics
                   </Link>
                 </li>
@@ -371,7 +371,7 @@ export default async function SampleAgencyDashboardPage({
               <ArrowRight aria-hidden="true" className="size-3.5" />
             </Link>
             <Link
-              href="/login?callbackUrl=/agency/dashboard"
+              href="/login?callbackUrl=/agency"
               className="dir-btn-outline dir-btn-block"
             >
               Agency login

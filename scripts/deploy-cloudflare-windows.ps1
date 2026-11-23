@@ -210,6 +210,12 @@ if (-not (Test-Path (Join-Path $repoRoot '.open-next\worker.js'))) {
 
 # --- 3. Deploy -------------------------------------------------------------
 if (-not $SkipDeploy) {
+    # Cloudflare rejects scripts over 63.9 MiB uncompressed (code 10027); the
+    # bundle carries Prisma's engine wasm plus build-only tooling, so drop what
+    # the Worker can never load before uploading.
+    Write-Host '[deploy] pruning build-only modules from the bundle...' -ForegroundColor DarkGray
+    & node (Join-Path $repoRoot 'scripts/prune-worker-bundle.mjs')
+    if ($LASTEXITCODE -ne 0) { throw "prune-worker-bundle failed with exit code $LASTEXITCODE." }
     Write-Host '[deploy] uploading Worker...' -ForegroundColor Cyan
     & node $wranglerCli deploy
     if ($LASTEXITCODE -ne 0) { throw "wrangler deploy failed with exit code $LASTEXITCODE." }

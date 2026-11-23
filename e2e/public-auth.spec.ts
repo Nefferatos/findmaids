@@ -10,7 +10,7 @@ test("directory is browseable and role-protected areas redirect visitors", async
   await expect(
     page.getByRole("heading", { name: "Find an agency" }),
   ).toBeVisible();
-  await page.goto("/agency/dashboard");
+  await page.goto("/agency");
   await expect(page).toHaveURL(/\/login\?callbackUrl=/);
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login\?callbackUrl=/);

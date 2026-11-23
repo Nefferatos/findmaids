@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CheckoutForm } from "@/components/agency-dashboard-forms";
+import { AgencyHeader } from "@/components/agency/agency-header";
 import { Container, SectionHeading } from "@/components/site";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -30,25 +31,30 @@ export default async function AgencyCheckoutPage({
   ]);
   if (!agency || agency.status !== "APPROVED") redirect("/agency/onboarding");
   return (
-    <Container className="max-w-3xl py-10">
-      <SectionHeading
-        eyebrow="Agency billing"
-        title="Choose a listing plan"
-        description="Upgrade visibility and listing capacity. Downgrades are scheduled for renewal; eligible upgrades are prorated."
-      />
-      <CheckoutForm
-        initialPlanId={initialPlanId}
-        plans={plans.map((plan) => ({
-          ...plan,
-          priceMonthly: plan.priceMonthly.toNumber(),
-          priceYearly: plan.priceYearly.toNumber(),
-          aiMonthlyBudgetSgd: plan.aiMonthlyBudgetSgd?.toNumber() ?? null,
-        }))}
-      />
-      <p className="text-muted-foreground mt-4 text-xs leading-5">
-        Checkout creates a manual (bank transfer) payment; FindMaids never stores
-        card details.
-      </p>
-    </Container>
+    <>
+      <div className="agency-app">
+        <AgencyHeader />
+      </div>
+      <Container className="max-w-3xl py-10">
+        <SectionHeading
+          eyebrow="Agency billing"
+          title="Choose a listing plan"
+          description="Upgrade visibility and listing capacity. Downgrades are scheduled for renewal; eligible upgrades are prorated."
+        />
+        <CheckoutForm
+          initialPlanId={initialPlanId}
+          plans={plans.map((plan) => ({
+            ...plan,
+            priceMonthly: plan.priceMonthly.toNumber(),
+            priceYearly: plan.priceYearly.toNumber(),
+            aiMonthlyBudgetSgd: plan.aiMonthlyBudgetSgd?.toNumber() ?? null,
+          }))}
+        />
+        <p className="text-muted-foreground mt-4 text-xs leading-5">
+          Checkout creates a manual (bank transfer) payment; FindMaids never
+          stores card details.
+        </p>
+      </Container>
+    </>
   );
 }

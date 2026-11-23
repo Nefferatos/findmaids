@@ -4,7 +4,8 @@ import {
   EnquiryStatus,
   FeatureFlagScope,
   ReviewStatus,
-} from "@prisma/client";
+} from "@/lib/generated/prisma/client";
+import { SAMPLE_AGENCY_MARKER } from "../lib/sample-data";
 import { prisma } from "../lib/prisma-script";
 
 if (
@@ -116,7 +117,9 @@ async function main() {
     agencies.map(([name, slug, city, province], index) =>
       prisma.agency.upsert({
         where: { slug },
-        update: {},
+        // Re-running the seed tags rows created before the marker existed, so a
+        // shared database never keeps an untagged demo profile.
+        update: { adminNote: SAMPLE_AGENCY_MARKER },
         create: {
           name,
           slug,
@@ -136,6 +139,7 @@ async function main() {
           languages: ["English", "Mandarin", "Malay"],
           status: AgencyStatus.APPROVED,
           verifiedBadge: false,
+          adminNote: SAMPLE_AGENCY_MARKER,
         },
       }),
     ),

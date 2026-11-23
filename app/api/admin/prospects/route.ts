@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ProspectStage } from "@prisma/client";
+import { ProspectStage } from "@/lib/generated/prisma/client";
 import { z } from "zod";
 import { authorizeAdminApi } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";

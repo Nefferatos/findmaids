@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { embedLoggedText } from "@/lib/ai/call";
 
 export const searchAgenciesInput = z.object({

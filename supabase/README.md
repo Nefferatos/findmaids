@@ -20,22 +20,32 @@ Use the individual files below only when you want to apply one step at a time.
 | 2 | `002-maids-table.sql` | Adds the `MaidStatus` enum, the `Maid` table, its indexes, FK and RLS. Run this on any project that was created before maid profiles existed. | Yes |
 | 3 | `003-reference-data.sql` | The data the app needs to run: 3 plans (Basic Free / Gold / Platinum), the platform FAQ entry and the 4 AI feature flags (disabled). | Yes |
 | 4 | `004-sample-data.sql` | 5 demonstration agencies + 15 maid profiles + 5 reviews, so the site can be shown with realistic content. | Yes |
-| 5 | `009-remove-sample-data.sql` | Deletes every sample agency and sample maid before launch. | Yes |
+| 5 | `010-tag-test-data.sql` | Tags test/demo agencies that other seeds or E2E runs already wrote into this database, so the live site hides them while localhost keeps showing them. Nothing is deleted. | Yes |
+| 6 | `009-remove-sample-data.sql` | Deletes every sample/test agency and sample maid before launch (any row the live site hides). | Yes |
 
 If your project already has the original schema, just run **2 → 3 → 4** in that
 order.
 
-## How the samples stay out of production
+## How test data stays out of the live site
 
-Sample rows are tagged in the database:
+Rows written by the sample SQL, the seeds and the E2E suites are tagged in the
+database:
 
-* agencies → `"adminNote" = 'findmaids:sample-data'`
+* agencies → `"adminNote" = 'findmaids:sample-data'` (older seeds used
+  `demo:homepage-banner`, `demo:*` or nothing at all)
 * maids → `"isSample" = true`
 
 `lib/sample-data.ts` → `sampleDataEnabled()` decides whether the app may show
 them, and the filter is applied to every public query: directory search, homepage
 nationality sections, hero/agency banners, popular services, the agency profile
 page, `/api/public/agencies` and `sitemap.xml`.
+
+On a live deployment the filter is intentionally broader than the markers: an
+agency is also hidden when its **name** only a fixture would use (`… (Demo)`,
+`TEST Agency …`, `Demo Agency …`, `… (Test Only)`), when its **e-mail** is on the
+reserved `.test` TLD, or when its **licence number** starts with `TEST`/`E2E`.
+That is the safety net for rows already in a shared database — run
+`010-tag-test-data.sql` to stamp the marker on them properly.
 
 | Runner | Samples shown? |
 |---|---|
@@ -44,10 +54,11 @@ page, `/api/public/agencies` and `sitemap.xml`.
 | Cloudflare / Vercel production (`APP_ENV`, `VERCEL_ENV`, `CF_PAGES` or `ENVIRONMENT` = `production`) | **no — always**, even with the flag below |
 | Staging/preview deployment with `SHOW_SAMPLE_DATA=true` | yes (explicit demo opt-in) |
 
-`wrangler.jsonc` already sets `APP_ENV=production`, so the deployed Worker can
-never render samples. `NODE_ENV` is baked in as `production` by `next build`,
-which is why a plain local `npm start` also hides them — use `npm run dev`, or
-set `SHOW_SAMPLE_DATA=true` on a staging demo deployment.
+`wrangler.jsonc` sets `APP_ENV=production` **and** `SHOW_SAMPLE_DATA=false`, so
+the deployed Worker can never render test rows. `NODE_ENV` is baked in as
+`production` by `next build`, which is why a plain local `npm start` also hides
+them — use `npm run dev`, or set `SHOW_SAMPLE_DATA=true` on a staging demo
+deployment.
 
 ```bash
 # hide the samples locally as well

@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 /**
  * Sample/demo data control.
@@ -12,6 +12,13 @@ import type { Prisma } from "@prisma/client";
  *   supabase/009-remove-sample-data.sql    – delete them before launch
  *
  * This module decides whether the running app is allowed to show those rows.
+ *
+ * On a live deployment the filter is deliberately broader than the two markers:
+ * rows written by older/misconfigured seeds are still recognised by their
+ * fabricated contact details (`.test` e-mail, `TEST-`/`E2E-` licence number) and
+ * by names only a fixture would use (`… (Demo)`, `TEST Agency …`). Markers are
+ * what new seeds must write; the extra signatures are the safety net for rows
+ * that already reached the shared database.
  *
  * Visibility matrix
  * ┌──────────────────────────────────────┬───────────────────────────────┐
@@ -32,6 +39,44 @@ import type { Prisma } from "@prisma/client";
  */
 
 export const SAMPLE_AGENCY_MARKER = "findmaids:sample-data";
+
+/**
+ * `Agency.adminNote` prefixes reserved for demo/test tooling. An older banner
+ * seed wrote `demo:homepage-banner`; recognising the prefix means a seed that
+ * forgot the marker still cannot leak onto the live site.
+ */
+export const SAMPLE_ADMIN_NOTE_PREFIXES = ["demo:", "test:"] as const;
+
+/**
+ * `adminNote` values that mark an agency as demonstration data. Both are
+ * hidden on a live deployment and removed by `supabase/009-remove-sample-data.sql`.
+ */
+export const SAMPLE_AGENCY_MARKERS = [
+  SAMPLE_AGENCY_MARKER,
+  "demo:homepage-banner",
+] as const;
+
+/**
+ * Name fragments only test fixtures use (`Casa Care (Demo)`, `TEST Agency A`,
+ * `Demo Agency (Test Only)`, …). A real agency is named after its business, so a
+ * live deployment must never list a row that matches one of these.
+ */
+export const SAMPLE_AGENCY_NAME_HINTS = [
+  "(demo)",
+  "(test only)",
+  "demo agency",
+  "test agency",
+  "sample agency",
+  // Matches "E2E Household Agency", "E2E Founding Agency 1699…", etc.
+  "e2e ",
+] as const;
+
+/** `.test` is a reserved TLD: only fixtures, seeds and E2E suites use it. */
+export const SAMPLE_EMAIL_SUFFIX = ".test";
+
+/** Licence numbers fabricated by seeds and CI: `TEST-A-0001`, `E2E-TEST-001`, … */
+export const SAMPLE_LICENSE_PREFIXES = ["TEST", "E2E"] as const;
+export const SAMPLE_LICENSE_HINT = "-TEST-";
 
 type Env = Record<string, string | undefined>;
 
@@ -66,17 +111,61 @@ export function sampleDataEnabled(env: Env = process.env): boolean {
 }
 
 /**
+ * Every condition a live deployment applies to keep demonstration agencies out
+ * of the directory. Exported so the cleanup SQL in `supabase/010-…` can mirror
+ * the same signatures, and so tests can assert on each rule.
+ *
+ * Notes on nullability:
+ *  - `adminNote` and `licenseNumber` are optional, and `NOT (column LIKE …)` is
+ *    NULL - not true - for a missing value in Postgres. Rows without a note or
+ *    licence are therefore kept with an explicit `null` branch instead of being
+ *    silently hidden.
+ *  - `name` and `email` are required columns, so they need no null branch.
+ */
+export function testAgencyExclusions(): Prisma.AgencyWhereInput[] {
+  const conditions: Prisma.AgencyWhereInput[] = [
+    {
+      OR: [
+        { adminNote: null },
+        { adminNote: { notIn: [...SAMPLE_AGENCY_MARKERS] } },
+      ],
+    },
+  ];
+  for (const prefix of SAMPLE_ADMIN_NOTE_PREFIXES)
+    // `adminNote` is optional: `NOT (adminNote LIKE 'demo:%')` is NULL - and so
+    // filters the row out - when there is no note, so NULL is kept explicitly.
+    conditions.push({
+      OR: [{ adminNote: null }, { NOT: { adminNote: { startsWith: prefix } } }],
+    });
+  for (const hint of SAMPLE_AGENCY_NAME_HINTS)
+    conditions.push({ NOT: { name: { contains: hint, mode: "insensitive" } } });
+  conditions.push({ NOT: { email: { endsWith: SAMPLE_EMAIL_SUFFIX } } });
+  conditions.push({
+    OR: [
+      { licenseNumber: null },
+      {
+        AND: [
+          ...SAMPLE_LICENSE_PREFIXES.map((prefix) => ({
+            NOT: { licenseNumber: { startsWith: prefix } },
+          })),
+          { NOT: { licenseNumber: { contains: SAMPLE_LICENSE_HINT } } },
+        ],
+      },
+    ],
+  });
+  return conditions;
+}
+
+/**
  * Where-clause fragment that hides sample agencies when they are not allowed.
- * Written as `OR` (so `adminNote IS NULL` rows are kept) and intended to be
- * pushed into the `AND` array of a query so it composes with other filters.
+ * Composed as `AND` so it can be pushed into another `AND` array and combined
+ * with the caller's filters.
  */
 export function sampleAgencyVisibilityWhere(
   env: Env = process.env,
 ): Prisma.AgencyWhereInput | null {
   if (sampleDataEnabled(env)) return null;
-  return {
-    OR: [{ adminNote: null }, { adminNote: { not: SAMPLE_AGENCY_MARKER } }],
-  };
+  return { AND: testAgencyExclusions() };
 }
 
 /**
