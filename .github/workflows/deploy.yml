@@ -83,6 +83,10 @@ jobs:
       - name: Apply database migrations
         run: |
           set +e
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::warning::DATABASE_URL is not configured in this repository; skipping migrations."
+            exit 0
+          fi
           # Supabase's pooled endpoint cannot run DDL. Migrations use the direct
           # connection, and fall back to DATABASE_URL when that secret is empty.
           if [ -z "${DIRECT_URL:-}" ]; then
