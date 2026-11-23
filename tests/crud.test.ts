@@ -407,7 +407,9 @@ describe("directory read path", () => {
       expect(where.AND).toHaveLength(1);
 
       const visible = await prisma.agency.findMany({ where });
-      expect(visible.map((agency) => agency.slug)).toEqual(["crud-real"]);
+      // A shared database may already hold real agencies, so assert on this
+      // test's own rows instead of the whole list.
+      expect(visible.map((agency) => agency.slug)).toContain("crud-real");
       expect(visible.some((agency) => agency.id === sample.id)).toBe(false);
       expect(visible.some((agency) => agency.id === demoNamed.id)).toBe(false);
 

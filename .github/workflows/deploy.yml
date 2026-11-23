@@ -71,6 +71,13 @@ jobs:
         run: npx --no-install tsc --noEmit
 
       - name: Unit tests
+        env:
+          # Unit tests must never touch the deployed database (the job inherits
+          # its URL for the migration step). With an empty URL `lib/prisma.ts`
+          # falls back to the in-memory client, so the suite is hermetic and
+          # behaves exactly like `npm test` on a developer machine.
+          DATABASE_URL: ""
+          DIRECT_URL: ""
         run: npx vitest run
 
       - name: Apply database migrations
