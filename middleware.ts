@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import type { JWT } from "next-auth/jwt";
 import { canAccess, adminLanding } from "@/lib/permissions";
 import { verifyImpersonationCookie } from "@/lib/impersonation";
+import { runtimeAuthSecret } from "@/lib/runtime-env";
 import {
   isApiBodyWithinLimit,
   isSameOriginMutation,
@@ -11,6 +13,41 @@ import {
   isCookieMutationPath,
   isProtectedPath as requiresSession,
 } from "@/lib/security/route-access";
+
+/**
+ * Reads the Auth.js session token from the request cookies.
+ *
+ * The cookie name and the JWT salt must match what Auth.js used when issuing the
+ * token: `__Secure-authjs.session-token` on https, `authjs.session-token`
+ * otherwise. They are passed explicitly because the middleware bundle cannot
+ * read `NEXTAUTH_URL` at runtime (Next inlines it at build time), which made
+ * `getToken` look for the wrong cookie and silently treat every signed-in
+ * request as anonymous. The unprefixed fallback covers a proxy that terminates
+ * TLS before Auth.js sees the request.
+ */
+async function readSessionToken(request: NextRequest): Promise<JWT | null> {
+  const secret = runtimeAuthSecret();
+  const secure = request.nextUrl.protocol === "https:";
+  const cookieNames = secure
+    ? ["__Secure-authjs.session-token", "authjs.session-token"]
+    : ["authjs.session-token", "__Secure-authjs.session-token"];
+  for (const cookieName of cookieNames) {
+    if (
+      !request.cookies.get(cookieName)?.value &&
+      cookieName !== cookieNames[0]
+    )
+      continue;
+    const token = await getToken({
+      req: request,
+      secret,
+      secureCookie: secure,
+      cookieName,
+      salt: cookieName,
+    }).catch(() => null);
+    if (token) return token;
+  }
+  return null;
+}
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -56,10 +93,7 @@ export async function middleware(request: NextRequest) {
     return attachRequestId(
       NextResponse.next({ request: { headers: requestHeaders } }),
     );
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  });
+  const token = await readSessionToken(request);
   const impersonation = await verifyImpersonationCookie(
     request.cookies.get("fm-admin-impersonation")?.value,
   );

@@ -6,6 +6,8 @@ export type ImpersonationSession = {
   expiresAt: number;
 };
 
+import { runtimeAuthSecret } from "@/lib/runtime-env";
+
 function base64UrlToBytes(value: string) {
   const standard = value.replaceAll("-", "+").replaceAll("_", "/");
   const padded = standard.padEnd(Math.ceil(standard.length / 4) * 4, "=");
@@ -23,7 +25,9 @@ export async function verifyImpersonationCookie(
   value?: string,
 ): Promise<ImpersonationSession | null> {
   if (!value) return null;
-  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  // Runtime lookup: the middleware bundle inlines `process.env.AUTH_SECRET` at
+  // build time, which would disable impersonation cookies on the deployed site.
+  const secret = runtimeAuthSecret();
   if (!secret) return null;
   const [payload, signature] = value.split(".");
   if (!payload || !signature) return null;
