@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -65,10 +66,8 @@ export async function POST(request: Request) {
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
     },
   });
-  const verifyUrl = new URL(
-    `/api/verify-email?token=${rawToken}`,
-    process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-  ).toString();
+  // A blank NEXTAUTH_URL must not throw here; siteUrl() validates the base.
+  const verifyUrl = siteUrl(`/api/verify-email?token=${rawToken}`);
   await sendEmail(
     email,
     "Verify your FindMaids account",

@@ -5,6 +5,7 @@ import { requestIp, writeAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { createHash, randomBytes } from "node:crypto";
 import { sendEmail } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 
 const schema = z.object({ userId: z.string().min(1), role: z.enum(["VISITOR", "AGENCY", "STAFF", "ADMIN"]).optional(), disabled: z.boolean().optional(), forceReset: z.boolean().optional() });
 
@@ -29,7 +30,7 @@ export async function PATCH(request: Request) {
     if (!target) return NextResponse.json({ error: "User not found." }, { status: 404 });
     const rawToken = randomBytes(32).toString("hex");
     await prisma.passwordResetToken.create({ data: { userId: parsed.data.userId, tokenHash: createHash("sha256").update(rawToken).digest("hex"), expiresAt: new Date(Date.now() + 30 * 60_000) } });
-    const resetUrl = new URL(`/reset-password?token=${rawToken}`, process.env.NEXTAUTH_URL ?? "http://localhost:3000").toString();
+    const resetUrl = siteUrl(`/reset-password?token=${rawToken}`);
     await sendEmail(target.email, "Admin requested a FindMaids password reset", `An administrator requested that you reset your password. This link expires in 30 minutes: ${resetUrl}`);
     await writeAdminAudit({ actorId: access.user.id, action: "USER_FORCE_PASSWORD_RESET", entity: "User", entityId: parsed.data.userId, before, after: { resetEmailSent: true }, ipAddress: requestIp(request) });
     return NextResponse.json({ resetEmailSent: true });

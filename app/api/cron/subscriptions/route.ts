@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { foundingReminderWindow } from "@/lib/leads/founding-period";
+import { siteUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
 
@@ -119,7 +120,7 @@ export async function GET(request: Request) {
           await sendEmail(
             subscription.agency.owner.email,
             `Your FindMaids founding period ends in ${days} days`,
-            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. No payment will be collected automatically. Visit your dashboard to review available plans: ${new URL("/agency/billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+            `Your founding Gold-entitlement period ends ${subscription.foundingPeriodEndsAt?.toLocaleDateString("en-SG", { timeZone: "Asia/Singapore" })}. No payment will be collected automatically. Visit your dashboard to review available plans: ${siteUrl("/agency/billing")}`,
           );
         foundingReminders += 1;
       }
@@ -183,7 +184,7 @@ export async function GET(request: Request) {
       await sendEmail(
         subscription.agency.owner.email,
         "Your FindMaids founding period has ended",
-        `Your free founding Gold-entitlement period has ended. Your account is now on Basic Free. No payment was collected. Review available plans here: ${new URL("/agency/billing", process.env.NEXTAUTH_URL ?? "http://localhost:3000")}`,
+        `Your free founding Gold-entitlement period has ended. Your account is now on Basic Free. No payment was collected. Review available plans here: ${siteUrl("/agency/billing")}`,
       );
     foundingDowngrades += 1;
   }
@@ -213,10 +214,9 @@ export async function GET(request: Request) {
       } catch {
         continue;
       }
-      const checkoutUrl = new URL(
+      const checkoutUrl = siteUrl(
         `/agency/billing/checkout?plan=${subscription.scheduledPlan.id}`,
-        process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-      ).toString();
+      );
       if (subscription.agency.owner?.email)
         await sendEmail(
           subscription.agency.owner.email,

@@ -2,12 +2,10 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { sampleAgencyVisibilityWhere } from "@/lib/sample-data";
+import { siteBaseUrl } from "@/lib/site-url";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXTAUTH_URL ??
-    "http://localhost:3000";
+  const baseUrl = siteBaseUrl();
   const staticPaths = [
     "",
     "/agencies",

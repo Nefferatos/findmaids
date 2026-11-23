@@ -18,6 +18,9 @@ export default defineConfig({
       APP_ENV: "test",
       NODE_ENV: "test",
       SHOW_SAMPLE_DATA: "true",
+      // A developer shell or `.env` may export the local admin MFA bypass; the
+      // policy tests must always run against the default (MFA required).
+      ADMIN_MFA_BYPASS: "false",
     },
   },
 });

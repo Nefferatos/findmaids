@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { siteBaseUrl } from "@/lib/site-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "FindMaids",
   description: "FindMaids application foundation",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ??
-      process.env.NEXTAUTH_URL ??
-      "http://localhost:3000",
-  ),
+  // Validated base: an empty NEXTAUTH_URL must not throw at build time.
+  metadataBase: new URL(siteBaseUrl()),
   openGraph: { siteName: "FindMaids", type: "website" },
 };
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/security/client-ip";
 import { sendEmail } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 
 const schema = z.object({ email: z.string().trim().email().max(254) });
 
@@ -33,10 +34,7 @@ export async function POST(request: Request) {
         expiresAt: new Date(Date.now() + 1000 * 60 * 30),
       },
     });
-    const url = new URL(
-      `/reset-password?token=${rawToken}`,
-      process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-    ).toString();
+    const url = siteUrl(`/reset-password?token=${rawToken}`);
     await sendEmail(
       user.email,
       "Reset your FindMaids password",
