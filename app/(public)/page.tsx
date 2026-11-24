@@ -15,6 +15,13 @@ import { logger } from "@/lib/logger";
 // approvals and newly published maids are always current.
 export const dynamic = "force-dynamic";
 
+/**
+ * Upper bound for the landing-page data query. A stalled Hyperdrive connection
+ * would otherwise keep the response open until the Workers runtime cancels it
+ * (Error 1101); the page then renders its static sections instead.
+ */
+const LANDING_DATA_TIMEOUT_MS = 8_000;
+
 export const metadata = {
   title: "Singapore maid agency directory | FindMaids",
   description:
@@ -52,10 +59,23 @@ export default async function HomePage() {
     maidRows: [],
   };
   try {
-    data = await getHomePageData();
+    // The landing page must never hang the Worker: if a database query stalls,
+    // render the hero and static sections instead of returning Error 1101.
+    data = await Promise.race([
+      getHomePageData(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Landing page data timed out")),
+          LANDING_DATA_TIMEOUT_MS,
+        ),
+      ),
+    ]);
   } catch (error) {
     logger.error(
-      { errorType: error instanceof Error ? error.name : "unknown" },
+      {
+        errorType: error instanceof Error ? error.name : "unknown",
+        reason: error instanceof Error ? error.message : "unknown",
+      },
       "Unable to load landing page data",
     );
   }

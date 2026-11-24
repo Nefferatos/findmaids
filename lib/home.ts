@@ -273,62 +273,64 @@ export async function getHomepageMaidRows(options?: {
     ...(visibility ? { AND: [visibility] } : {}),
   };
 
-  const rows = await Promise.all(
-    HOME_MAID_NATIONALITIES.map(async (nationality) => {
-      const maids = await prisma.maid.findMany({
-        where: {
-          ...publishedMaidWhere(),
-          nationality: { contains: nationality, mode: "insensitive" },
-          agency: agencyWhere,
-        },
-        select: {
-          id: true,
-          reference: true,
-          fullName: true,
-          nationality: true,
-          age: true,
-          dateOfBirth: true,
-          placementType: true,
-          photoUrl: true,
-          photoUrls: true,
-          photoThumbnailUrls: true,
-          photoPortraitUrls: true,
-          createdAt: true,
-          agency: {
-            select: {
-              name: true,
-              slug: true,
-              adPlacements: {
-                where: {
-                  status: "ACTIVE",
-                  startDate: { lte: now },
-                  endDate: { gte: now },
-                  type: {
-                    in: ["FEATURED", "HOMEPAGE", "SEARCH", "CATEGORY_TOP"],
-                  },
+  // Queried one nationality at a time: Hyperdrive limits how many connections a
+  // single Worker request may open, and four parallel queries plus the banner
+  // query was enough to exhaust it and hang the landing page.
+  const rows: HomeMaidRow[] = [];
+  for (const nationality of HOME_MAID_NATIONALITIES) {
+    const maids = await prisma.maid.findMany({
+      where: {
+        ...publishedMaidWhere(),
+        nationality: { contains: nationality, mode: "insensitive" },
+        agency: agencyWhere,
+      },
+      select: {
+        id: true,
+        reference: true,
+        fullName: true,
+        nationality: true,
+        age: true,
+        dateOfBirth: true,
+        placementType: true,
+        photoUrl: true,
+        photoUrls: true,
+        photoThumbnailUrls: true,
+        photoPortraitUrls: true,
+        createdAt: true,
+        agency: {
+          select: {
+            name: true,
+            slug: true,
+            adPlacements: {
+              where: {
+                status: "ACTIVE",
+                startDate: { lte: now },
+                endDate: { gte: now },
+                type: {
+                  in: ["FEATURED", "HOMEPAGE", "SEARCH", "CATEGORY_TOP"],
                 },
-                select: { id: true },
-                take: 1,
               },
+              select: { id: true },
+              take: 1,
             },
           },
         },
-        orderBy: { createdAt: "desc" },
-        take: perRow,
-      });
+      },
+      orderBy: { createdAt: "desc" },
+      take: perRow,
+    });
 
-      const row: HomeMaidRow = {
-        nationality,
-        title: `${nationality} maids`,
-        moreLabel: `more ${nationality.toLowerCase()} maids`,
-        moreHref: `/agencies?nationality=${encodeURIComponent(nationality)}`,
-        maids: maids.map((maid) =>
-          toHomeMaid(maid as unknown as HomeMaidRecord, now),
-        ),
-      };
-      return row;
-    }),
-  );
+    const row: HomeMaidRow = {
+      nationality,
+      title: `${nationality} maids`,
+      moreLabel: `more ${nationality.toLowerCase()} maids`,
+      moreHref: `/agencies?nationality=${encodeURIComponent(nationality)}`,
+      maids: maids.map((maid) =>
+        toHomeMaid(maid as unknown as HomeMaidRecord, now),
+      ),
+    };
+    rows.push(row);
+  }
 
   return rows.filter((row) => row.maids.length > 0);
 }

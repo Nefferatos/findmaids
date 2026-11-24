@@ -9,10 +9,13 @@
   // over 63.9 MiB uncompressed, [code: 10027]).
   "minify": true,
   "upload_source_maps": false,
-  // Next.js + Prisma cannot fit the Free plan's 10 ms CPU budget: auth routes die
-  // with `outcome: "exceededCpu"` and the browser sees 500s on
-  // /api/auth/callback/credentials. On a paid plan, uncomment this (a paid
-  // account allows up to 30 s) — the Free plan rejects it with code 100328.
+  // Next.js + Prisma does NOT fit the Free plan's 10 ms CPU budget: requests
+  // render at 9-13 ms, so /login, /maids/search and /maid-agency intermittently
+  // fail with `outcome: "exceededCpu"` (503 / Cloudflare 1102) and a stalled
+  // query used to hang the homepage (1101). The limit below is the fix, but the
+  // Free plan rejects it with code 100328 ("CPU limits are not supported for the
+  // Free plan"). Enable it after upgrading the Worker to a paid plan:
+  //
   // "limits": {
   //   "cpu_ms": 30000
   // },
@@ -23,15 +26,15 @@
     {
       "type": "CompiledWasm",
       "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
+      "fallthrough": true,
+    },
   ],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   // Pooled Postgres connection for the Worker runtime; `lib/prisma.ts` prefers
   // HYPERDRIVE.connectionString. Created for this account with
@@ -44,14 +47,14 @@
       // Only used by `wrangler dev` / the platform proxy. Deliberately a
       // placeholder: local development runs through `npm run dev` with DATABASE_URL
       // from the git-ignored .env, and the deployed Worker uses the remote config.
-      "localConnectionString": "postgres://localhost:5432/postgres"
-    }
+      "localConnectionString": "postgres://localhost:5432/postgres",
+    },
   ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "findmaids"
-    }
+      "service": "findmaids",
+    },
   ],
   // Non-secret runtime configuration (mirrors .env). Secrets are uploaded with
   // `wrangler secret put` — see SETUP notes in .env.example.
@@ -81,6 +84,6 @@
     "AI_MODEL": "mock",
     "PAYMENT_PROVIDER": "mock",
     "EMAIL_DELIVERY_DISABLED": "true",
-    "LOG_LEVEL": "info"
-  }
+    "LOG_LEVEL": "info",
+  },
 }

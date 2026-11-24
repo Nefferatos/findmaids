@@ -1,23 +1,60 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { notFound } from "next/navigation";
-import { compileMDX } from "next-mdx-remote/rsc";
 import { Container } from "@/components/site";
 
+/**
+ * The guide bodies live here rather than in `content/guides/*.mdx`: the Worker
+ * cannot read project files at runtime (`process.cwd()` is not the repo) and
+ * compiling MDX per request is wasted CPU. Two short articles, so inlining them
+ * keeps the route static-free and reliable.
+ */
 const articles = {
   "choosing-an-agency": {
     title: "A practical checklist for choosing an agency",
     description: "Compare agency information and prepare useful questions.",
+    sections: [
+      {
+        heading: "Start with your requirements",
+        body: "Write down the schedule, duties, location, experience, and languages that matter to your household. Discuss expectations clearly with any agency you contact.",
+      },
+      {
+        heading: "Check information directly",
+        body: "Use directory profiles to compare details, then independently confirm licences, fees, contract terms, and current availability with the agency.",
+      },
+      {
+        heading: "Ask practical questions",
+        body: "Ask how screening works, what support is provided after placement, how concerns are handled, and which costs may apply. Keep written copies of important terms.",
+      },
+    ],
+    footnote:
+      "FindMaids is a directory, not a recruiter, and does not guarantee agency services.",
   },
   "preparing-for-a-conversation": {
     title: "Preparing for a conversation with an agency",
     description:
       "Discuss responsibilities, expectations, and personal information clearly.",
+    sections: [
+      {
+        heading: "Be specific about the role",
+        body: "Describe the work, daily routine, rest periods, household members, and any care needs. A clear conversation helps both sides decide whether the arrangement is suitable.",
+      },
+      {
+        heading: "Discuss terms openly",
+        body: "Confirm responsibilities, compensation, days off, accommodation if applicable, and the process for resolving problems. Ask the agency to explain any unclear terms before agreeing.",
+      },
+      {
+        heading: "Protect personal information",
+        body: "Only share information needed for the conversation, and ask how it will be used. Do not send identity documents through an unverified channel.",
+      },
+    ],
+    footnote:
+      "This guide is general information, not legal or immigration advice.",
   },
-};
-export function generateStaticParams() {
-  return Object.keys(articles).map((slug) => ({ slug }));
-}
+} as const;
+
+// Rendered per request: the public layout already reads the session cookie, and
+// prerendering this route made it hit OpenNext's static path on Workers.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {
@@ -37,6 +74,7 @@ export async function generateMetadata({
       }
     : { title: "Guide not found | FindMaids" };
 }
+
 export default async function GuideArticlePage({
   params,
 }: {
@@ -45,11 +83,6 @@ export default async function GuideArticlePage({
   const { slug } = await params;
   const article = articles[slug as keyof typeof articles];
   if (!article) notFound();
-  const source = await readFile(
-    path.join(process.cwd(), "content", "guides", `${slug}.mdx`),
-    "utf8",
-  );
-  const { content } = await compileMDX({ source });
   return (
     <Container className="max-w-3xl py-12 sm:py-16">
       <article>
@@ -60,13 +93,17 @@ export default async function GuideArticlePage({
         <p className="text-muted-foreground mt-4 text-lg leading-7">
           {article.description}
         </p>
-        <div className="prose prose-green prose-headings:font-display prose-headings:text-foreground prose-p:leading-7 prose-a:text-primary mt-10 max-w-none">
-          {content}
+        <div className="prose prose-green prose-headings:font-display prose-headings:text-foreground prose-p:leading-7 mt-10 max-w-none">
+          {article.sections.map((section) => (
+            <section key={section.heading}>
+              <h2>{section.heading}</h2>
+              <p>{section.body}</p>
+            </section>
+          ))}
         </div>
       </article>
       <p className="text-muted-foreground mt-10 border-t pt-5 text-sm">
-        FindMaids is an agency directory, not a recruiter. This content is
-        general information only.
+        {article.footnote}
       </p>
     </Container>
   );
