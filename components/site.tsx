@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Check, MapPin, Star } from "lucide-react";
-import { auth } from "@/auth";
 import { PlacementImpression, TrackedLink } from "@/components/profile-actions";
 import { ContactAgencyTab } from "@/components/contact-agency-tab";
 import { SiteHeader, TabNav } from "@/components/site-navigation";
@@ -171,11 +170,20 @@ export function SiteFooter() {
   );
 }
 
-export async function SiteShell({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+/**
+ * Public chrome.
+ *
+ * Deliberately does NOT call `auth()`: a session lookup in the shell marks every
+ * page beneath it dynamic, which forced per-request SSR for static pages (about,
+ * FAQ, terms, privacy, guides, ...) and pushed them over the Workers CPU budget
+ * on the free plan. The signed-in menu is resolved client-side in `SiteHeader`,
+ * so pages without request-specific data prerender to static assets and are
+ * served without invoking the Worker.
+ */
+export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="public-site">
-      <SiteHeader user={session?.user ?? null} />
+      <SiteHeader />
       <TabNav />
       <main className="min-h-[65vh]">{children}</main>
       <SiteFooter />

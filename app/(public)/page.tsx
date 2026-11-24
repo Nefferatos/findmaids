@@ -15,13 +15,6 @@ import { logger } from "@/lib/logger";
 // approvals and newly published maids are always current.
 export const dynamic = "force-dynamic";
 
-/**
- * Upper bound for the landing-page data query. A stalled Hyperdrive connection
- * would otherwise keep the response open until the Workers runtime cancels it
- * (Error 1101); the page then renders its static sections instead.
- */
-const LANDING_DATA_TIMEOUT_MS = 8_000;
-
 export const metadata = {
   title: "Singapore maid agency directory | FindMaids",
   description:
@@ -59,17 +52,13 @@ export default async function HomePage() {
     maidRows: [],
   };
   try {
-    // The landing page must never hang the Worker: if a database query stalls,
-    // render the hero and static sections instead of returning Error 1101.
-    data = await Promise.race([
-      getHomePageData(),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Landing page data timed out")),
-          LANDING_DATA_TIMEOUT_MS,
-        ),
-      ),
-    ]);
+    // No Promise.race here: a racing timer left the database promise running
+    // after the response, which the Workers runtime reports as "promise created
+    // by a request that has since ended" and sometimes cancels the *next*
+    // request as hung (Error 1101). Prisma is bounded instead (connection,
+    // statement and query timeouts in lib/prisma.ts), and a failure renders the
+    // static sections.
+    data = await getHomePageData();
   } catch (error) {
     logger.error(
       {

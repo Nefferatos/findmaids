@@ -181,5 +181,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Middleware only runs where it is actually needed. Matching every URL made
+  // prerendered pages invoke the Worker (and spend CPU) just to pass through,
+  // which is what pushed them over the free plan's 10 ms budget. Public pages
+  // now reach the edge as static assets; auth, body-size and same-origin checks
+  // still cover the portal, admin and API routes.
+  matcher: ["/admin/:path*", "/agency/:path*", "/api/:path*"],
 };

@@ -46,7 +46,11 @@ param(
     [switch]$SkipNextBuild,
     [switch]$SkipDeploy,
     [switch]$ResetDevCache,
-    [switch]$IncludeDotEnv
+    [switch]$IncludeDotEnv,
+    # Wrangler/OpenNext config to build and upload with. Defaults to the live
+    # account's wrangler.jsonc; pass wrangler.new-account.jsonc when moving the
+    # deployment to a different Cloudflare account.
+    [string]$ConfigFile = 'wrangler.jsonc'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,6 +131,12 @@ $env:NODE_OPTIONS = "--require $(($shimPath -replace '\\', '/'))"
 Write-Host "[deploy] symlink shim: $shimPath" -ForegroundColor DarkGray
 
 # --- 2. Build --------------------------------------------------------------
+# Wrangler/OpenNext config for this run (live account by default).
+$configPath = Join-Path $repoRoot $ConfigFile
+if (-not (Test-Path $configPath)) {
+    throw "Config file '$ConfigFile' not found in $repoRoot."
+}
+Write-Host "[deploy] config: $ConfigFile" -ForegroundColor DarkGray
 # Next crops the optional `pg-cloudflare` package to dist/empty.js in the
 # standalone output while its package.json still points at dist/index.js, so
 # esbuild cannot resolve it. Restoring the real package makes the bundling step
@@ -160,7 +170,7 @@ if (-not $SkipNextBuild) {
         # NEXT_PUBLIC_* values are inlined into the client bundle at build time,
         # and .env is parked for this build, so mirror the wrangler vars into the
         # build environment (otherwise canonical URLs fall back to localhost).
-        $siteUrl = (& node -e "const fs=require('fs');const raw=fs.readFileSync('wrangler.jsonc','utf8');const stripped=raw.split(/\r?\n/).filter(l=>!/^\s*\/\//.test(l)).join('\n');try{process.stdout.write(JSON.parse(stripped).vars?.NEXT_PUBLIC_SITE_URL||'')}catch(e){process.stdout.write('')}").Trim()
+        $siteUrl = (& node (Join-Path $repoRoot 'scripts/wrangler-var.mjs') $configPath 'vars.NEXT_PUBLIC_SITE_URL').Trim()
         if ($siteUrl) {
             $env:NEXT_PUBLIC_SITE_URL = $siteUrl
             $env:NEXTAUTH_URL = $siteUrl
@@ -217,7 +227,7 @@ if (-not $SkipDeploy) {
     & node (Join-Path $repoRoot 'scripts/prune-worker-bundle.mjs')
     if ($LASTEXITCODE -ne 0) { throw "prune-worker-bundle failed with exit code $LASTEXITCODE." }
     Write-Host '[deploy] uploading Worker...' -ForegroundColor Cyan
-    & node $wranglerCli deploy
+    & node $wranglerCli deploy --config $configPath
     if ($LASTEXITCODE -ne 0) { throw "wrangler deploy failed with exit code $LASTEXITCODE." }
 }
 

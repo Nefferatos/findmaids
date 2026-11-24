@@ -1,6 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, LogIn } from "lucide-react";
@@ -26,7 +27,30 @@ const navigation: {
   { label: "Join as Maid Agency", href: "/advertise", emphasized: true },
 ] as const;
 
-export function SiteHeader({ user }: { user?: ProfileUser | null }) {
+export function SiteHeader({ user: providedUser }: { user?: ProfileUser | null }) {
+  // The public shell renders this header without reading the session server
+  // side (doing that made every page dynamic). When no user is passed in, the
+  // signed-in state is resolved after hydration so static pages stay static
+  // while logged-in visitors still see the account menu.
+  const [user, setUser] = useState<ProfileUser | null>(providedUser ?? null);
+
+  useEffect(() => {
+    if (providedUser !== undefined) return;
+    let cancelled = false;
+    fetch("/api/auth/session", { headers: { accept: "application/json" } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session) => {
+        if (cancelled) return;
+        setUser((session?.user as ProfileUser | undefined) ?? null);
+      })
+      .catch(() => {
+        // Anonymous visitors and offline reloads simply keep the login link.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [providedUser]);
+
   return (
     <header className="site-header border-b">
       <div className="site-topbar">

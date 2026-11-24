@@ -1,0 +1,86 @@
+{
+  // ==========================================================================
+  // FindMaids - Cloudflare Worker configuration for a DIFFERENT account
+  // ==========================================================================
+  // `wrangler.jsonc` keeps pointing at the current (working) account so the live
+  // deployment is untouched. Use this file only when you move to the new
+  // account:
+  //
+  //   npx wrangler deploy --config wrangler.new-account.jsonc
+  //   # or, through the build script:
+  //   npm run deploy:cf:win -- -ConfigFile wrangler.new-account.jsonc
+  //
+  // Replace every <PLACEHOLDER>. See docs/CLOUDFLARE_ACCOUNT_MIGRATION.md.
+  // ==========================================================================
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "findmaids",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "upload_source_maps": false,
+  // The new account must be on Workers Paid: the Free plan's 10 ms CPU budget
+  // cannot serve these Next.js pages, and the API rejects this block with
+  // `code: 100328` ("CPU limits are not supported for the Free plan").
+  // Re-enable the block as soon as the account is upgraded, then redeploy:
+  //
+  // "limits": {
+  //   "cpu_ms": 30000,
+  // },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true,
+    },
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  // Recreate in the NEW account (account-scoped id):
+  //   npx wrangler hyperdrive create findmaids-supabase-v2 \
+  //     --connection-string "<Supabase session pooler URL>" --caching-disabled
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // <PLACEHOLDER: new Hyperdrive config id from the command above>
+      "id": "ca65acde683d40708e5dec6fd6277d7f",
+      "localConnectionString": "postgres://localhost:5432/postgres",
+    },
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      // Must equal "name" above (the Worker in the new account).
+      "service": "findmaids",
+    },
+  ],
+  "vars": {
+    "APP_ENV": "production",
+    "NODE_ENV": "production",
+    "SHOW_SAMPLE_DATA": "false",
+    "DATABASE_SCHEMA": "public",
+    // <PLACEHOLDER: https://findmaids.<NEW-ACCOUNT-SUBDOMAIN>.workers.dev>
+    "NEXT_PUBLIC_SITE_URL": "https://findmaids.findmaids.workers.dev",
+    "NEXTAUTH_URL": "https://findmaids.findmaids.workers.dev",
+    "SUPABASE_URL": "https://tajpujqabclbxoggkxse.supabase.co",
+    "SUPABASE_MEDIA_BUCKET": "findmaids-media",
+    "SUPABASE_PRIVATE_BUCKET": "findmaids-private",
+    "AUTH_TRUST_HOST": "true",
+    "NEXT_PUBLIC_GOOGLE_AUTH_ENABLED": "false",
+    "BUSINESS_COUNTRY": "SG",
+    "MANUAL_BANK_TRANSFER_ENABLED": "false",
+    "LEAD_CAP_MODE": "DELIVER_ALL",
+    "DATA_RETENTION_DAYS": "365",
+    "FOUNDING_PERIOD_EMAILS_ENABLED": "false",
+    "AI_PROVIDER": "mock",
+    "AI_MODEL": "mock",
+    "PAYMENT_PROVIDER": "mock",
+    "EMAIL_DELIVERY_DISABLED": "true",
+    "LOG_LEVEL": "info",
+  },
+}
