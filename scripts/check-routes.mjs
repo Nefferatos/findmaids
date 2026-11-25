@@ -85,7 +85,12 @@ const apiRoutes = allFiles
   .map(routeFromApi)
   .sort();
 
-const matchers = pages.map((route) => ({ route, regex: routeMatcher(route) }));
+// The catch-all `[...notFound]` page renders the 404 UI for *any* unmatched URL.
+// If it took part in link matching every broken link would appear to resolve, so
+// it is listed above but never used as a destination.
+const matchers = pages
+  .filter((route) => !route.includes("[..."))
+  .map((route) => ({ route, regex: routeMatcher(route) }));
 // `href="/api/..."` targets are real routes too (CSV exports, JSON endpoints), so
 // they must resolve against the route handlers as well as the pages.
 const apiMatchers = apiRoutes.map((route) => ({

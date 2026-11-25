@@ -9,7 +9,10 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: [
         "/admin",
-        "/agency",
+        // `/agency` is a prefix of the public `/agencies` directory, so the
+        // portal is matched exactly (`/agency$`) plus its sub-paths only.
+        "/agency$",
+        "/agency/",
         "/api",
         "/login",
         "/register",

@@ -90,11 +90,10 @@ export async function generateMetadata({
     loadFailed = true;
   }
   if (loadFailed) return { title: "Maid profile | FindMaids" };
-  if (!maid)
-    return {
-      title: "Maid profile not found | FindMaids",
-      robots: { index: false, follow: false },
-    };
+  // Answer a genuinely unknown id with a real 404 before rendering starts;
+  // notFound() from the page body can arrive after the shell has streamed,
+  // which leaves the response at 200.
+  if (!maid) notFound();
   const name = maidName(maid);
   return {
     title: `${name} | FindMaids`,

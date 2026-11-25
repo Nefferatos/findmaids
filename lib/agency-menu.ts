@@ -213,6 +213,7 @@ export const AGENCY_PATH_BY_LEGACY_SECTION: Record<string, string> = {
   "manage-maids": "/agency/maids",
   "maids/add": "/agency/maids/new",
   password: "/agency/change-password",
+  "change-password": "/agency/change-password",
   contracts: "/agency/forms",
   forms: "/agency/forms",
   enquiries: "/agency/enquiries",
@@ -220,7 +221,9 @@ export const AGENCY_PATH_BY_LEGACY_SECTION: Record<string, string> = {
   reviews: "/agency/reviews",
   billing: "/agency/billing",
   ads: "/agency/advertising",
+  advertising: "/agency/advertising",
   analytics: "/agency/analytics",
   "ai-assistant": "/agency/ai-assistant",
   settings: "/agency/account-settings",
+  "account-settings": "/agency/account-settings",
 };

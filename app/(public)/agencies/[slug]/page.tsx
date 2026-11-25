@@ -36,12 +36,18 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   // Same memoised query as the page body: one round trip per request.
-  const agency = await loadAgency(slug).catch(() => null);
-  if (!agency)
-    return {
-      title: "Agency not found | FindMaids",
-      robots: { index: false, follow: false },
-    };
+  let agency: Awaited<ReturnType<typeof loadAgency>> = null;
+  let loadFailed = false;
+  try {
+    agency = await loadAgency(slug);
+  } catch {
+    loadFailed = true;
+  }
+  // A genuinely unknown slug must answer 404 before rendering starts. Calling
+  // notFound() only from the page body reaches the client after the shell has
+  // streamed, and Next keeps the already-sent 200 status in that case.
+  if (!loadFailed && !agency) notFound();
+  if (!agency) return { title: "Agency profile | FindMaids" };
   const serving = [
     ...new Set(
       [agency.city, agency.province].map((part) => part.trim()).filter(Boolean),

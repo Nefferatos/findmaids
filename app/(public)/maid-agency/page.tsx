@@ -5,6 +5,7 @@ import {
 } from "@/components/agency-banner-tile";
 import { AgencyDirectory } from "@/components/agency-directory";
 import { AgencyEnquiryWidget } from "@/components/agency-enquiry-widget";
+import { DataUnavailable } from "@/components/data-unavailable";
 import { getAgencyDirectory } from "@/lib/agency-directory-server";
 import {
   type AgencyDirectoryData,
@@ -100,9 +101,11 @@ export default async function MaidAgencyPage({
     rightBanners: [],
     featuredPool: [],
   };
+  let failed = false;
   try {
     data = await getAgencyDirectory();
   } catch (error) {
+    failed = true;
     logger.error(
       { errorType: error instanceof Error ? error.name : "unknown" },
       "Unable to load maid agency directory",
@@ -143,7 +146,9 @@ export default async function MaidAgencyPage({
           <p className="fm-agency-eyebrow">Maid agency directory</p>
           <h1 className="fm-agency-title">
             List of Maid Agencies in Singapore{" "}
-            <span className="fm-agency-title-count">· {data.total} listed</span>
+            <span className="fm-agency-title-count">
+              {failed ? "· temporarily unavailable" : `· ${data.total} listed`}
+            </span>
           </h1>
           <p className="fm-agency-lead">
             Every agency below is listed by its own team and shows the maid
@@ -158,28 +163,37 @@ export default async function MaidAgencyPage({
             <Link href="/advertise">List your maids on FindMaids</Link>
           </p>
 
-          <AgencyDirectory
-            key={filterKey}
-            agencies={data.agencies}
-            featuredBanners={data.featuredPool}
-            initialFilters={initialFilters}
-            topAds={
-              data.topBanners.length > 0 ? (
-                <div
-                  className="fm-agency-top-ads"
-                  aria-label="Top featured agencies"
-                >
-                  {data.topBanners.map((ad) => (
-                    <AgencyBannerTile
-                      key={ad.id}
-                      banner={toBanner(ad)}
-                      variant="stack"
-                    />
-                  ))}
-                </div>
-              ) : null
-            }
-          />
+          {failed ? (
+            <DataUnavailable
+              title="The agency directory could not be loaded"
+              detail="The database did not answer in time, so approved agencies and their published maids are not shown. Nothing has been removed - please reload the page in a moment."
+              backHref="/maid-agency"
+              backLabel="Reload the directory"
+            />
+          ) : (
+            <AgencyDirectory
+              key={filterKey}
+              agencies={data.agencies}
+              featuredBanners={data.featuredPool}
+              initialFilters={initialFilters}
+              topAds={
+                data.topBanners.length > 0 ? (
+                  <div
+                    className="fm-agency-top-ads"
+                    aria-label="Top featured agencies"
+                  >
+                    {data.topBanners.map((ad) => (
+                      <AgencyBannerTile
+                        key={ad.id}
+                        banner={toBanner(ad)}
+                        variant="stack"
+                      />
+                    ))}
+                  </div>
+                ) : null
+              }
+            />
+          )}
 
           <section className="fm-agency-about" aria-labelledby="agency-about">
             <h2 id="agency-about">About maid agencies in Singapore</h2>

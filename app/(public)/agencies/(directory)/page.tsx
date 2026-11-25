@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DataUnavailable } from "@/components/data-unavailable";
 import {
   AgencyCard,
   Container,
@@ -37,9 +38,11 @@ export default async function AgenciesPage({
     total: 0,
     pages: 1,
   };
+  let failed = false;
   try {
     result = await getDirectoryPage(filters);
   } catch (error) {
+    failed = true;
     logger.error(
       { errorType: error instanceof Error ? error.name : "unknown" },
       "Unable to load directory results",
@@ -215,10 +218,19 @@ export default async function AgenciesPage({
         <section aria-label="Agency results">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-muted-foreground text-sm">
-              {result.total} {result.total === 1 ? "agency" : "agencies"} found
+              {failed
+                ? "Directory temporarily unavailable"
+                : `${result.total} ${result.total === 1 ? "agency" : "agencies"} found`}
             </p>
           </div>
-          {result.agencies.length ? (
+          {failed ? (
+            <DataUnavailable
+              title="The agency directory could not be loaded"
+              detail="The database did not answer in time, so approved agencies are not shown. Nothing has been removed - please reload the page in a moment."
+              backHref="/agencies"
+              backLabel="Reload the directory"
+            />
+          ) : result.agencies.length ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 {result.agencies.map((agency) => (
@@ -240,11 +252,13 @@ export default async function AgenciesPage({
               }
             />
           )}
-          <Pagination
-            page={filters.page}
-            pages={result.pages}
-            makeHref={makeHref}
-          />
+          {failed ? null : (
+            <Pagination
+              page={filters.page}
+              pages={result.pages}
+              makeHref={makeHref}
+            />
+          )}
         </section>
       </div>
     </Container>

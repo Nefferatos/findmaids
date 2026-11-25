@@ -54,6 +54,10 @@ const articles = {
 // Prerendered: the bodies are constants, and the public shell no longer reads
 // the session server-side, so these two guides ship as static assets instead of
 // costing SSR CPU on every request.
+// Only the two written guides exist; any other slug is a routing-level 404
+// (dynamicParams = false) instead of a post-stream 200 with 404 UI.
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return Object.keys(articles).map((slug) => ({ slug }));
 }
