@@ -22,8 +22,66 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const bundleModules = join(root, ".open-next", "server-functions", "default", "node_modules");
 
-// Directories that are only used to build/deploy the Worker.
-const BUILD_ONLY = ["wrangler", "miniflare", "workerd", "@cloudflare"];
+// Directories that are only used to build/test/deploy the app. This mirrors
+// `BUILD_ONLY_TREES` in next.config.ts: Turbopack's wasm loader makes Next trace
+// the whole project, so these would otherwise land in the Worker bundle and make
+// `wrangler deploy` fail.
+const BUILD_ONLY = [
+  "wrangler",
+  "miniflare",
+  "workerd",
+  "@cloudflare",
+  "typescript",
+  "tsx",
+  "eslint",
+  "eslint-config-next",
+  "@eslint",
+  "@typescript-eslint",
+  "typescript-eslint",
+  "prettier",
+  "prettier-plugin-tailwindcss",
+  "vitest",
+  "@vitest",
+  "vite",
+  "@vitejs",
+  "playwright",
+  "playwright-core",
+  "@playwright",
+  "webpack",
+  "webpack-sources",
+  "terser",
+  "tailwindcss",
+  "@tailwindcss",
+  "postcss",
+  "autoprefixer",
+  "prisma",
+  "@prisma/engines",
+  "esbuild",
+  "@esbuild",
+  "rollup",
+  "@rollup",
+  "@babel",
+  "@swc",
+  "@ast-grep",
+  "@node-minify",
+  "@napi-rs",
+  "@webassemblyjs",
+  "@xtuc",
+  "@types",
+  "@tsconfig",
+  "@sentry/cli",
+  "@sentry/webpack-plugin",
+  "@sentry/rollup-plugin",
+  "@sentry/vite-plugin",
+  // Browser-only UI packages (client chunks live in .next/static).
+  "recharts",
+  "victory-vendor",
+  "lucide-react",
+  "sonner",
+  "@marsidev",
+  // npm's build cache lives inside node_modules.
+  ".cache",
+];
 
 // Package directories whose native `.node` binaries must never be uploaded.
 const NATIVE_ENGINES = [join("prisma"), join("@prisma", "engines")];
@@ -50,6 +108,10 @@ function remove(target) {
 }
 
 for (const name of BUILD_ONLY) remove(join(bundleModules, name));
+
+// Next's build/dev caches are not needed by the deployed Worker.
+const bundleNext = join(root, ".open-next", "server-functions", "default", ".next");
+for (const name of ["cache", "dev"]) remove(join(bundleNext, name));
 
 // Native engine binaries are large and useless on workerd.
 for (const name of NATIVE_ENGINES) {
