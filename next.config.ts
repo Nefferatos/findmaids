@@ -67,6 +67,10 @@ const BUILD_ONLY_TREES = [
   "./node_modules/@xtuc/**",
   "./node_modules/@types/**",
   "./node_modules/@tsconfig/**",
+  // Next ships a platform-specific SWC binary and an ESLint plugin in this
+  // scope; neither is used by the server runtime (only `@next/env` is).
+  "./node_modules/@next/swc-*/**",
+  "./node_modules/@next/eslint-plugin-next/**",
   "./node_modules/@sentry/cli/**",
   "./node_modules/@sentry/webpack-plugin/**",
   "./node_modules/@sentry/rollup-plugin/**",

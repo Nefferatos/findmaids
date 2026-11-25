@@ -109,6 +109,16 @@ function remove(target) {
 
 for (const name of BUILD_ONLY) remove(join(bundleModules, name));
 
+// Next's runtime helper `@next/env` is needed; the platform SWC binary and the
+// ESLint plugin are not. Handled separately because the SWC package name is
+// platform-specific (`@next/swc-linux-x64-gnu` on CI, `-win32-x64-msvc` locally).
+const nextScope = join(bundleModules, "@next");
+if (existsSync(nextScope)) {
+  for (const entry of readdirSync(nextScope)) {
+    if (entry !== "env") remove(join(nextScope, entry));
+  }
+}
+
 // Next's build/dev caches are not needed by the deployed Worker.
 const bundleNext = join(root, ".open-next", "server-functions", "default", ".next");
 for (const name of ["cache", "dev"]) remove(join(bundleNext, name));
