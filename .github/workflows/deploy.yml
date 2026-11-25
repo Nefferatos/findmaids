@@ -120,6 +120,12 @@ jobs:
             du -sh .open-next .next/standalone 2>/dev/null | sed 's/^/::error::size /'
             du -sh .open-next/server-functions/default/node_modules 2>/dev/null | sed 's/^/::error::size /'
             ls -lh .open-next/worker.js .open-next/server-functions/default/handler.mjs 2>/dev/null | sed 's/^/::error::size /'
+            # Wrangler writes the real failure reason to its own log file and only
+            # prints the path to stdout, so surface the tail of that log too.
+            wrangler_log=$(ls -t "$HOME/.config/.wrangler/logs/"wrangler-*.log 2>/dev/null | head -1)
+            if [ -n "$wrangler_log" ]; then
+              tail -15 "$wrangler_log" | sed 's/^/::error::wrangler /'
+            fi
             tail -3 deploy.log | sed 's/^/::error::log /'
           fi
           exit "$status"
