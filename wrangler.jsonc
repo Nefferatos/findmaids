@@ -9,12 +9,11 @@
   // over 63.9 MiB uncompressed, [code: 10027]).
   "minify": true,
   "upload_source_maps": false,
-  // Next.js + Prisma does NOT fit the Free plan's 10 ms CPU budget: requests
-  // render at 9-13 ms, so /login, /maids/search and /maid-agency intermittently
-  // fail with `outcome: "exceededCpu"` (503 / Cloudflare 1102) and a stalled
-  // query used to hang the homepage (1101). The limit below is the fix, but the
-  // Free plan rejects it with code 100328 ("CPU limits are not supported for the
-  // Free plan"). Enable it after upgrading the Worker to a paid plan:
+  // Next.js + Prisma renders a request in ~9-13 ms, which is above the Free
+  // plan's 10 ms CPU budget, so data-driven routes intermittently answer 503
+  // (`exceededCpu`, error 1102). The account rejects `limits.cpu_ms` with 100328
+  // ("CPU limits are not supported for the Free plan"); enable this after
+  // upgrading the Worker to Workers Paid:
   //
   // "limits": {
   //   "cpu_ms": 30000
