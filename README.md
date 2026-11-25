@@ -48,6 +48,33 @@ The consent, Terms, Privacy, and Cookie copy is draft text and requires review b
 
 Gold and Platinum plan amounts are provisional SGD test values (999/9,990 and 1,999/19,990); Basic Free is SGD 0. They are not approved launch prices. Upgrades use remaining-period proration; downgrades apply at renewal. Real payment collection is not enabled. The employer assistant and agency draft helpers are disabled by default, make no external AI calls in mock mode, and are managed via Admin > Settings > `featureFlags`.
 
+## Deployment
+
+Production runs on Cloudflare Workers through OpenNext (`wrangler.jsonc`, `.open-next/worker.js`).
+Pushes to `main` run `.github/workflows/deploy.yml`. The workflow needs these **repository secrets**
+(Settings → Secrets and variables → Actions):
+
+| Secret | Used for |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | `wrangler deploy` (Workers Scripts: Edit + Account: Read) |
+| `CLOUDFLARE_ACCOUNT_ID` | Target account |
+| `DATABASE_URL`, `DIRECT_URL` | Optional; apply Prisma migrations before deploying (the Worker itself connects through the `HYPERDRIVE` binding) |
+| `AUTH_SECRET`, `NEXTAUTH_SECRET`, `TOTP_ENCRYPTION_KEY`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Build-time env; runtime values are also stored with `wrangler secret put` |
+
+Without `CLOUDFLARE_API_TOKEN` the deploy step stops in `wrangler`'s `requireAuth` (wrangler only
+prints the path of its own log). The workflow now tails that log and prints the bundle sizes as
+annotations on failure, so a missing token is visible instead of a silent failure.
+
+Manual deploy from a machine with a wrangler login (`wrangler login`), on Node 22 (`.nvmrc`):
+
+```bash
+npm run deploy:cf
+```
+
+`npm run deploy:cf` builds with OpenNext, prunes build-only packages from the bundle, and deploys the
+Worker. `OPEN_NEXT_DEPLOY=true` skips wrangler's OpenNext delegation (there is no incremental cache to
+populate).
+
 ## Project structure
 
 - `app/(public)`: employer-facing pages
