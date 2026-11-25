@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { ArrowRight, MessagesSquare, X } from "lucide-react";
 import { getFirstTouch } from "@/lib/attribution-client";
@@ -391,7 +392,7 @@ export function AgencyEnquiryWidget() {
                 </button>
                 <p className="fm-enq-note">
                   Your details are used only to process this enquiry. See our{" "}
-                  <a href="/privacy">Privacy Policy</a>.
+                  <Link href="/privacy">Privacy Policy</Link>.
                 </p>
               </form>
             )}

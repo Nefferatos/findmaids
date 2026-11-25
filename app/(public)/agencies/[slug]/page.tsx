@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { Check, MapPin, Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 import { Badge, Container, RatingStars } from "@/components/site";
+import { DataUnavailable } from "@/components/data-unavailable";
 import { EnquiryForm, ReviewForm } from "@/components/forms";
 import { MaidPhoto } from "@/components/maid-photo";
 import { ShareButton, TrackedLink } from "@/components/profile-actions";
@@ -32,12 +35,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const agency = await prisma.agency
-    .findFirst({
-      where: { slug, status: "APPROVED" },
-      select: { name: true, description: true, city: true, province: true },
-    })
-    .catch(() => null);
+  // Same memoised query as the page body: one round trip per request.
+  const agency = await loadAgency(slug).catch(() => null);
   if (!agency)
     return {
       title: "Agency not found | FindMaids",
@@ -59,40 +58,71 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * Memoised per request: `generateMetadata` and the page body both need the
+ * agency (and its maid inventory), so this runs one query instead of two.
+ */
+const loadAgency = cache((slug: string) => {
+  const sampleVisibility = sampleAgencyVisibilityWhere();
+  return prisma.agency.findFirst({
+    where: {
+      slug,
+      status: "APPROVED",
+      ...(sampleVisibility ? { AND: [sampleVisibility] } : {}),
+    },
+    include: {
+      photos: { orderBy: { sortOrder: "asc" } },
+      maids: agencyMaidInclude(),
+      reviews: {
+        where: { status: "PUBLISHED" },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      },
+      adPlacements: {
+        where: {
+          status: "ACTIVE",
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() },
+          type: { in: ["FEATURED", "HOMEPAGE", "SEARCH"] },
+        },
+        select: { id: true },
+      },
+    },
+  });
+});
+
 export default async function AgencyProfilePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const sampleVisibility = sampleAgencyVisibilityWhere();
-  const agency = await prisma.agency
-    .findFirst({
-      where: {
-        slug,
-        status: "APPROVED",
-        ...(sampleVisibility ? { AND: [sampleVisibility] } : {}),
+  let agency: Awaited<ReturnType<typeof loadAgency>> = null;
+  let loadFailed = false;
+  try {
+    agency = await loadAgency(slug);
+  } catch (error) {
+    loadFailed = true;
+    logger.error(
+      {
+        errorType: error instanceof Error ? error.name : "unknown",
+        reason: error instanceof Error ? error.message : "unknown",
+        agencySlug: slug,
       },
-      include: {
-        photos: { orderBy: { sortOrder: "asc" } },
-        maids: agencyMaidInclude(),
-        reviews: {
-          where: { status: "PUBLISHED" },
-          orderBy: { createdAt: "desc" },
-          take: 30,
-        },
-        adPlacements: {
-          where: {
-            status: "ACTIVE",
-            startDate: { lte: new Date() },
-            endDate: { gte: new Date() },
-            type: { in: ["FEATURED", "HOMEPAGE", "SEARCH"] },
-          },
-          select: { id: true },
-        },
-      },
-    })
-    .catch(() => null);
+      "Unable to load agency profile",
+    );
+  }
+  // A failed query is not a missing agency: a Hyperdrive timeout used to be
+  // answered with 404 for approved agencies, which hid real profiles.
+  if (loadFailed)
+    return (
+      <DataUnavailable
+        title="This agency profile could not be loaded"
+        detail="The database did not answer in time, so the profile is not shown. The agency has not been removed - please reload in a moment."
+        backHref="/agencies"
+        backLabel="Back to the agency directory"
+      />
+    );
   if (!agency) notFound();
   const averageRating = agency.reviews.length
     ? agency.reviews.reduce((sum, review) => sum + review.rating, 0) /

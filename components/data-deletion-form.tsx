@@ -33,6 +33,8 @@ export function DataDeletionForm({ email }: { email: string }) {
       <button className="min-h-10 rounded-md border px-4 text-sm font-semibold">
         Submit privacy request
       </button>
+      {/* The export is a file download, so it needs a real navigation. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         className="ml-3 inline-flex min-h-10 items-center text-sm font-semibold underline"
         href="/api/data-export"

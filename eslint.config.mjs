@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Wrangler writes temporary bundles next to the project on every deploy;
+    // linting them reported errors from generated middleware facades.
+    ".wrangler/**",
+    // Vendored/minified third-party worker (pdf.js) and generated Prisma client.
+    "public/pdf.worker.min.mjs",
+    "lib/generated/**",
+    "coverage/**",
   ]),
 ]);
 

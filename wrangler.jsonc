@@ -37,13 +37,15 @@
     "enabled": true,
   },
   // Pooled Postgres connection for the Worker runtime; `lib/prisma.ts` prefers
-  // HYPERDRIVE.connectionString. Created for this account with
-  //   wrangler hyperdrive create findmaids-supabase --connection-string <session pooler> --caching-disabled
+  // HYPERDRIVE.connectionString. Created in the account that serves the live
+  // site with
+  //   wrangler hyperdrive create findmaids-supabase-v2 --connection-string <session pooler> --caching-disabled
   // (caching disabled so a maid edit/publish is visible on the next request).
+  // `wrangler.new-account.jsonc` keeps the same values as the migration copy.
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "7b18607838664896bddab1469031d074",
+      "id": "ca65acde683d40708e5dec6fd6277d7f",
       // Only used by `wrangler dev` / the platform proxy. Deliberately a
       // placeholder: local development runs through `npm run dev` with DATABASE_URL
       // from the git-ignored .env, and the deployed Worker uses the remote config.
@@ -66,10 +68,10 @@
     // showing them because `npm run dev` has no APP_ENV marker.
     "SHOW_SAMPLE_DATA": "false",
     "DATABASE_SCHEMA": "public",
-    // Public origin of this Worker (workers.dev host for the current account).
-    // Change both to the custom domain once one is attached.
-    "NEXT_PUBLIC_SITE_URL": "https://findmaids.wow-aisolution.workers.dev",
-    "NEXTAUTH_URL": "https://findmaids.wow-aisolution.workers.dev",
+    // Public origin of this Worker. It is the live workers.dev host and must
+    // match NEXTAUTH_URL so login redirects and cookies use the same origin.
+    "NEXT_PUBLIC_SITE_URL": "https://findmaids.findmaids.workers.dev",
+    "NEXTAUTH_URL": "https://findmaids.findmaids.workers.dev",
     "SUPABASE_URL": "https://tajpujqabclbxoggkxse.supabase.co",
     "SUPABASE_MEDIA_BUCKET": "findmaids-media",
     "SUPABASE_PRIVATE_BUCKET": "findmaids-private",

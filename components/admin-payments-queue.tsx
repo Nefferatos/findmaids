@@ -89,6 +89,8 @@ export function AdminPaymentsQueue({
             <option value="PAID">Paid / refund</option>
             <option value="ALL">All loaded</option>
           </select>
+          {/* A file download must stay a real navigation, not client routing. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             className="inline-flex min-h-10 items-center rounded border px-3 text-sm font-semibold"
             href="/api/admin/payments?format=csv"

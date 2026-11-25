@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import Link from "next/link";
 import { ArrowRight, Mail, X } from "lucide-react";
 import { getFirstTouch } from "@/lib/attribution-client";
 
@@ -369,9 +370,9 @@ export function ContactAgencyTab() {
                 </button>
                 <p className="text-muted-foreground text-xs leading-5">
                   Your details are used to process this enquiry. See our{" "}
-                  <a className="underline" href="/privacy">
+                  <Link className="underline" href="/privacy">
                     Privacy Policy
-                  </a>
+                  </Link>
                   . The consent wording should be reviewed for applicable
                   Singapore privacy requirements before launch.
                 </p>

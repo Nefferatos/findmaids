@@ -50,6 +50,7 @@ export default async function HomePage() {
     banners: [],
     sidebarBanners: [],
     maidRows: [],
+    featuredAgencies: [],
   };
   try {
     // No Promise.race here: a racing timer left the database promise running
@@ -72,10 +73,14 @@ export default async function HomePage() {
   return (
     <div className="home-shell">
       <HomeHero />
-      <LicensedAgenciesSection banners={data.banners} />
+      <LicensedAgenciesSection
+        banners={data.banners}
+        featuredAgencies={data.featuredAgencies}
+      />
       <MaidsByNationalitySection
         rows={data.maidRows}
         sidebarBanners={data.sidebarBanners}
+        featuredAgencies={data.featuredAgencies}
       />
       <BrowseMaidListingSection />
       <HowItWorksSection />

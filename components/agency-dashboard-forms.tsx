@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const input =
@@ -579,12 +580,12 @@ export function AccountSettingsForm({
           Save settings
         </button>
       </form>
-      <a
+      <Link
         href="/forgot-password"
         className="text-primary font-semibold underline"
       >
         Change password
-      </a>
+      </Link>
     </div>
   );
 }

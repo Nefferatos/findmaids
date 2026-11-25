@@ -11,7 +11,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { AgencyBannerTile } from "@/components/agency-banner-tile";
+import { AgencyBannerTile, FeaturedAgencyTile } from "@/components/agency-banner-tile";
 import { MaidCard } from "@/components/maid-card";
 import {
   DIRECTORY_LANGUAGES,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/directory";
 import {
   HOME_MAID_NATIONALITIES,
+  type FeaturedAgency,
   type HomeAgencyBanner,
   type HomeMaidRow,
 } from "@/lib/home";
@@ -218,9 +219,19 @@ export function HomeHero() {
 /** Section 2: paid agency banners, two columns of artwork tiles. */
 export function LicensedAgenciesSection({
   banners,
+  featuredAgencies,
 }: {
   banners: HomeAgencyBanner[];
+  featuredAgencies: FeaturedAgency[];
 }) {
+  // Paid artwork keeps the top slots; approved agencies that publish maid
+  // profiles fill the rest. That is how At The Agency - the agency with the
+  // migrated inventory - stays featured without inventing a subscription.
+  const paidIds = new Set(banners.map((banner) => banner.id));
+  const featured = featuredAgencies
+    .filter((agency) => !paidIds.has(agency.id))
+    .slice(0, Math.max(0, 4 - banners.length));
+  const hasTiles = banners.length > 0 || featured.length > 0;
   return (
     <section aria-labelledby="licensed-agencies">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -243,10 +254,13 @@ export function LicensedAgenciesSection({
           <ArrowRight aria-hidden="true" className="size-3.5" />
         </Link>
       </div>
-      {banners.length > 0 ? (
+      {hasTiles ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
           {banners.map((banner) => (
             <AgencyBannerTile key={banner.id} banner={banner} />
+          ))}
+          {featured.map((agency) => (
+            <FeaturedAgencyTile key={agency.id} agency={agency} />
           ))}
         </div>
       ) : (
@@ -276,15 +290,25 @@ export function LicensedAgenciesSection({
 export function MaidsByNationalitySection({
   rows,
   sidebarBanners,
+  featuredAgencies,
 }: {
   rows: HomeMaidRow[];
   sidebarBanners: HomeAgencyBanner[];
+  featuredAgencies: FeaturedAgency[];
 }) {
+  // Without a paid sidebar banner the rail used to vanish. It now falls back to
+  // the real featured agencies, so the flagship agency keeps a visible slot.
+  const railAgencies = featuredAgencies
+    .filter(
+      (agency) => !sidebarBanners.some((banner) => banner.id === agency.id),
+    )
+    .slice(0, 2);
+  const hasRail = sidebarBanners.length > 0 || railAgencies.length > 0;
   return (
     <section aria-labelledby="maids-by-nationality">
       <div
         className={
-          sidebarBanners.length > 0
+          hasRail
             ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start"
             : "grid gap-6"
         }
@@ -334,7 +358,7 @@ export function MaidsByNationalitySection({
             </p>
           )}
         </div>
-        {sidebarBanners.length > 0 && (
+        {hasRail && (
           <aside
             aria-labelledby="featured-agencies"
             className="lg:sticky lg:top-4 lg:self-start"
@@ -349,6 +373,11 @@ export function MaidsByNationalitySection({
               {sidebarBanners.map((banner) => (
                 <div key={banner.id}>
                   <AgencyBannerTile banner={banner} variant="compact" />
+                </div>
+              ))}
+              {railAgencies.map((agency) => (
+                <div key={agency.id}>
+                  <FeaturedAgencyTile agency={agency} variant="compact" />
                 </div>
               ))}
             </div>

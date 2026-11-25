@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { safeInternalPath } from "@/lib/security/safe-redirect";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -385,9 +386,9 @@ export function EnquiryForm({
       </button>
       <p className="text-muted-foreground text-xs">
         Your details are used to process this enquiry. See our{" "}
-        <a className="underline" href="/privacy">
+        <Link className="underline" href="/privacy">
           Privacy Policy
-        </a>
+        </Link>
         .
       </p>
       {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
@@ -539,9 +540,9 @@ export function AllAgenciesEnquiryForm({
       )}
       <p className="text-muted-foreground text-[11px] leading-4">
         Your enquiry is sent to every approved agency. See our{" "}
-        <a className="underline" href="/privacy">
+        <Link className="underline" href="/privacy">
           Privacy Policy
-        </a>
+        </Link>
         .
       </p>
     </form>

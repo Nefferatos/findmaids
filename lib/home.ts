@@ -336,6 +336,113 @@ export async function getHomepageMaidRows(options?: {
 }
 
 /**
+ * An agency shown in the homepage "Featured maid agencies" band.
+ *
+ * Unlike `HomeAgencyBanner` this does not require paid banner artwork: a real
+ * agency that publishes maid profiles is featured on the strength of its own
+ * inventory. Paid placements still sort first, so a subscriber keeps the top
+ * slot once they upload artwork.
+ */
+export type FeaturedAgency = {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  province: string;
+  /** Agency-uploaded artwork, when there is any. */
+  bannerUrl: string | null;
+  verifiedBadge: boolean;
+  /** Published (publicly visible) maid profiles owned by the agency. */
+  maidCount: number;
+  /** True when the agency holds an active paid plan or ad placement. */
+  featured: boolean;
+};
+
+/** Cards shown in the homepage featured-agency band. */
+export const HOME_FEATURED_AGENCY_LIMIT = 4;
+
+/** Paid, verified, then largest inventory. */
+function orderFeaturedAgencies(agencies: FeaturedAgency[]): FeaturedAgency[] {
+  return [...agencies].sort(
+    (left, right) =>
+      Number(right.featured) - Number(left.featured) ||
+      Number(right.verifiedBadge) - Number(left.verifiedBadge) ||
+      right.maidCount - left.maidCount ||
+      left.name.localeCompare(right.name),
+  );
+}
+
+/**
+ * Approved agencies that currently publish maid profiles.
+ *
+ * This is the real-data source for the homepage featured band: it never invents
+ * an entry and it never needs a payment record, so an agency with a migrated
+ * inventory (At The Agency and its 172 profiles) is featured even when it has no
+ * banner artwork yet. When artwork exists the tile renders it; otherwise the
+ * caller renders the agency's own name, location and profile count.
+ */
+export async function getFeaturedAgencies(options?: {
+  limit?: number;
+}): Promise<FeaturedAgency[]> {
+  const limit = Math.max(
+    1,
+    Math.min(options?.limit ?? HOME_FEATURED_AGENCY_LIMIT, 12),
+  );
+  const now = new Date();
+  const visibility = sampleAgencyVisibilityWhere();
+  const published = publishedMaidWhere();
+  const rows = await prisma.agency.findMany({
+    where: {
+      status: "APPROVED",
+      maids: { some: published },
+      ...(visibility ? { AND: [visibility] } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      city: true,
+      province: true,
+      bannerUrl: true,
+      verifiedBadge: true,
+      _count: { select: { maids: { where: published } } },
+      subscriptions: {
+        where: {
+          status: "ACTIVE",
+          startDate: { lte: now },
+          OR: [{ endDate: null }, { endDate: { gte: now } }],
+          payments: { some: { status: "PAID" } },
+        },
+        select: { id: true },
+        take: 1,
+      },
+      adPlacements: {
+        where: { status: "ACTIVE", startDate: { lte: now }, endDate: { gte: now } },
+        select: { id: true },
+        take: 1,
+      },
+    },
+    orderBy: { maids: { _count: "desc" } },
+    take: 12,
+  });
+
+  const agencies: FeaturedAgency[] = rows.map((agency) => ({
+    id: agency.id,
+    name: agency.name,
+    slug: agency.slug,
+    city: agency.city,
+    province: agency.province,
+    bannerUrl: bannerUrl(agency.bannerUrl),
+    verifiedBadge: agency.verifiedBadge,
+    maidCount: agency._count.maids,
+    featured:
+      agency.subscriptions.length > 0 || agency.adPlacements.length > 0,
+  }));
+
+  return orderFeaturedAgencies(agencies).slice(0, limit);
+}
+
+/**
  * Everything the landing page needs, in one call. Banner fetching pulls a few
  * extra rows so the sidebar can show different agencies from the main grid.
  */
@@ -350,14 +457,16 @@ export async function getHomePageData(options?: {
   );
   const sidebarLimit = Math.max(0, Math.min(options?.sidebarLimit ?? 4, 8));
 
-  const [banners, maidRows] = await Promise.all([
+  const [banners, maidRows, featuredAgencies] = await Promise.all([
     getHomepageAgencyBanners({ limit: bannerLimit + sidebarLimit }),
     getHomepageMaidRows({ perRow: options?.perRow ?? HOME_MAID_ROW_SIZE }),
+    getFeaturedAgencies(),
   ]);
 
   return {
     banners: banners.slice(0, bannerLimit),
     sidebarBanners: banners.slice(bannerLimit, bannerLimit + sidebarLimit),
     maidRows,
+    featuredAgencies,
   };
 }

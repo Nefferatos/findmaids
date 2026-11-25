@@ -86,6 +86,12 @@ const apiRoutes = allFiles
   .sort();
 
 const matchers = pages.map((route) => ({ route, regex: routeMatcher(route) }));
+// `href="/api/..."` targets are real routes too (CSV exports, JSON endpoints), so
+// they must resolve against the route handlers as well as the pages.
+const apiMatchers = apiRoutes.map((route) => ({
+  route,
+  regex: routeMatcher(route),
+}));
 
 function destination(link) {
   // Ignore external, protocol-relative, mail, tel and pure anchors.
@@ -111,9 +117,12 @@ for (const file of sourceFiles) {
       const raw = (match[1] ?? match[2] ?? match[3] ?? match[4] ?? "").trim();
       // Template literal with interpolation: keep the static prefix so a
       // `/agency/maids/${id}/edit` link is checked against the dynamic route.
-      const target = raw.includes("${")
-        ? raw.slice(0, raw.indexOf("${")).replace(/\/$/, "")
-        : destination(raw);
+      // The prefix can carry a query string (`/agencies?nationality=${x}`), which
+      // is not part of the route, so strip it like `destination` does.
+      const staticPrefix = raw.includes("${")
+        ? raw.slice(0, raw.indexOf("${"))
+        : raw;
+      const target = destination(staticPrefix);
       if (!target || !target.startsWith("/")) continue;
       const rel = path.relative(root, file).split(path.sep).join("/");
       if (!links.has(target)) links.set(target, { dynamic: raw.includes("${"), sources: new Set() });
@@ -125,8 +134,16 @@ for (const file of sourceFiles) {
 const broken = [];
 for (const [target, entry] of [...links].sort(([a], [b]) => a.localeCompare(b))) {
   const match = entry.dynamic
-    ? pages.some((route) => route.startsWith(`${target}/`) && route.includes("["))
-    : matchers.some((candidate) => candidate.regex.test(target));
+    ? pages.some(
+        (route) =>
+          (route === target || route.startsWith(`${target}/`)) &&
+          route.includes("["),
+      ) ||
+      apiRoutes.some(
+        (route) => route === target || route.startsWith(`${target}/`),
+      )
+    : matchers.some((candidate) => candidate.regex.test(target)) ||
+      apiMatchers.some((candidate) => candidate.regex.test(target));
   if (!match) broken.push({ target, sources: [...entry.sources] });
 }
 

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { ArrowLeft, Check, Languages, MapPin } from "lucide-react";
 import { Container } from "@/components/site";
+import { DataUnavailable } from "@/components/data-unavailable";
 import { EnquiryForm } from "@/components/forms";
 import { MaidPhoto } from "@/components/maid-photo";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 import { maidPhotoUrl } from "@/lib/maid-photo";
 import { ageFromDateOfBirth } from "@/lib/maid-profile";
 import { maidStatusLabels, publishedMaidWhere } from "@/lib/maids";
@@ -48,18 +51,45 @@ function maidWhere(id: string) {
   };
 }
 
+/**
+ * `generateMetadata` and the page body need the same row, so the query is
+ * memoised per request: one socket/database round trip instead of two, which
+ * matters on the Workers CPU budget.
+ */
+const loadMaid = cache((id: string) =>
+  prisma.maid.findFirst({
+    where: maidWhere(id),
+    include: {
+      agency: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          city: true,
+          province: true,
+          verifiedBadge: true,
+        },
+      },
+    },
+  }),
+);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const maid = await prisma.maid
-    .findFirst({
-      where: maidWhere(id),
-      select: { fullName: true, reference: true, nationality: true },
-    })
-    .catch(() => null);
+  let maid: Awaited<ReturnType<typeof loadMaid>> = null;
+  let loadFailed = false;
+  try {
+    maid = await loadMaid(id);
+  } catch {
+    // A timeout says nothing about whether the profile exists, so leave the
+    // page indexable instead of marking it "not found".
+    loadFailed = true;
+  }
+  if (loadFailed) return { title: "Maid profile | FindMaids" };
   if (!maid)
     return {
       title: "Maid profile not found | FindMaids",
@@ -78,23 +108,32 @@ export default async function MaidProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const maid = await prisma.maid
-    .findFirst({
-      where: maidWhere(id),
-      include: {
-        agency: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            city: true,
-            province: true,
-            verifiedBadge: true,
-          },
-        },
+  let maid: Awaited<ReturnType<typeof loadMaid>> = null;
+  let loadFailed = false;
+  try {
+    maid = await loadMaid(id);
+  } catch (error) {
+    loadFailed = true;
+    logger.error(
+      {
+        errorType: error instanceof Error ? error.name : "unknown",
+        reason: error instanceof Error ? error.message : "unknown",
+        maidId: id,
       },
-    })
-    .catch(() => null);
+      "Unable to load maid profile",
+    );
+  }
+  // A failed query is not a missing profile: never answer a database timeout
+  // with 404, which used to make real listings look deleted.
+  if (loadFailed)
+    return (
+      <DataUnavailable
+        title="This maid profile could not be loaded"
+        detail="The database did not answer in time, so the profile is not shown. The listing has not been removed - please reload in a moment."
+        backHref="/maids/search"
+        backLabel="Back to maid search"
+      />
+    );
   if (!maid || !maid.agency) notFound();
 
   const name = maidName(maid);
