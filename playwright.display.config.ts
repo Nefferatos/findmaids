@@ -38,12 +38,17 @@ export default defineConfig({
           PRISMA_MOCK: "true",
           // Belt and braces: even if the mock switch were missing, these point at
           // an unreachable local port instead of a real (production) database.
-          DATABASE_URL: "postgresql://display-only@127.0.0.1:9/findmaids_display_only",
-          DIRECT_URL: "postgresql://display-only@127.0.0.1:9/findmaids_display_only",
+          DATABASE_URL:
+            "postgresql://display-only@127.0.0.1:9/findmaids_display_only",
+          DIRECT_URL:
+            "postgresql://display-only@127.0.0.1:9/findmaids_display_only",
           PRISMA_MOCK_FILE: mockDbFile,
           APP_ENV: "test",
           NODE_ENV: "development",
           EMAIL_DELIVERY_DISABLED: "true",
+          // Sign-up/sign-in use the local bcrypt column: this run must never
+          // create or verify identities in the real Supabase project.
+          SUPABASE_AUTH_DISABLED: "true",
           AI_PROVIDER: "mock",
           PAYMENT_PROVIDER: "mock",
           AUTH_SECRET: process.env.AUTH_SECRET ?? "display-only-e2e-secret",

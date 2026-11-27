@@ -21,6 +21,9 @@ export default defineConfig({
       // A developer shell or `.env` may export the local admin MFA bypass; the
       // policy tests must always run against the default (MFA required).
       ADMIN_MFA_BYPASS: "false",
+      // Credentials stay in the local bcrypt column: no unit test may create or
+      // verify identities in the real Supabase project (see lib/credentials.ts).
+      SUPABASE_AUTH_DISABLED: "true",
     },
   },
 });

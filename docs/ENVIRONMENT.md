@@ -13,6 +13,7 @@ Use isolated credentials and data for each environment. Never copy production se
 Copy `.env.example` to an ignored local `.env`; replace every placeholder. Key groups:
 
 - Runtime/Auth: `NEXT_PUBLIC_SITE_URL`, `NEXTAUTH_URL`, `AUTH_SECRET`, `NEXTAUTH_SECRET`, Google OAuth credentials, `TOTP_ENCRYPTION_KEY`.
+- Credentials (Supabase Auth): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`; `SUPABASE_AUTH_DISABLED=true` falls back to the local bcrypt hash (display-only runs). See `docs/SUPABASE_SETUP.md`.
 - Database/storage: `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`, server-only `SUPABASE_SERVICE_ROLE_KEY`, bucket names.
 - Email/bot protection: `RESEND_API_KEY`, `EMAIL_FROM`, `DATA_REQUEST_EMAIL`, Turnstile site/secret keys.
 - Payments/cron: PayMongo test/live keys and webhook secret, `PAYMENT_PROVIDER`, `CRON_SECRET`.

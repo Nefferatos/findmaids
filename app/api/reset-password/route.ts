@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { applyNewPassword, localPasswordHash } from "@/lib/credentials";
+import { supabaseAuthEnabled } from "@/lib/supabase-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/security/client-ip";
 
@@ -32,11 +33,39 @@ export async function POST(request: Request) {
       { error: "Invalid or expired reset link." },
       { status: 400 },
     );
+  const user = await prisma.user.findUnique({
+    where: { id: record.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      supabaseUserId: true,
+      passwordHash: true,
+    },
+  });
+  if (!user)
+    return NextResponse.json(
+      { error: "Invalid or expired reset link." },
+      { status: 400 },
+    );
+  // The reset token proves ownership, so Supabase is updated first: if it cannot
+  // store the password the token stays usable instead of being consumed.
+  const useSupabase = supabaseAuthEnabled();
+  if (useSupabase && !(await applyNewPassword(user, parsed.data.password)))
+    return NextResponse.json(
+      {
+        error:
+          "Unable to update the password right now. Please try again shortly.",
+      },
+      { status: 503 },
+    );
   await prisma.$transaction([
     prisma.user.update({
-      where: { id: record.userId },
+      where: { id: user.id },
       data: {
-        passwordHash: await hash(parsed.data.password, 12),
+        ...(useSupabase
+          ? {}
+          : { passwordHash: await localPasswordHash(parsed.data.password) }),
         passwordChangedAt: new Date(),
       },
     }),

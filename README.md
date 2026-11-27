@@ -6,7 +6,7 @@ FindMaids is a Singapore-focused directory and advertising platform for independ
 
 - Node.js 20.19+ (or a supported current LTS); CI and the Cloudflare deploy build use Node 22 (see `.nvmrc`)
 - npm
-- A Supabase project for Postgres and Storage
+- A Supabase project for Postgres, Storage and Auth
 - Docker Desktop only if you choose to run local PostgreSQL instead
 
 > **Why Node.js 20.19+ matters.** Tailwind CSS 4.3 ships `@tailwindcss/node` as CommonJS but depends on the ESM-only `magic-string` 1.x, so the Turbopack loader can only load it through Node's `require(esm)` support (unflagged from Node 20.19 and 22.12). On older Node versions the build fails with `require() of ES Module ... magic-string\dist\index.mjs not supported`. `package.json` pins `@tailwindcss/node`'s `magic-string` back to the dual CJS/ESM `0.30.21` so the build also works on Node < 20.19; drop that override once every environment runs a current LTS.
@@ -54,12 +54,12 @@ Production runs on Cloudflare Workers through OpenNext (`wrangler.jsonc`, `.open
 Pushes to `main` run `.github/workflows/deploy.yml`. The workflow needs these **repository secrets**
 (Settings → Secrets and variables → Actions):
 
-| Secret | Used for |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | `wrangler deploy` (Workers Scripts: Edit + Account: Read) |
-| `CLOUDFLARE_ACCOUNT_ID` | Target account |
-| `DATABASE_URL`, `DIRECT_URL` | Optional; apply Prisma migrations before deploying (the Worker itself connects through the `HYPERDRIVE` binding) |
-| `AUTH_SECRET`, `NEXTAUTH_SECRET`, `TOTP_ENCRYPTION_KEY`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Build-time env; runtime values are also stored with `wrangler secret put` |
+| Secret                                                                                                              | Used for                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`                                                                                              | `wrangler deploy` (Workers Scripts: Edit + Account: Read)                                                        |
+| `CLOUDFLARE_ACCOUNT_ID`                                                                                             | Target account                                                                                                   |
+| `DATABASE_URL`, `DIRECT_URL`                                                                                        | Optional; apply Prisma migrations before deploying (the Worker itself connects through the `HYPERDRIVE` binding) |
+| `AUTH_SECRET`, `NEXTAUTH_SECRET`, `TOTP_ENCRYPTION_KEY`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | Build-time env; runtime values are also stored with `wrangler secret put`                                        |
 
 Without `CLOUDFLARE_API_TOKEN` the deploy step stops in `wrangler`'s `requireAuth` (wrangler only
 prints the path of its own log). The workflow now tails that log and prints the bundle sizes as
@@ -87,7 +87,7 @@ populate).
 - `prisma`: PostgreSQL/pgvector schema, migrations, and development seed
 - `content/guides`: MDX articles
 - `docs/PAYMENTS.md`: provider and lifecycle setup
-- `docs/SUPABASE_SETUP.md`: Supabase Postgres and Storage setup
+- `docs/SUPABASE_SETUP.md`: Supabase Postgres, Storage and Auth (sign-up/sign-in) setup
 - `docs/ADMIN_ACCOUNT_SETUP.md`: creating and bootstrapping an ADMIN account in Supabase
 - `tests`: Vitest unit tests; `e2e`: Playwright browser smoke tests
 

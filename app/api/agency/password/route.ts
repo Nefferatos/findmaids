@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { compare, hash } from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  applyNewPassword,
+  localPasswordHash,
+  verifyAccountPassword,
+} from "@/lib/credentials";
+import { supabaseAuthEnabled } from "@/lib/supabase-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/security/client-ip";
 
@@ -47,20 +52,46 @@ export async function PATCH(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { passwordHash: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      supabaseUserId: true,
+      passwordHash: true,
+    },
   });
-  if (!user?.passwordHash)
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user.passwordHash && !user.supabaseUserId)
     return NextResponse.json(
       { error: "Password login is not enabled for this account." },
       { status: 400 },
     );
-  if (!(await compare(parsed.data.currentPassword, user.passwordHash)))
+  // Supabase verifies the current password once the account is linked; legacy
+  // bcrypt-only accounts are checked locally and linked by this call.
+  if (!(await verifyAccountPassword(user, parsed.data.currentPassword)))
     return NextResponse.json(
       { error: "Current password is incorrect." },
       { status: 400 },
     );
 
-  const passwordHash = await hash(parsed.data.newPassword, 12);
+  const useSupabase = supabaseAuthEnabled();
+  if (
+    useSupabase &&
+    !(await applyNewPassword(user, parsed.data.newPassword, {
+      currentPassword: parsed.data.currentPassword,
+    }))
+  )
+    return NextResponse.json(
+      {
+        error:
+          "Unable to update the password right now. Please try again shortly.",
+      },
+      { status: 503 },
+    );
+  const passwordHash = useSupabase
+    ? undefined
+    : await localPasswordHash(parsed.data.newPassword);
   const agency = await prisma.agency.findUnique({
     where: { ownerId: session.user.id },
     select: { id: true },
@@ -68,7 +99,10 @@ export async function PATCH(request: Request) {
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: session.user.id },
-      data: { passwordHash, passwordChangedAt: new Date() },
+      data: {
+        ...(passwordHash ? { passwordHash } : {}),
+        passwordChangedAt: new Date(),
+      },
     });
     await tx.auditLog.create({
       data: {

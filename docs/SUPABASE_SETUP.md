@@ -1,6 +1,52 @@
 # Supabase Setup
 
-FindMaids uses Supabase Postgres for Prisma data and Supabase Storage for media and private payment documents. Never place the Supabase service-role key in browser code or a `NEXT_PUBLIC_*` variable.
+FindMaids uses Supabase Postgres for Prisma data, Supabase Storage for media and private payment documents, and Supabase Auth (GoTrue) for **account credentials** — sign-up, sign-in and password changes. Never place the Supabase service-role key in browser code or a `NEXT_PUBLIC_*` variable.
+
+## Auth (sign-up and sign-in)
+
+Supabase Auth owns the password. Every registration creates an `auth.users` row (Authentication > Users), every sign-in is a Supabase password grant, and password reset/change writes through the Supabase Admin API. The profile row in `User` stays the source of truth for the app's own rules; `User.supabaseUserId` links the two.
+
+| Concern | Owner |
+| --- | --- |
+| E-mail + password, password hashing, password policy | **Supabase Auth** (`auth.users`) |
+| Roles (`VISITOR`/`AGENCY`/`STAFF`/`ADMIN`), disabled accounts, admin TOTP | `User` row + `auth.ts` |
+| E-mail verification link (`/api/verify-email`) | The app (Resend), gated by `User.emailVerified` |
+| Session cookie, RBAC, impersonation | The app (Auth.js JWT, `AUTH_SECRET`) |
+
+Because the app sends its own verification mail, identities are created with `email_confirm: true`: Supabase must neither block the password grant nor send a second e-mail. Sign-in still fails until `User.emailVerified` is set by `/api/verify-email`.
+
+Required configuration:
+
+```env
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"   # create/update/delete identities
+SUPABASE_ANON_KEY="<anon-key>"                    # preferred key for the password grant
+SUPABASE_AUTH_DISABLED="false"                    # "true" keeps the local bcrypt path
+```
+
+Deploy the two keys as Worker secrets (`npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `npx wrangler secret put SUPABASE_ANON_KEY`); `SUPABASE_URL` is already a `wrangler.jsonc` var.
+
+Two dashboard settings matter:
+
+1. **Authentication > Providers > Email must be enabled.** With it off, GoTrue answers every password grant with `422 email_provider_disabled` ("Email logins are disabled") and nobody can sign in.
+2. **Authentication > Users** is where identities appear. No template work is needed: the app sends its own confirmation and reset e-mails, so Supabase's confirmation/recovery templates are unused.
+
+To make a misconfigured project fail loudly instead of quietly, `/api/register` performs the password grant before reporting success and deletes the identity again if the project cannot sign the account in — a disabled provider surfaces as "Account creation is temporarily unavailable" rather than an account that can never log in. Sign-in logs `Supabase password grant did not complete` with the GoTrue reason whenever the failure is not a plain wrong password.
+
+Optional: enable leases in Authentication > Sessions if you want Supabase-side session limits — the app does not rely on them.
+
+### Existing accounts
+
+Accounts created before this integration keep their bcrypt row and sign in as before. The first successful sign-in creates the matching Supabase identity (with the password the user just proved, or by reusing the identity that already has that address) and stores `User.supabaseUserId`, so every later sign-in is a Supabase password grant. No bulk import or forced password reset is needed.
+
+### Operating notes
+
+- A linked account is decided by Supabase alone. If an identity is deleted in the dashboard, that account can no longer sign in, even though the old bcrypt hash is still in the table.
+- Password reset (`/api/reset-password`) and the agency change-password form update Supabase first and then stamp `User.passwordChangedAt`, which invalidates existing app sessions.
+- Sign-in keeps its existing rate limit (10 attempts / 15 minutes per IP + identifier); a Supabase outage fails closed with the generic "email or password is incorrect" message.
+- Registration answers with the same neutral message when the address already exists, so the form cannot be used to enumerate accounts.
+- Display-only E2E runs set `SUPABASE_AUTH_DISABLED=true` (`playwright.display.config.ts`) so they never touch the real project; unit tests set it in `vitest.config.mts`.
+- To disable the integration entirely, set `SUPABASE_AUTH_DISABLED=true`: new accounts are stored with a bcrypt hash again and every account falls back to the local hash. Accounts created while Supabase was active have no local hash, so disabling it locks them out — re-enable or reset their passwords first.
 
 ## Database
 

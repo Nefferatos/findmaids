@@ -28,6 +28,7 @@
     "seed:agency-directory": "tsx scripts/seed-agency-directory.ts",
     "admin:promote": "tsx scripts/promote-admin.ts",
     "admin:totp": "tsx scripts/admin-totp.ts",
+    "auth:verify": "tsx scripts/verify-supabase-auth.ts",
     "seed": "tsx prisma/seed.ts",
     "accounts:test": "tsx scripts/create-test-accounts.ts",
     "seed:sample-workspace": "tsx scripts/seed-sample-workspace.ts",

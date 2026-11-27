@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
 
-
 test("directory is browseable and role-protected areas redirect visitors", async ({
   page,
 }) => {
@@ -21,8 +20,8 @@ test("registration form offers employer and agency roles", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Create an account" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Employer")).toBeVisible();
-  await expect(page.getByLabel("Agency")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Employer" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Agency" })).toBeVisible();
 });
 
 test("register, verify email, then log in", async ({ page, request }) => {
@@ -53,7 +52,8 @@ test("register, verify email, then log in", async ({ page, request }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  // Employer accounts are sent to the employer centre after login.
+  await expect(page).toHaveURL(/\/account$/);
   await prisma.user.delete({ where: { id: user.id } });
 });
 
@@ -72,7 +72,9 @@ test("seeded agency profile enquiry flow", async ({ page }) => {
   await page.getByRole("checkbox").check();
   // Turnstile (when configured) must finish before submitting.
   if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
-    await expect(page.locator('input[name="cf-turnstile-response"]')).not.toHaveValue("", { timeout: 45_000 });
+    await expect(
+      page.locator('input[name="cf-turnstile-response"]'),
+    ).not.toHaveValue("", { timeout: 45_000 });
   await page.getByRole("button", { name: "Send enquiry" }).click();
   await expect(page.getByRole("status")).toContainText("enquiry has been sent");
 });

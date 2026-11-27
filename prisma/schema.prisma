@@ -154,6 +154,12 @@ model User {
   /** Optional login handle; lets an account sign in without its email. */
   username                String?                  @unique
   passwordHash            String?
+  /**
+   * Supabase Auth identity (`auth.users.id`). Supabase owns the password once
+   * this is set; it stays null for accounts that predate the integration and for
+   * deployments that run without Supabase Auth.
+   */
+  supabaseUserId          String?                  @unique
   emailVerified           DateTime?
   image                   String?
   role                    UserRole                 @default(VISITOR)

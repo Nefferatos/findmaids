@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import { compare } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { verifyAccountPassword } from "@/lib/credentials";
 import { clientIp } from "@/lib/security/client-ip";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { decryptTotpSecret, verifyTotp } from "@/lib/totp";
@@ -70,9 +70,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         )
           return null;
         const user = await findLoginUser(identifier);
-        if (!user?.passwordHash || !user.emailVerified) return null;
-        if (!(await compare(parsed.data.password, user.passwordHash)))
+        if (!user) return null;
+        // Supabase Auth verifies the password whenever it is configured (legacy
+        // bcrypt-only accounts are checked locally and linked in the background).
+        // Every failure below returns null so the form cannot be used to probe
+        // which addresses exist.
+        if (!(await verifyAccountPassword(user, parsed.data.password)))
           return null;
+        if (!user.emailVerified) return null;
         if (user.disabled) return null;
         if (user.role === "ADMIN" && user.totpEnabled) {
           if (!parsed.data.totp || !user.totpSecret) return null;

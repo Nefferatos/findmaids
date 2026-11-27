@@ -1,10 +1,5 @@
 import { expect, test } from "@playwright/test";
-import {
-  findUser,
-  resetStore,
-  rows,
-  seedVerificationToken,
-} from "./mock-db";
+import { findUser, resetStore, rows, seedVerificationToken } from "./mock-db";
 
 /**
  * Sign-up and sign-in coverage that runs in display-only mode: the app talks to
@@ -37,7 +32,7 @@ test("creates an employer account from the sign-up form", async ({ page }) => {
   await page.getByLabel("Full name").fill("Playwright Employer");
   await page.getByLabel("Email").fill(employerEmail);
   await page.getByLabel("Password").fill(password);
-  await page.getByLabel("Employer").check();
+  await page.getByRole("radio", { name: "Employer" }).check();
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page.getByRole("status")).toContainText(
@@ -96,7 +91,12 @@ test("verifying the email then signing in creates a session", async ({
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  // Employers (VISITOR) continue to their own portal (`landingForRole`), not
+  // the homepage.
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(
+    page.getByRole("heading", { name: /Welcome back/ }),
+  ).toBeVisible();
   const cookies = await page.context().cookies();
   expect(cookies.some((cookie) => /session-token/.test(cookie.name))).toBe(
     true,
@@ -124,7 +124,7 @@ test("duplicate sign-up stays neutral and creates no second account", async ({
   await page.getByLabel("Full name").fill("Playwright Employer");
   await page.getByLabel("Email").fill(employerEmail);
   await page.getByLabel("Password").fill(password);
-  await page.getByLabel("Employer").check();
+  await page.getByRole("radio", { name: "Employer" }).check();
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page.getByRole("status")).toContainText(
@@ -144,7 +144,9 @@ test("agency sign-up creates an onboarding draft and signs in as an agency", asy
   await page.getByLabel("Full name").fill("Playwright Agency Owner");
   await page.getByLabel("Email").fill(agencyEmail);
   await page.getByLabel("Password").fill(password);
-  await expect(page.getByLabel("Agency")).toBeChecked();
+  // The header's "Contact an agency" aria-label also matches getByLabel("Agency"),
+  // so target the radio button itself.
+  await expect(page.getByRole("radio", { name: "Agency" })).toBeChecked();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText(
     "Account created. Check your email to verify it.",
@@ -167,7 +169,9 @@ test("agency sign-up creates an onboarding draft and signs in as an agency", asy
   await page.getByLabel("Email").fill(agencyEmail);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  // An agency owner lands in the agency area. Until an Agency row exists that
+  // is the onboarding wizard.
+  await expect(page).toHaveURL(/\/agency(\/onboarding)?$/);
 
   // The AGENCY role travels in the session, so agency-only pages open.
   await page.goto("/agency/onboarding");

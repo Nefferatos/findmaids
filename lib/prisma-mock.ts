@@ -34,7 +34,8 @@ function readFileStore(): Store | null {
   // into the standalone (OpenNext/Workers) output, which is what exhausted the
   // build workers' heap. The mirror file is a local/E2E convenience only — the
   // Worker never uses it — so the tracer can safely skip it.
-  if (!MOCK_FILE || !existsSync(/* turbopackIgnore: true */ MOCK_FILE)) return null;
+  if (!MOCK_FILE || !existsSync(/* turbopackIgnore: true */ MOCK_FILE))
+    return null;
   try {
     const parsed = JSON.parse(
       readFileSync(/* turbopackIgnore: true */ MOCK_FILE, "utf8"),
@@ -49,8 +50,8 @@ function readFileStore(): Store | null {
 }
 
 const runtime = globalThis as unknown as Record<string, Store | undefined>;
-const memoryStore: Store =
-  (runtime[STORE_KEY] ??= readFileStore() ?? emptyStore());
+const memoryStore: Store = (runtime[STORE_KEY] ??=
+  readFileStore() ?? emptyStore());
 
 function currentStore(): Store {
   // Re-read the mirrored file so seeded/updated rows from another process land.
@@ -65,7 +66,9 @@ function persist() {
   if (!MOCK_FILE) return;
   try {
     // Same reasoning as `readFileStore`: dynamic path, tracer opt-out.
-    mkdirSync(/* turbopackIgnore: true */ dirname(MOCK_FILE), { recursive: true });
+    mkdirSync(/* turbopackIgnore: true */ dirname(MOCK_FILE), {
+      recursive: true,
+    });
     writeFileSync(
       /* turbopackIgnore: true */ MOCK_FILE,
       JSON.stringify({ store: memoryStore }, null, 2),
@@ -125,7 +128,8 @@ function equalValues(left: unknown, right: unknown): boolean {
 
 function compareValues(left: unknown, right: unknown): number {
   if (isDate(left) || isDate(right)) return toTime(left) - toTime(right);
-  if (typeof left === "number" && typeof right === "number") return left - right;
+  if (typeof left === "number" && typeof right === "number")
+    return left - right;
   return String(left ?? "").localeCompare(String(right ?? ""));
 }
 
@@ -155,23 +159,33 @@ function matches(row: Row, where: Row | undefined): boolean {
   for (const [key, condition] of Object.entries(where)) {
     if (condition === undefined) continue;
     if (key === "AND") {
-      const clauses = (Array.isArray(condition) ? condition : [condition]) as Row[];
+      const clauses = (
+        Array.isArray(condition) ? condition : [condition]
+      ) as Row[];
       if (!clauses.every((clause) => matches(row, clause))) return false;
       continue;
     }
     if (key === "OR") {
-      const clauses = (Array.isArray(condition) ? condition : [condition]) as Row[];
+      const clauses = (
+        Array.isArray(condition) ? condition : [condition]
+      ) as Row[];
       if (clauses.length && !clauses.some((clause) => matches(row, clause)))
         return false;
       continue;
     }
     if (key === "NOT") {
-      const clauses = (Array.isArray(condition) ? condition : [condition]) as Row[];
+      const clauses = (
+        Array.isArray(condition) ? condition : [condition]
+      ) as Row[];
       if (clauses.some((clause) => matches(row, clause))) return false;
       continue;
     }
     const value = row[key];
-    if (condition === null || typeof condition !== "object" || isDate(condition)) {
+    if (
+      condition === null ||
+      typeof condition !== "object" ||
+      isDate(condition)
+    ) {
       if (!equalValues(value, condition)) return false;
       continue;
     }
@@ -181,14 +195,17 @@ function matches(row: Row, where: Row | undefined): boolean {
     );
     if (!isOperatorObject) {
       // Relation filter, e.g. { agency: { ownerId } }.
-      if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        return false;
       if (!matches(value as Row, operators)) return false;
       continue;
     }
-    if ("equals" in operators && !equalValues(value, operators.equals)) return false;
+    if ("equals" in operators && !equalValues(value, operators.equals))
+      return false;
     if ("not" in operators && equalValues(value, operators.not)) return false;
     if ("is" in operators && !equalValues(value, operators.is)) return false;
-    if ("isNot" in operators && equalValues(value, operators.isNot)) return false;
+    if ("isNot" in operators && equalValues(value, operators.isNot))
+      return false;
     if ("in" in operators) {
       const candidates = (operators.in as unknown[]) ?? [];
       if (!candidates.some((candidate) => equalValues(value, candidate)))
@@ -201,37 +218,51 @@ function matches(row: Row, where: Row | undefined): boolean {
     }
     if ("contains" in operators) {
       const haystack = String(value ?? "").toLowerCase();
-      if (!haystack.includes(String(operators.contains).toLowerCase())) return false;
+      if (!haystack.includes(String(operators.contains).toLowerCase()))
+        return false;
     }
     if ("startsWith" in operators) {
       if (!String(value ?? "").startsWith(String(operators.startsWith)))
         return false;
     }
     if ("endsWith" in operators) {
-      if (!String(value ?? "").endsWith(String(operators.endsWith))) return false;
+      if (!String(value ?? "").endsWith(String(operators.endsWith)))
+        return false;
     }
-    if ("lt" in operators && compareValues(value, operators.lt) >= 0) return false;
-    if ("lte" in operators && compareValues(value, operators.lte) > 0) return false;
-    if ("gt" in operators && compareValues(value, operators.gt) <= 0) return false;
-    if ("gte" in operators && compareValues(value, operators.gte) < 0) return false;
+    if ("lt" in operators && compareValues(value, operators.lt) >= 0)
+      return false;
+    if ("lte" in operators && compareValues(value, operators.lte) > 0)
+      return false;
+    if ("gt" in operators && compareValues(value, operators.gt) <= 0)
+      return false;
+    if ("gte" in operators && compareValues(value, operators.gte) < 0)
+      return false;
     if ("has" in operators) {
-      if (!Array.isArray(value) || !value.some((item) => equalValues(item, operators.has)))
+      if (
+        !Array.isArray(value) ||
+        !value.some((item) => equalValues(item, operators.has))
+      )
         return false;
     }
     if ("hasEvery" in operators) {
       const wanted = (operators.hasEvery as unknown[]) ?? [];
       if (!Array.isArray(value)) return false;
-      if (!wanted.every((item) => value.some((entry) => equalValues(entry, item))))
+      if (
+        !wanted.every((item) => value.some((entry) => equalValues(entry, item)))
+      )
         return false;
     }
     if ("hasSome" in operators) {
       const wanted = (operators.hasSome as unknown[]) ?? [];
       if (!Array.isArray(value)) return false;
-      if (!wanted.some((item) => value.some((entry) => equalValues(entry, item))))
+      if (
+        !wanted.some((item) => value.some((entry) => equalValues(entry, item)))
+      )
         return false;
     }
     if ("isEmpty" in operators) {
-      if (operators.isEmpty && Array.isArray(value) && value.length > 0) return false;
+      if (operators.isEmpty && Array.isArray(value) && value.length > 0)
+        return false;
     }
   }
   return true;
@@ -299,6 +330,7 @@ const modelDefaults: Record<string, Row> = {
     disabled: false,
     emailVerified: null,
     image: null,
+    supabaseUserId: null,
     totpEnabled: false,
     totpSecret: null,
     totpVerifiedAt: null,
@@ -338,7 +370,8 @@ function delegate(model: string) {
 
   const requireRow = (where: Row | undefined, action: string): Row => {
     const row = rows().find((candidate) => matches(candidate, where));
-    if (!row) throw new Error(`Prisma mock: ${model}.${action} found no record.`);
+    if (!row)
+      throw new Error(`Prisma mock: ${model}.${action} found no record.`);
     return row;
   };
 
@@ -346,12 +379,16 @@ function delegate(model: string) {
     findUnique: find(false),
     findUniqueOrThrow: (args: Row = {}) => {
       const row = find(false)(args) as Row | null;
-      return row ?? requireRow(args.where as Row | undefined, "findUniqueOrThrow");
+      return (
+        row ?? requireRow(args.where as Row | undefined, "findUniqueOrThrow")
+      );
     },
     findFirst: find(false),
     findFirstOrThrow: (args: Row = {}) => {
       const row = find(false)(args) as Row | null;
-      return row ?? requireRow(args.where as Row | undefined, "findFirstOrThrow");
+      return (
+        row ?? requireRow(args.where as Row | undefined, "findFirstOrThrow")
+      );
     },
     findMany: find(true),
     create: (args: Row = {}) => {
@@ -409,7 +446,9 @@ function delegate(model: string) {
     },
     deleteMany: (args: Row = {}) => {
       const store = rows();
-      const keep = store.filter((row) => !matches(row, args.where as Row | undefined));
+      const keep = store.filter(
+        (row) => !matches(row, args.where as Row | undefined),
+      );
       const removed = store.length - keep.length;
       store.length = 0;
       store.push(...keep);
@@ -417,10 +456,12 @@ function delegate(model: string) {
       return { count: removed };
     },
     count: (args: Row = {}) =>
-      rows().filter((row) => matches(row, args.where as Row | undefined)).length,
-    aggregate: (args: Row = {}) => ({
-      _count: rows().filter((row) => matches(row, args.where as Row | undefined))
+      rows().filter((row) => matches(row, args.where as Row | undefined))
         .length,
+    aggregate: (args: Row = {}) => ({
+      _count: rows().filter((row) =>
+        matches(row, args.where as Row | undefined),
+      ).length,
       _sum: {},
       _avg: {},
       _min: {},
@@ -484,7 +525,8 @@ async function queryRaw(strings: TemplateStringsArray, ...values: unknown[]) {
     persist();
     return [{ count: 1 }];
   }
-  const expired = isDate(existing.expiresAt) && (existing.expiresAt as Date) <= now;
+  const expired =
+    isDate(existing.expiresAt) && (existing.expiresAt as Date) <= now;
   existing.count = expired ? 1 : (existing.count as number) + 1;
   if (expired) existing.expiresAt = windowEnd;
   existing.updatedAt = now;
