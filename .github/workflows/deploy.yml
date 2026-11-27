@@ -56,6 +56,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check deploy secrets
+        # `wrangler deploy` only discovers a missing Cloudflare token after the
+        # whole build has run, and shipping code ahead of its database migration
+        # breaks every Prisma query (logins included). Both are checked up front
+        # so the failure is immediate and actionable.
+        run: |
+          missing=""
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then missing="$missing CLOUDFLARE_API_TOKEN"; fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then missing="$missing CLOUDFLARE_ACCOUNT_ID"; fi
+          if [ -z "${DATABASE_URL:-}" ]; then missing="$missing DATABASE_URL"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Required deploy secrets are missing:$missing"
+            echo "Add them under Settings > Secrets and variables > Actions, then re-run this workflow."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -92,8 +108,10 @@ jobs:
         run: |
           set +e
           if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::warning::DATABASE_URL is not configured in this repository; skipping migrations."
-            exit 0
+            # The Worker's Prisma client selects every column, including those a
+            # pending migration adds, so code must never ship ahead of its schema.
+            echo "::error::DATABASE_URL is not configured; refusing to deploy code that expects the current schema."
+            exit 1
           fi
           # Supabase's pooled endpoint cannot run DDL. Migrations use the direct
           # connection, and fall back to DATABASE_URL when that secret is empty.
