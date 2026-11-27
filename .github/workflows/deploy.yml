@@ -66,6 +66,11 @@ jobs:
           if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then missing="$missing CLOUDFLARE_API_TOKEN"; fi
           if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then missing="$missing CLOUDFLARE_ACCOUNT_ID"; fi
           if [ -z "${DATABASE_URL:-}" ]; then missing="$missing DATABASE_URL"; fi
+          # `lib/security/env-guard.ts` refuses to boot a production Worker
+          # without a real session secret, so a missing one is a deploy blocker,
+          # not something to discover in the runtime logs.
+          if [ -z "${AUTH_SECRET:-}" ]; then missing="$missing AUTH_SECRET"; fi
+          if [ -z "${NEXTAUTH_SECRET:-}" ]; then missing="$missing NEXTAUTH_SECRET"; fi
           if [ -n "$missing" ]; then
             echo "::error::Required deploy secrets are missing:$missing"
             echo "Add them under Settings > Secrets and variables > Actions, then re-run this workflow."
